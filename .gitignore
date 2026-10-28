@@ -1,0 +1,15 @@
+# 敏感（公开仓库绝不入库）：生产库（密码哈希+孩子学习数据）与会话密钥
+app/data/*
+!app/data/.gitkeep
+
+# 版权：教材原始 PDF（data/raw，可由 fetch_zi.py 重新提取）
+data/raw/
+
+# 测试产物：UI 截图（含真实用户名，跑 ui_test 自动再生）
+tests/shots/
+
+__pycache__/
+*.pyc
+
+# 本机测试凭据（mido 随机密码，seed 输出；不入库）
+tests/credentials.json

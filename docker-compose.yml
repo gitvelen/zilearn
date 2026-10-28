@@ -1,0 +1,17 @@
+services:
+  zilearn:
+    build: ./app
+    container_name: zilearn
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./app/data:/app/data
+      - ./app/static:/app/static
+      - ./data:/data:ro
+    networks:
+      - main_default
+
+networks:
+  main_default:
+    external: true
