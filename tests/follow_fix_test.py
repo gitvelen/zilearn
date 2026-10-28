@@ -7,7 +7,7 @@ T0 间歇声源(300ms 声/700ms 静≈说话节律)：读到→✓爆闪→流�
    （注：--use-file-for-fake-audio-cycles 的持续声会被动态阈值当本底，测不了这条路径）
 T2 getUserMedia 永久挂起（权限弹窗未决=原硬卡死路径）：3s 超时→micDenied 降级，
    30s 失败记忆使后续项立即降级，全程推进不卡死，流水 heard=NULL——句步 sent 跟读
-T3 /app.js?v=18 加载 200 + 全程无 JS pageerror
+T3 /app.js?v=19 加载 200 + 全程无 JS pageerror
 
 用法: python3 tests/follow_fix_test.py [base_url]   # 需本地服务已起
 """
@@ -100,7 +100,7 @@ def run(page):
         timeout=15000, polling=100)
     gap1 = time.time() - t_wait
     check("T1 单轮超时 ~5.5s(兜底1.5s生效)", 4.5 <= gap1 <= 8, f"{gap1:.1f}s")
-    check("T1 重试轮文案", "没听到你读哦" in page.locator(".fb-hint.retry").inner_text())
+    check("T1 重试轮文案", "没听到" in page.locator(".fb-hint.retry").inner_text())
     page.screenshot(path=str(SHOTS / "fix-t1-retry-hint.png"), full_page=True)
     t_retry = time.time()
     page.wait_for_function("window.ziapp.follow.on===false", timeout=20000, polling=100)
@@ -108,6 +108,9 @@ def run(page):
     check("T1 按钮解禁", not page.locator(".learn-card > button.btn.big").is_disabled())
     rows = follow_rows()
     check("T1 流水 heard=0/tries=1", rows == [(ch, "char", 0, 1)], rows)
+    import sqlite3 as _s
+    _c = _s.connect(DB); _t = _c.execute("SELECT peak_rms,thr_used,dur_ms,ua FROM follow_log WHERE kind='char' AND char=? ORDER BY rowid DESC LIMIT 1", (ch,)).fetchone(); _c.close()
+    check("T1 遥测落库(peak≈0/dur>4s)", _t and _t[0] is not None and _t[0] <= 0.05 and _t[2] > 4000, _t)
 
     # ---- T0 间歇声源（词步 word）：读到路径 ----
     page.click(".learn-card > button.btn.big")
@@ -121,6 +124,8 @@ def run(page):
     check("T0 词跟读全部读到推进", total < 40, f"{total:.1f}s")
     w = [r for r in follow_rows() if r[1] == "word"]
     check("T0 流水 word×4 heard=1/tries=0", len(w) == 4 and all(r[2] == 1 and r[3] == 0 for r in w), w)
+    st = page.evaluate("() => window.ziapp._fStats")
+    check("T0 遥测 peak_rms>0.1(读到)", st and st["peak_rms"] > 0.1, st)
     page.screenshot(path=str(SHOTS / "fix-t0-word-done.png"), full_page=True)
 
     # ---- T2 挂起的 getUserMedia（句步 sent）：原硬卡死路径 ----
@@ -128,6 +133,7 @@ def run(page):
       const app = window.ziapp;
       if (app._micStream) app._micStream.getTracks().forEach(t => t.stop());
       app._micStream = null; app._micCtx = null; app._micFailUntil = 0; app.micDenied = false;
+      app._micEnsuring = null;   // 清 T0 残留的 in-flight（resolve(true) 旧 promise 会被复用，污染挂起场景）
     }""")
     page.click(".learn-card > button.btn.big")
     page.wait_for_function("window.ziapp.ncStep===3", timeout=8000, polling=100)
@@ -135,9 +141,12 @@ def run(page):
     page.wait_for_function("window.ziapp.follow.on===true", timeout=20000, polling=100)
     page.wait_for_function("window.ziapp.micDenied===true", timeout=10000, polling=100)
     check("T2 挂起 getUserMedia 3s 超时→micDenied", True, f"{time.time()-t_sent:.1f}s")
-    page.wait_for_function("window.ziapp.follow.on===false", timeout=25000, polling=100)
+    check("T2 失败分流 pending", page.evaluate("() => window.ziapp.micState") == "pending")
+    page.wait_for_selector(".fb-hint.pending", timeout=10000)   # 范读期间持续显示（曾只闪现<100ms）
+    check("T2 pending 文案引导点允许", "允许" in page.locator(".fb-hint.pending").inner_text())
+    page.wait_for_function("window.ziapp.follow.on===false", timeout=40000, polling=100)
     total = time.time() - t_sent
-    check("T2 句跟读全部降级推进不卡死", total < 25, f"{total:.1f}s")
+    check("T2 句跟读全部降级推进不卡死", total < 40, f"{total:.1f}s")
     s = [r for r in follow_rows() if r[1] == "sent"]
     check("T2 流水 sent heard=NULL(降级三态)", len(s) >= 1 and all(r[2] is None for r in s), s)
     page.screenshot(path=str(SHOTS / "fix-t2-after-sent.png"), full_page=True)
@@ -154,12 +163,12 @@ if __name__ == "__main__":
                   "--use-fake-ui-for-media-stream"])
         page = browser.new_page(viewport={"width": 820, "height": 1100})
         page.on("pageerror", lambda e: errors.append(str(e)))
-        page.on("response", lambda r: v18.append(r.status) if "app.js?v=18" in r.url else None)
+        page.on("response", lambda r: v18.append(r.status) if "app.js?v=19" in r.url else None)
         try:
             run(page)
         finally:
             browser.close()
-    check("T3 app.js?v=18 加载 200", v18 == [200], v18)
+    check("T3 app.js?v=19 加载 200", v18 == [200], v18)
     check("T3 无 JS pageerror", not errors, errors[:3])
     print(f"\n{PASS_N} pass / {FAIL_N} fail  （截图: tests/shots/fix-*.png）")
     sys.exit(1 if FAIL_N else 0)

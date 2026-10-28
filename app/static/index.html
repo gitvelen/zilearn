@@ -215,11 +215,10 @@
           <i></i><i></i><span :style="{transform: 'scale(' + (1 + micLvl * 0.8) + ')'}">🎤</span>
         </div>
         <div v-else-if="follow.state==='wait'" class="listen-orb denied"><span>🔇</span></div>
+        <b v-if="follow.state==='wait' && !micDenied" class="lvl-bar" :style="{width: Math.round(micLvl*100)+'%'}"></b>
         <div v-if="followPop" class="heard-pop">✓ 听到啦</div>
       </div>
-      <span v-if="follow.state==='model'" class="fb-hint" :class="{retry: follow.tries>0}">{{ follow.tries>0 ? '没听到你读哦，再听一遍，大声读～' : '先听一听…' }}</span>
-      <span v-else-if="follow.state==='wait' && !micDenied" class="fb-hint go">轮到你啦，大声读！</span>
-      <span v-else-if="follow.state==='wait'" class="fb-hint denied">麦克风没开，跟爸爸妈妈读一读吧</span>
+      <span class="fb-hint" :class="fbHintCls()">{{ fbHint() }}</span>
       <button class="skip-link" @pointerdown="skipHold(true)" @pointerup="skipHold(false)"
               @pointerleave="skipHold(false)">⏭ 家长长按跳过</button>
     </div>
@@ -246,11 +245,10 @@
           <i></i><i></i><span :style="{transform: 'scale(' + (1 + micLvl * 0.8) + ')'}">🎤</span>
         </div>
         <div v-else-if="follow.state==='wait'" class="listen-orb denied"><span>🔇</span></div>
+        <b v-if="follow.state==='wait' && !micDenied" class="lvl-bar" :style="{width: Math.round(micLvl*100)+'%'}"></b>
         <div v-if="followPop" class="heard-pop">✓ 听到啦</div>
       </div>
-      <span v-if="follow.state==='model'" class="fb-hint" :class="{retry: follow.tries>0}">{{ follow.tries>0 ? '没听到你读哦，再听一遍，大声读～' : '先听一听…' }}</span>
-      <span v-else-if="follow.state==='wait' && !micDenied" class="fb-hint go">轮到你啦，大声读！</span>
-      <span v-else-if="follow.state==='wait'" class="fb-hint denied">麦克风没开，跟爸爸妈妈读一读吧</span>
+      <span class="fb-hint" :class="fbHintCls()">{{ fbHint() }}</span>
       <button class="skip-link" @pointerdown="skipHold(true)" @pointerup="skipHold(false)"
               @pointerleave="skipHold(false)">⏭ 家长长按跳过</button>
     </div>
@@ -423,6 +421,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=18"></script>
+<script src="/app.js?v=19"></script>
 </body>
 </html>

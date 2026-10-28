@@ -100,6 +100,13 @@ CREATE TABLE IF NOT EXISTS follow_log (   -- 跟读开口记录（有效性度�
   kind      TEXT NOT NULL,                -- char|word|sent|read
   heard     INTEGER,                      -- 1=读到 0=超时 NULL=无麦降级（不夸不卡）
   tries     INTEGER DEFAULT 0,            -- 重播范读轮数（0=一次过）
+  peak_rms  REAL,                         -- 检测窗峰值 RMS（v19 遥测：判"没读"vs"漏检"，不存音频只存标量）
+  noise_base REAL,                        -- 结束时滚动本底
+  thr_used  REAL,                         -- 结束时实发阈值
+  voiced_ms INTEGER,                      -- 累积超阈语音毫秒
+  dur_ms    INTEGER,                      -- 检测窗实际时长
+  ts_ms     INTEGER,                      -- 客户端时刻（区分弱网批量交付与服务端 ts）
+  ua        TEXT,                         -- 截断 UA（设备/浏览器/刷新率排查）
   ts        TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_flog_user ON follow_log(user_id, ts);
@@ -127,6 +134,13 @@ def init_db():
         db.execute("ALTER TABLE zi_content ADD COLUMN sentences TEXT")
     except sqlite3.OperationalError:
         pass
+    # 迁移：旧库补 follow_log 遥测列（v19，新库 SCHEMA 已含）
+    for col, decl in [("peak_rms", "REAL"), ("noise_base", "REAL"), ("thr_used", "REAL"),
+                      ("voiced_ms", "INTEGER"), ("dur_ms", "INTEGER"), ("ts_ms", "INTEGER"), ("ua", "TEXT")]:
+        try:
+            db.execute(f"ALTER TABLE follow_log ADD COLUMN {col} {decl}")
+        except sqlite3.OperationalError:
+            pass
     db.commit()
     db.close()
 

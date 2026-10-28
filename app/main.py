@@ -76,6 +76,13 @@ class FollowLogIn(BaseModel):
     kind: str            # char|word|sent|read
     heard: bool | None = None   # None=无麦/拒绝的节奏式降级
     tries: int = 0
+    peak_rms: float | None = None    # v19 遥测（旧前端不传，均默认 None）
+    noise_base: float | None = None
+    thr_used: float | None = None
+    voiced_ms: int | None = None
+    dur_ms: int | None = None
+    ts_ms: int | None = None        # 客户端时刻：区分弱网批量交付
+    ua: str | None = None
 
 
 VALID_GRADES = {f"{g}{t}" for g in range(1, 7) for t in ("A", "B")}
@@ -220,9 +227,13 @@ def follow_log(body: FollowLogIn, request: Request):
     try:
         h = db.execute("SELECT id FROM hanzi WHERE char=?", (body.char,)).fetchone()
         db.execute(
-            "INSERT INTO follow_log(user_id, hanzi_id, char, kind, heard, tries) VALUES(?,?,?,?,?,?)",
+            "INSERT INTO follow_log(user_id, hanzi_id, char, kind, heard, tries,"
+            " peak_rms, noise_base, thr_used, voiced_ms, dur_ms, ts_ms, ua)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (user["id"], h["id"] if h else None, body.char, body.kind,
-             None if body.heard is None else int(body.heard), body.tries))
+             None if body.heard is None else int(body.heard), body.tries,
+             body.peak_rms, body.noise_base, body.thr_used, body.voiced_ms,
+             body.dur_ms, body.ts_ms, body.ua[:160] if body.ua else None))
         db.commit()
     finally:
         db.close()

@@ -39,7 +39,7 @@ const root = createApp({
       findFound: [], findMisses: 0, findMiss: "",
       doneStats: { new: 0, review: 0 }, report: null,
       follow: { on: false, kind: "", idx: 0, done: [], state: "off" }, micLvl: 0,
-      micDenied: false, followPop: false, quizBurst: false,
+      micDenied: false, micState: "ok", followPop: false, quizBurst: false,
       homeTip: false, homeHold: false, ncHold: -1,
       BURST_DIRS: [["-70px","-60px"],["70px","-75px"],["0px","-95px"],["-55px","55px"],["55px","65px"],["0px","-30px"]],
       gateScores: {}, gateWrong: {}, readNews: [],
@@ -102,14 +102,16 @@ const root = createApp({
       return a;
     },
     playFile(name) {
-      /* 播放单个音频文件，返回 ended/error/pause 都 resolve 的 Promise（缺文件静默跳过） */
+      /* 播放单个音频文件，resolve(true)=正常播完/暂停，resolve(false)=缺文件或播放被拒
+         （RCA：曾把失败静默当播完——"4 条 word 同秒"式哑播放无迹可查，现返回失败标记） */
       return new Promise((res) => {
         const a = new Audio(`/static/audio/${encodeURIComponent(name)}.mp3`);
+        let failed = false;
         this._narrAudio = a;
-        a.onended = () => res();
-        a.onerror = () => res();
-        a.onpause = () => res();
-        a.play().catch(() => res());
+        a.onended = () => res(!failed);
+        a.onerror = () => { failed = true; res(false); };
+        a.onpause = () => res(!failed);
+        a.play().catch(() => { failed = true; res(false); });
       });
     },
     stopNarration() {
@@ -174,27 +176,48 @@ const root = createApp({
     },
     async ensureMic() {
       /* 取可用麦+激活 AudioContext；引用存在≠可用：iOS 切后台/锁屏会结束 track（R2），
-         每次检测前验 live，失效重取。成功/失败置 micDenied（跟读条据此显示降级提示）
-         getUserMedia（权限弹窗未决）与 resume()（无手势激活）都可能永久 pending，且兜底
-         超时在 rAF 循环里、根本启动不了——两处各套 3s 超时（2026-10-28 跟读卡死排查）；
-         失败记忆 30s 不重试（免得逐项跟读各白等 3s），abort 撤销迟到的流（别亮指示灯） */
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { this.micDenied = true; return false; }
+         每次检测前验 live，失效重取。getUserMedia（权限弹窗未决）与 resume()（无手势激活）
+         都可能永久 pending，各套 3s 超时。v19 三修（RCA 五线审查抓到 v18 缺陷）：
+         ① in-flight 去重——warmMic 与首个跟读并发 gUM 双双超时还互相作废；
+         ② 失败分流记忆——v18 一刀切 30s 把"弹窗未决"也封死，家长点了允许还得白等；
+            denied(明确拒绝)记 30s / pending(弹窗未决)记 5s / busy(设备占用)记 10s；
+         ③ AbortSignal 塞 constraints 是无效成员（getUserMedia 单参数签名）——迟到流改
+            引用比对收编/丢弃（宏任务时机：正常路径赋值已完成，超时路径迟到流被放掉） */
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return this._micFail("none", 60000);
+      if (this._micEnsuring) return this._micEnsuring;
       if ((this._micFailUntil || 0) > Date.now()) { this.micDenied = true; return false; }
       const tmo = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("mic-timeout")), ms))]);
-      try {
-        const live = this._micStream && this._micStream.getTracks().some(t => t.readyState === "live");
-        if (!live) {
-          if (this._micStream) { try { this._micStream.getTracks().forEach(t => t.stop()); } catch { } }
-          const ac = new AbortController();
-          const g = navigator.mediaDevices.getUserMedia({ audio: true, signal: ac.signal });
-          try { this._micStream = await tmo(g, 3000); }
-          catch (e) { ac.abort(); throw e; }
-        }
-        if (!this._micCtx) this._micCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (this._micCtx.state === "suspended") await tmo(this._micCtx.resume(), 3000);
-        this.micDenied = false;
-        return true;
-      } catch (e) { this.micDenied = true; this._micFailUntil = Date.now() + 30000; return false; }
+      this._micEnsuring = (async () => {
+        try {
+          const live = this._micStream && this._micStream.getTracks().some(t => t.readyState === "live");
+          if (!live) {
+            if (this._micStream) { try { this._micStream.getTracks().forEach(t => t.stop()); } catch { } }
+            const prevStream = this._micStream;         /* 竞态哨兵：await 期间被 closeMic/他处替换则丢弃迟到流 */
+            const g = navigator.mediaDevices.getUserMedia({ audio: true });
+            g.then(s => setTimeout(() => {                /* 迟到流（超时后才 resolve）：已被超越→停掉，别白亮指示灯 */
+              if (this._micStream !== s) { try { s.getTracks().forEach(t => t.stop()); } catch { } }
+            }, 0)).catch(() => { });
+            const s = await tmo(g, 3000);
+            if (this._micStream !== prevStream) { try { s.getTracks().forEach(t => t.stop()); } catch { } return this._micFail("busy", 1000); }
+            this._micStream = s;
+          }
+          if (!this._micCtx) this._micCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (this._micCtx.state === "suspended") await tmo(this._micCtx.resume(), 3000);
+          this.micState = "ok"; this.micDenied = false;
+          return true;
+        } catch (e) {
+          const n = e && e.name;
+          if (n === "NotAllowedError" || n === "SecurityError") return this._micFail("denied", 30000);
+          if (n === "NotReadableError" || n === "OverconstrainedError") return this._micFail("busy", 10000);
+          return this._micFail("pending", 5000);          /* mic-timeout/其他：弹窗多半还挂着 */
+        } finally { this._micEnsuring = null; }
+      })();
+      return this._micEnsuring;
+    },
+    _micFail(state, cooldownMs) {
+      this.micState = state; this.micDenied = true;
+      this._micFailUntil = Date.now() + cooldownMs;
+      return false;
     },
     warmMic() {
       /* 跟读音量校验依赖 AudioContext.resume() 的用户激活；跟读发生时点击激活早过期，
@@ -205,7 +228,7 @@ const root = createApp({
       /* 会话结束放掉麦克风（整节课亮指示灯会让家长不安；下次 startToday 手势内重开） */
       if (this._micStream) { try { this._micStream.getTracks().forEach(t => t.stop()); } catch { } this._micStream = null; }
       if (this._micCtx) { try { this._micCtx.close(); } catch { } this._micCtx = null; }
-      this._micFailUntil = 0;                          /* 新会话重给麦克风一次机会（用户可能已点权限） */
+      this._micFailUntil = 0; this.micState = "ok"; this.micDenied = false;   /* 新会话重给麦克风一次机会 */
     },
     /* ---------- 跟读（节奏式+音量校验：范读→叮→留白听你读→✓；读到才夸，无录音无回放） ---------- */
     followItems(kind) {
@@ -232,7 +255,11 @@ const root = createApp({
       f.idx = i; f.state = "model";
       const items = this.followItems(f.kind), it = items[i];
       if (!it) return this.followFinish();
-      await this.playFile(it.audio);                                           /* 范读 */
+      const micP = this.ensureMic();                  /* 范读期间并行取麦（RCA：v18 wait 后才取，首个
+                                                         wait 有 1~3s 聋窗=对着空气读；且流先建立，
+                                                         AEC/AGC 听过范读才预热，冷流会压童声） */
+      const played = await this.playFile(it.audio);   /* 范读 */
+      if (!played) console.warn("范读播放失败/被拒:", it.audio);   /* RCA：哑播放曾无迹可查 */
       if (gen !== this._followGen || !f.on) return;
       f.state = "wait";
       this.playSfx("ding");                          /* "叮"=轮到你（不用啰嗦语音指令） */
@@ -241,7 +268,9 @@ const root = createApp({
         ? (await this.audioDur(it.audio) || 3) * 1000 + 2500
         : f.kind === "word" ? 4000 : 3500;
       if (gen !== this._followGen || !f.on) return;
-      const heard = await this.followHeard(ms, gen);   /* 音量校验：true读到/false超时/null无麦降级 */
+      const micReady = await micP;                    /* 范读+时长查询期间取麦早该就绪；至多再等超时余量 */
+      if (gen !== this._followGen || !f.on || f.state !== "wait") return;
+      const heard = await this.followHeard(ms, gen, micReady);   /* 音量校验：true读到/false超时/null无麦降级 */
       this.micLvl = 0;
       if (gen !== this._followGen || !f.on || f.state !== "wait") return;
       if (heard === false && f.tries < 1) {           /* 没听到：再给一轮（重播范读） */
@@ -251,15 +280,18 @@ const root = createApp({
       this.followDoneOne(heard);                      /* 三态透传(true读到/false超时/null无麦降级)：
                                                           家长报表 na=heard IS NULL 靠它区分，折叠成 false 会全记超时 */
     },
-    async followHeard(ms, gen) {
+    async followHeard(ms, gen, micReady) {
       /* 留白窗口内监听麦克风电量（不录音不保存）：说到(true)/超时(false)/无麦或拒绝(null=节奏式降级)
-         R1 动态阈值=滚动本底×2.5：吵闹环境防"没读也夸"（假阳性），安静环境小声读也能过；
-         绝对下限 0.05（2026-10-28 实测 0.1 对"平板放桌上、孩子半米外"偏高：4 词×2 轮全超时，
-         家长体感"读完没反应"——宁可放宽误夸，不可读到了被无视）
+         R1 动态阈值=滚动本底×2.5，绝对下限 0.05。v19 结构修复（RCA 仿真抓到自掩蔽 bug）：
+         孩子说话期间 base 被语音帧自己抬升，thr=2.5×base 在语音结束前反超童声电平——本底
+         0.03+童声 0.12 只净积 183ms<200ms 判超时。修法：thr 先用上一帧 base 算，voiced 帧
+         (rms>thr)冻结 base；EMA 改时间基准（1-exp(-dt/825)≈60fps×0.02）——120Hz 屏（iPad
+         ProMotion）base 升速不再翻倍。数值调参（地板/cap/HEARD_MS）等遥测数据再动。
          R3 真实时间累积 ~0.2s 才算读到：帧率无关，也滤掉敲一下桌子的瞬态
          达标后不立即切下一项：等静音 0.6s 让孩子把话说完（防范读抢话，读到≠读完）
-         前 0.5s 排除"叮"/范读尾音的外放串扰（ding≈0.18s），本底初值取排除期最小值 */
-      if (!(await this.ensureMic())) return null;
+         前 0.5s 排除"叮"/范读尾音的外放串扰（ding≈0.18s），本底初值取排除期最小值
+         过程量（peak_rms/thr_used/…）随结果落 _fStats 供 logFollow 上报：下次报障直判"没读"还是"漏检" */
+      if (!(micReady === true || await this.ensureMic())) return null;
       try {
         const src = this._micCtx.createMediaStreamSource(this._micStream);
         const an = this._micCtx.createAnalyser();
@@ -269,11 +301,18 @@ const root = createApp({
         const EXCL = 500, HEARD_MS = 200, QUIET_MS = 600;
         const t0 = performance.now(), hardAt = ms + EXCL + 1500;
         let base = 0.05, minExcl = 1, voicedMs = 0, trailAt = 0, lastT = t0;
+        let peak = 0, thrEnd = 0;
+        const done = v => {
+          this._fStats = { peak_rms: +peak.toFixed(3), noise_base: +base.toFixed(3),
+                           thr_used: +thrEnd.toFixed(3), voiced_ms: Math.round(voicedMs),
+                           dur_ms: Math.round(performance.now() - t0) };
+          return v;
+        };
         try {
           return await new Promise(res => {
             const tick = () => {
               const now = performance.now(), t = now - t0;
-              if (gen !== this._followGen || !this.follow.on || this.follow.state !== "wait") return res(false);
+              if (gen !== this._followGen || !this.follow.on || this.follow.state !== "wait") return res(done(false));
               an.getByteTimeDomainData(buf);
               let sum = 0;
               for (let k = 0; k < buf.length; k++) { const d = buf[k] - 128; sum += d * d; }
@@ -281,18 +320,23 @@ const root = createApp({
               this.micLvl = Math.min(1, rms * 8);               /* 🎤/大字随声音跳动（×8：小声读也可见） */
               const dt = now - lastT; lastT = now;
               if (t < EXCL) { minExcl = Math.min(minExcl, rms); return requestAnimationFrame(tick); }
+              const thr = Math.max(0.05, base * 2.5);           /* 先用上一帧本底定阈 */
+              if (rms > peak) peak = rms;
+              thrEnd = thr;
               if (t < EXCL + 120) base = Math.max(0.02, minExcl);
-              else base = rms < base ? rms : base + (rms - base) * 0.02;   /* 本底：快降慢升 */
-              const thr = Math.max(0.05, base * 2.5);
+              else if (rms <= thr) {                            /* 非语音帧才更新本底（快降慢升） */
+                const a = 1 - Math.exp(-dt / 825);              /* 时间基准：帧率无关 */
+                base = rms < base ? rms : base + (rms - base) * a;
+              }
               if (voicedMs >= HEARD_MS) {                       /* 已读到：等孩子说完 */
                 if (rms < thr) {
                   if (!trailAt) trailAt = now;
-                  if (now - trailAt >= QUIET_MS) return res(true);
+                  if (now - trailAt >= QUIET_MS) return res(done(true));
                 } else trailAt = 0;
               } else {
                 voicedMs = Math.max(0, voicedMs + (rms > thr ? dt : -dt * 0.5));
               }
-              if (t > hardAt) return res(voicedMs >= HEARD_MS); /* 持续噪音兜底：不无限等 */
+              if (t > hardAt) return res(done(voicedMs >= HEARD_MS)); /* 持续噪音兜底：不无限等 */
               requestAnimationFrame(tick);
             };
             tick();
@@ -301,24 +345,63 @@ const root = createApp({
       } catch (e) { return null; }
     },
     followDoneOne(heard) {                             /* heard 三态：true读到/false超时/null无麦降级 */
-      const f = this.follow;
+      const f = this.follow, gen = this._followGen;
       if (!f.on || f.state !== "wait") return;
       this.logFollow(heard, f.tries);                         /* R5：开口流水（fire-and-forget） */
-      if (heard) {                                            /* 读到瞬间 ✓ 爆闪（反馈可感知） */
+      f.heardAny = f.heardAny || !!heard;
+      if (heard) {                                            /* 读到瞬间 ✓ 爆闪+推进音（反馈可感知） */
         this.followPop = true;
         clearTimeout(this._popT); this._popT = setTimeout(() => this.followPop = false, 650);
+        this.playSfx("ok");
+        return this.followAdvance();
       }
+      if (heard === false) {                                  /* 两轮没读到：明示"没关系"再走，不播欢快
+                                                                ok 音掩盖失败（RCA：v18 体感"读了没反应"来源之一） */
+        f.state = "miss";
+        setTimeout(() => {
+          if (this._followGen === gen && f.on && f.state === "miss") this.followAdvance();
+        }, 900);
+        return;
+      }
+      this.followAdvance();                                   /* null=无麦降级：静默推进（家长在场带读） */
+    },
+    followAdvance() {
+      const f = this.follow;
       f.done.push(f.idx);
-      f.heardAny = f.heardAny || !!heard;
-      this.playSfx("ok");
       if (f.idx + 1 >= this.followItems(f.kind).length) this.followFinish();
       else this.followPlay(f.idx + 1);
+    },
+    fbHint() {                                         /* 跟读条文案分流（RCA：v18 只有 wait 两态，弹窗未决/重试/超时全靠猜） */
+      const f = this.follow;
+      if (f.state === "miss") return "没关系，继续～";
+      if (this.micDenied) {                            /* 无麦降级：范读全程明示原因（曾只闪现 <100ms，家长无从知道为何不听） */
+        if (this.micState === "pending") return "等爸爸妈妈点一下【允许】哦";
+        return "麦克风没开，跟爸爸妈妈读一读吧";
+      }
+      if (f.state === "model") return f.tries > 0 ? "没听到哦，凑近一点，大声读～" : "先听一听…";
+      if (f.state === "wait") return f.tries > 0 ? "再试一次，凑近大声读！" : "轮到你啦，大声读！";
+      return "";
+    },
+    fbHintCls() {
+      const f = this.follow;
+      if (this.micDenied) return this.micState === "pending" ? "pending" : "denied";
+      if (f.state === "wait") return "go";
+      if (f.state === "model" && f.tries > 0) return "retry";
+      if (f.state === "miss") return "miss";
+      return "";
     },
     logFollow(heard, tries) {
       const f = this.follow;
       const char = f.kind === "read" ? (this.readLines[f.idx] || {}).char : this.curItem.char;
       if (!char) return;
-      api("POST", "/api/follow/log", { char, kind: f.kind, heard, tries }).catch(() => {});
+      const s = this._fStats || {};
+      api("POST", "/api/follow/log", {                        /* 过程量遥测：peak/thr/voiced/dur+UA+客户端时刻 */
+        char, kind: f.kind, heard, tries,
+        peak_rms: s.peak_rms ?? null, noise_base: s.noise_base ?? null,
+        thr_used: s.thr_used ?? null, voiced_ms: s.voiced_ms ?? null,
+        dur_ms: s.dur_ms ?? null, ts_ms: Date.now(),
+        ua: navigator.userAgent.slice(0, 160),
+      }).catch(() => {});
     },
     async followFinish() {
       const f = this.follow, gen = this._followGen;
