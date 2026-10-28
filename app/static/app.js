@@ -174,19 +174,27 @@ const root = createApp({
     },
     async ensureMic() {
       /* 取可用麦+激活 AudioContext；引用存在≠可用：iOS 切后台/锁屏会结束 track（R2），
-         每次检测前验 live，失效重取。成功/失败置 micDenied（跟读条据此显示降级提示） */
+         每次检测前验 live，失效重取。成功/失败置 micDenied（跟读条据此显示降级提示）
+         getUserMedia（权限弹窗未决）与 resume()（无手势激活）都可能永久 pending，且兜底
+         超时在 rAF 循环里、根本启动不了——两处各套 3s 超时（2026-10-28 跟读卡死排查）；
+         失败记忆 30s 不重试（免得逐项跟读各白等 3s），abort 撤销迟到的流（别亮指示灯） */
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { this.micDenied = true; return false; }
+      if ((this._micFailUntil || 0) > Date.now()) { this.micDenied = true; return false; }
+      const tmo = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("mic-timeout")), ms))]);
       try {
         const live = this._micStream && this._micStream.getTracks().some(t => t.readyState === "live");
         if (!live) {
           if (this._micStream) { try { this._micStream.getTracks().forEach(t => t.stop()); } catch { } }
-          this._micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const ac = new AbortController();
+          const g = navigator.mediaDevices.getUserMedia({ audio: true, signal: ac.signal });
+          try { this._micStream = await tmo(g, 3000); }
+          catch (e) { ac.abort(); throw e; }
         }
         if (!this._micCtx) this._micCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (this._micCtx.state === "suspended") await this._micCtx.resume();
+        if (this._micCtx.state === "suspended") await tmo(this._micCtx.resume(), 3000);
         this.micDenied = false;
         return true;
-      } catch (e) { this.micDenied = true; return false; }
+      } catch (e) { this.micDenied = true; this._micFailUntil = Date.now() + 30000; return false; }
     },
     warmMic() {
       /* 跟读音量校验依赖 AudioContext.resume() 的用户激活；跟读发生时点击激活早过期，
@@ -197,6 +205,7 @@ const root = createApp({
       /* 会话结束放掉麦克风（整节课亮指示灯会让家长不安；下次 startToday 手势内重开） */
       if (this._micStream) { try { this._micStream.getTracks().forEach(t => t.stop()); } catch { } this._micStream = null; }
       if (this._micCtx) { try { this._micCtx.close(); } catch { } this._micCtx = null; }
+      this._micFailUntil = 0;                          /* 新会话重给麦克风一次机会（用户可能已点权限） */
     },
     /* ---------- 跟读（节奏式+音量校验：范读→叮→留白听你读→✓；读到才夸，无录音无回放） ---------- */
     followItems(kind) {
@@ -239,11 +248,14 @@ const root = createApp({
         f.tries++;
         return this.followPlay(i, true);
       }
-      this.followDoneOne(heard === true);             /* 读到(true)才夸；没读到/无麦(null)不夸 */
+      this.followDoneOne(heard);                      /* 三态透传(true读到/false超时/null无麦降级)：
+                                                          家长报表 na=heard IS NULL 靠它区分，折叠成 false 会全记超时 */
     },
     async followHeard(ms, gen) {
       /* 留白窗口内监听麦克风电量（不录音不保存）：说到(true)/超时(false)/无麦或拒绝(null=节奏式降级)
-         R1 动态阈值=滚动本底×2.5：吵闹环境防"没读也夸"（假阳性），安静环境小声读也能过
+         R1 动态阈值=滚动本底×2.5：吵闹环境防"没读也夸"（假阳性），安静环境小声读也能过；
+         绝对下限 0.05（2026-10-28 实测 0.1 对"平板放桌上、孩子半米外"偏高：4 词×2 轮全超时，
+         家长体感"读完没反应"——宁可放宽误夸，不可读到了被无视）
          R3 真实时间累积 ~0.2s 才算读到：帧率无关，也滤掉敲一下桌子的瞬态
          达标后不立即切下一项：等静音 0.6s 让孩子把话说完（防范读抢话，读到≠读完）
          前 0.5s 排除"叮"/范读尾音的外放串扰（ding≈0.18s），本底初值取排除期最小值 */
@@ -255,7 +267,7 @@ const root = createApp({
         src.connect(an);
         const buf = new Uint8Array(an.fftSize);
         const EXCL = 500, HEARD_MS = 200, QUIET_MS = 600;
-        const t0 = performance.now(), hardAt = ms + EXCL + 3000;
+        const t0 = performance.now(), hardAt = ms + EXCL + 1500;
         let base = 0.05, minExcl = 1, voicedMs = 0, trailAt = 0, lastT = t0;
         try {
           return await new Promise(res => {
@@ -266,12 +278,12 @@ const root = createApp({
               let sum = 0;
               for (let k = 0; k < buf.length; k++) { const d = buf[k] - 128; sum += d * d; }
               const rms = Math.sqrt(sum / buf.length) / 128;
-              this.micLvl = Math.min(1, rms * 5);               /* 🎤/大字随声音跳动 */
+              this.micLvl = Math.min(1, rms * 8);               /* 🎤/大字随声音跳动（×8：小声读也可见） */
               const dt = now - lastT; lastT = now;
               if (t < EXCL) { minExcl = Math.min(minExcl, rms); return requestAnimationFrame(tick); }
               if (t < EXCL + 120) base = Math.max(0.02, minExcl);
               else base = rms < base ? rms : base + (rms - base) * 0.02;   /* 本底：快降慢升 */
-              const thr = Math.max(0.1, base * 2.5);
+              const thr = Math.max(0.05, base * 2.5);
               if (voicedMs >= HEARD_MS) {                       /* 已读到：等孩子说完 */
                 if (rms < thr) {
                   if (!trailAt) trailAt = now;
@@ -288,7 +300,7 @@ const root = createApp({
         } finally { src.disconnect(); }
       } catch (e) { return null; }
     },
-    followDoneOne(heard) {
+    followDoneOne(heard) {                             /* heard 三态：true读到/false超时/null无麦降级 */
       const f = this.follow;
       if (!f.on || f.state !== "wait") return;
       this.logFollow(heard, f.tries);                         /* R5：开口流水（fire-and-forget） */

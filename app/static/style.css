@@ -191,6 +191,7 @@ input:focus { outline: none; border-color: #ffb74d; }
 .fb-hint { font-size: 18px; font-weight: 800; color: #8d6e63; }
 .fb-hint.go { font-size: 26px; color: #ef6c00; animation: fbPulse 1s infinite; }
 .fb-hint.denied { font-size: 15px; color: #bcaaa4; }
+.fb-hint.retry { font-size: 20px; color: #ef6c00; }        /* 超时重听轮：比"轮到你"轻、比降级提示醒目 */
 @keyframes fbPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
 .skip-link { border: none; background: none; color: #bcaaa4; font-size: 12px; padding: 4px 8px; }
 
