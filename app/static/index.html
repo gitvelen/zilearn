@@ -223,7 +223,7 @@
               @pointerleave="skipHold(false)">⏭ 家长长按跳过</button>
     </div>
 
-    <button class="btn big" :disabled="follow.on && follow.state!=='all'" @click="ncNext">{{ncNextLabel()}}</button>
+    <button class="btn big" :disabled="(follow.on && follow.state!=='all') || stepBusy" @click="ncNext">{{ncNextLabel()}}</button>
   </div>
 
   <!-- 今日朗读卡：今日新字例句逐句跟读 → 自由朗读 -->
@@ -421,6 +421,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=21"></script>
+<script src="/app.js?v=23"></script>
 </body>
 </html>

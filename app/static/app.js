@@ -39,7 +39,7 @@ const root = createApp({
       findFound: [], findMisses: 0, findMiss: "",
       doneStats: { new: 0, review: 0 }, report: null,
       follow: { on: false, kind: "", idx: 0, done: [], state: "off" }, micLvl: 0,
-      micDenied: false, micState: "ok", followPop: false, quizBurst: false,
+      micDenied: false, micState: "ok", followPop: false, quizBurst: false, stepBusy: false,
       homeTip: false, homeHold: false, ncHold: -1,
       BURST_DIRS: [["-70px","-60px"],["70px","-75px"],["0px","-95px"],["-55px","55px"],["55px","65px"],["0px","-30px"]],
       gateScores: {}, gateWrong: {}, readNews: [],
@@ -92,27 +92,73 @@ const root = createApp({
         await this.boot();
       } catch (e) { this.loginErr = "登录失败，再试试"; }
     },
-    playChar(ch, altTone3) {
-      this.stopNarration();
-      if (this._charAudio) { try { this._charAudio.pause(); } catch { } }   /* 同一时刻最多一个字音（find 连点防叠音） */
-      const f = altTone3 ? `${ch}_${altTone3}` : ch;
-      const a = new Audio(`/static/audio/${encodeURIComponent(f)}.mp3`);
-      this._charAudio = a;
-      a.play().catch(() => {});
-      return a;
+    _ensurePlayCtx() {
+      /* 播放专用 AudioContext：iPadOS Safari 的 element autoplay 在手势激活窗口外几乎
+         全拒（v21 遥测实锤：played=0/model_ms≈3ms 遍地，唯一 played=1 恰距点击<1s）。
+         AudioContext 手势内 resume 一次后持续可调度，绕开该限制。首次创建挂 startToday
+         手势链（warmMic 同机），运行中被系统挂起由全局 pointerdown 兜底 resume */
+      if (!this._playCtx) {
+        try { this._playCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { }
+      }
+      if (this._playCtx && this._playCtx.state === "suspended") this._playCtx.resume().catch(() => { });
+      return this._playCtx;
     },
-    playFile(name) {
-      /* 播放单个音频文件，resolve(true)=正常播完/暂停，resolve(false)=缺文件或播放被拒
-         （RCA：曾把失败静默当播完——"4 条 word 同秒"式哑播放无迹可查，现返回失败标记） */
+    async _loadBuf(ctx, url) {
+      if (!this._bufC) this._bufC = {};
+      if (this._bufC[url]) return this._bufC[url];
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("audio " + r.status);
+      const ab = await r.arrayBuffer();
+      const buf = await new Promise((res, rej) => {          /* Safari 老回调式 decodeAudioData 兼容 */
+        const p = ctx.decodeAudioData(ab, res, rej);
+        if (p && p.then) p.then(res, rej);
+      });
+      this._bufC[url] = buf;
+      return buf;
+    },
+    _playBuf(url, vol = 1, ch = "narr") {
+      /* WebAudio 播放底座：narr/tts/char 三通道各自单实例（新播停旧，onended 自动结清旧
+         promise——无 element pause/换src 时序坑），sfx 多实例。返回 Promise：
+         true=播完/被停，false=失败（404/decode 拒），null=ctx 不可用（调用方回退 element） */
+      const ctx = this._ensurePlayCtx();
+      if (!ctx) return Promise.resolve(null);
+      const key = { narr: "_narrSrc", tts: "_ttsSrc", char: "_charSrc" }[ch];
+      return this._loadBuf(ctx, url).then(buf => new Promise(res => {
+        if (key) {
+          if (this[key]) { try { this[key].stop(); } catch { } }   /* stop 触发旧 onended：旧 promise 结清 */
+        }
+        const src = ctx.createBufferSource(), g = ctx.createGain();
+        g.gain.value = vol;
+        src.buffer = buf;
+        src.connect(g); g.connect(ctx.destination);
+        src.onended = () => res(true);
+        if (key) this[key] = src;
+        try { src.start(); } catch (e) { res(false); }
+      })).catch(() => false);
+    },
+    _elFallback(url) {                                 /* 极老浏览器无 AudioContext 的兜底（autoplay 听天由命） */
       return new Promise((res) => {
-        const a = new Audio(`/static/audio/${encodeURIComponent(name)}.mp3`);
+        const a = new Audio(url);
         let failed = false;
-        this._narrAudio = a;
         a.onended = () => res(!failed);
         a.onerror = () => { failed = true; res(false); };
         a.onpause = () => res(!failed);
         a.play().catch(() => { failed = true; res(false); });
       });
+    },
+    playChar(ch, altTone3) {
+      this.stopNarration();                            /* 同一时刻最多一个字音（find 连点防叠音） */
+      const f = `/static/audio/${encodeURIComponent(altTone3 ? `${ch}_${altTone3}` : ch)}.mp3`;
+      this._playBuf(f, 1, "char").then(ok => { if (ok === null) this._elFallback(f).catch(() => {}); });
+    },
+    async playFile(name) {
+      /* 播放单个音频文件，resolve(true)=正常播完/被停，resolve(false)=缺文件或播放被拒
+         （RCA：曾把失败静默当播完——"4 条 word 同秒"式哑播放无迹可查，现返回失败标记）
+         v23 走 WebAudio 底座（iPadOS element autoplay 窗口外全拒），ctx 不可用回退 element */
+      const url = `/static/audio/${encodeURIComponent(name)}.mp3`;
+      const ok = await this._playBuf(url, 1, "narr");
+      if (ok !== null) return ok;
+      return this._elFallback(url);
     },
     stopNarration() {
       /* 三通道统一停（narration 链/指令/字音）：切题、跳步、答题后遗留音频继续响的根源
@@ -120,21 +166,21 @@ const root = createApp({
          同时作废悬挂的 stepAudio 链（v21：防 resume 后旧链 startFollow 顶掉新步跟读） */
       this._stepGen = (this._stepGen || 0) + 1;
       this._narrStop = true;
+      for (const k of ["_narrSrc", "_ttsSrc", "_charSrc"]) {
+        if (this[k]) { try { this[k].stop(); } catch { } this[k] = null; }
+      }
       if (this._narrAudio) { try { this._narrAudio.pause(); } catch { } this._narrAudio = null; }
       if (this._ttsAudio) { try { this._ttsAudio.pause(); } catch { } this._ttsAudio = null; }
       if (this._charAudio) { try { this._charAudio.pause(); } catch { } this._charAudio = null; }
     },
     playOne(name) { this.stopNarration(); this.playFile(name); },
     playTts(name) {                                   /* 语音指令（t_ 前缀）：单实例，新的停旧的（防连题双指令叠音） */
-      try {
-        if (this._ttsAudio) { try { this._ttsAudio.pause(); } catch { } }
-        const a = new Audio(`/static/audio/t_${name}.mp3`);
-        this._ttsAudio = a;
-        a.play().catch(() => {});
-      } catch { }
+      const u = `/static/audio/t_${name}.mp3`;
+      this._playBuf(u, 1, "tts").then(ok => { if (ok === null) this._elFallback(u).catch(() => {}); });
     },
     playSfx(name, vol = 0.6) {                        /* 反馈音效（对/错/过关）：独立短音，不打断朗读；描红逐笔用低音量 */
-      try { const a = new Audio(`/static/audio/sfx_${name}.wav`); a.volume = vol; a.play().catch(() => {}); } catch { }
+      const u = `/static/audio/sfx_${name}.wav`;
+      this._playBuf(u, vol, null).then(ok => { if (ok === null) this._elFallback(u).catch(() => {}); });
     },
     async stepAudio() {
       /* 四步卡每步音频+跟读（方案 A 节奏式：范读→留白跟读→✓；认步=字音→跟读→字源故事，
@@ -146,20 +192,26 @@ const root = createApp({
       if (!ch) return;
       const gen = (this._stepGen = (this._stepGen || 0) + 1);
       this._narrStop = false;
+      this.stepBusy = true;                           /* 音频+跟读链进行中：下一步按钮锁定（防连听期误触） */
       const stale = () => gen !== this._stepGen || this._narrStop;
-      if (this.ncStep === 1) {
-        await this.playFile(ch);
-        if (stale()) return;
-        await this.startFollow("char");              /* 跟读（范读后"叮"提示，无啰嗦语音指令） */
-        if (stale()) return;
-        await this.playFile(`e_${ch}`);
-      } else if (this.ncStep === 2) {
-        await this.playFile(`w_${ch}`);               /* 整体连听 → 逐词跟读 */
-        if (stale()) return;
-        await this.startFollow("word");
-      } else if (this.ncStep === 3) {
-        await this.startFollow("sent");               /* 逐句：范读→跟读→✓ */
-      }
+      try {
+        if (this.ncStep === 1) {
+          await this.playFile(ch);
+          if (stale()) return;
+          this.stepBusy = false;                        /* 跟读启动即由 follow.on 接管锁 */
+          await this.startFollow("char");              /* 跟读（范读后"叮"提示，无啰嗦语音指令） */
+          if (stale()) return;
+          await this.playFile(`e_${ch}`);              /* 故事期不锁：家长可切（原行为） */
+        } else if (this.ncStep === 2) {
+          await this.playFile(`w_${ch}`);               /* 整体连听 → 逐词跟读 */
+          if (stale()) return;
+          this.stepBusy = false;
+          await this.startFollow("word");
+        } else if (this.ncStep === 3) {
+          this.stepBusy = false;
+          await this.startFollow("sent");               /* 逐句：范读→跟读→✓ */
+        }
+      } finally { if (gen === this._stepGen) this.stepBusy = false; }   /* 旧链的 finally 不得踩掉新链的锁 */
     },
     ncGo(step) {
       /* 跳步（步指示器可点=家长快进，绕过跟读）；到写步才挂描红 */
@@ -170,11 +222,12 @@ const root = createApp({
       else this.stepAudio();
     },
     ncNext() {
-      if (this.follow.on && this.follow.state !== "all") return;   /* 跟读未完成不放行 */
+      if ((this.follow.on && this.follow.state !== "all") || this.stepBusy) return;   /* 跟读/音频链未完不放行
+                                                                  （连听期 on 仍 false 曾可点=误触跳过词步跟读） */
       this.ncStep >= 4 ? this.advance() : this.ncGo(this.ncStep + 1);
     },
     ncNextLabel() {
-      if (this.follow.on && this.follow.state !== "all") return "🎤 先读一读 →";
+      if ((this.follow.on && this.follow.state !== "all") || this.stepBusy) return "🎤 先读一读 →";
       if (this.ncStep < 4) return "下一步 →";
       return this.hasNextNew() ? "这个字学会啦，下一个 →" : "我会写啦，去答题 →";
     },
@@ -440,6 +493,7 @@ const root = createApp({
       this._followGen = (this._followGen || 0) + 1;   /* 作废进行中的检测/播放链 */
       /* 跳过=跟读链音频（范读/确认读/夸奖）立即停。不能用 stopNarration：会置 _narrStop
          卡掉后续链（认步故事）——跳过跟读≠跳过故事（2026-10-28 叠音检测器抓到确认读×故事） */
+      if (this._narrSrc) { try { this._narrSrc.stop(); } catch { } }
       if (this._narrAudio) { try { this._narrAudio.pause(); } catch { } }
       this.micLvl = 0; this.followPop = false;
       this.follow = { on: false, kind: "", idx: 0, done: [], state: "off", tries: 0, heardAny: false };
@@ -574,6 +628,7 @@ const root = createApp({
     },
     startToday() {
       this.warmMic();                                 /* 手势上下文预热麦克风+AudioContext（跟读校验依赖） */
+      this._ensurePlayCtx();                          /* 手势上下文预热播放 ctx（iPad autoplay：解锁一次全程可用） */
       if (this.today.mode === "learn") {
         if (!this.today.new.length && !this.today.review.length && !this.today.audit.length) {
           this.goParent(); return;              /* 当日已清空（重进）：直接看成绩，不空转 */
@@ -964,7 +1019,13 @@ const root = createApp({
       this.phase = "parent";
     },
   },
-  async mounted() { this.boot(); },
+  async mounted() {
+    this.boot();
+    /* iPad/Safari 系统随时可挂起 AudioContext（切后台/锁屏）：任何点击手势内兜底 resume */
+    window.addEventListener("pointerdown", () => {
+      if (this._playCtx && this._playCtx.state === "suspended") this._playCtx.resume().catch(() => { });
+    }, { passive: true });
+  },
 });
 app = root.mount("#app");
 window.ziapp = app;

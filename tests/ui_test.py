@@ -145,10 +145,30 @@ def reset_test_user():
     conn.close()
 
 
+
+def patch_playbuf(page):
+    """v23 播放走 WebAudio（Audio.prototype.play hook 失明）：wrap ziapp._playBuf 记录区间。
+    旧 prototype hook 保留（element 回退路径仍可见）。须在 ziapp mounted 后调用。"""
+    page.evaluate("""() => {
+      if (window.__bufHooked || !window.ziapp) return; window.__bufHooked = true;
+      window.__audioEvents = window.__audioEvents || [];
+      const orig = ziapp._playBuf.bind(ziapp);
+      ziapp._playBuf = (url, vol, ch) => {
+        const m = /([^/?]+)\\.(mp3|wav)$/.exec(url);
+        const ev = { name: m ? decodeURIComponent(m[1]) : url, start: performance.now(), end: null };
+        window.__audioEvents.push(ev);
+        const close = () => { if (ev.end == null) ev.end = performance.now(); };
+        return orig(url, vol, ch).then(v => { close(); return v; }, e => { close(); throw e; });
+      };
+    }""")
+
+
 def run(page):
     reset_test_user()
     # ---- 登录 ----
     page.goto(BASE, wait_until="networkidle")
+    patch_playbuf(page)
+    patch_playbuf(page)
     check("登录页", page.locator(".login-card").count() == 1)
     shot(page, "01-login")
     page.fill("input[autocomplete=username]", "test")
