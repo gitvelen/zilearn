@@ -116,7 +116,9 @@ const root = createApp({
     },
     stopNarration() {
       /* 三通道统一停（narration 链/指令/字音）：切题、跳步、答题后遗留音频继续响的根源
-         是这里只停一个通道（2026-10-28 叠音检测器抓到 4 组） */
+         是这里只停一个通道（2026-10-28 叠音检测器抓到 4 组）
+         同时作废悬挂的 stepAudio 链（v21：防 resume 后旧链 startFollow 顶掉新步跟读） */
+      this._stepGen = (this._stepGen || 0) + 1;
       this._narrStop = true;
       if (this._narrAudio) { try { this._narrAudio.pause(); } catch { } this._narrAudio = null; }
       if (this._ttsAudio) { try { this._ttsAudio.pause(); } catch { } this._ttsAudio = null; }
@@ -136,19 +138,24 @@ const root = createApp({
     },
     async stepAudio() {
       /* 四步卡每步音频+跟读（方案 A 节奏式：范读→留白跟读→✓；认步=字音→跟读→字源故事，
-         保证"听到字音立刻轮到孩子"的即时模仿窗口） */
+         保证"听到字音立刻轮到孩子"的即时模仿窗口）
+         代际守卫（v21）：跳步（家长长按步指示器）时旧链的 playFile 还在 await，resume 后
+         _narrStop 已被新 stepAudio 重置为 false，旧链守卫失效会继续 startFollow 把新步的
+         跟读顶掉（复现实锤：认步悬挂链覆盖句步跟读）——gen 与 _narrStop 双查 */
       const ch = this.curItem && this.curItem.char;
       if (!ch) return;
+      const gen = (this._stepGen = (this._stepGen || 0) + 1);
       this._narrStop = false;
+      const stale = () => gen !== this._stepGen || this._narrStop;
       if (this.ncStep === 1) {
         await this.playFile(ch);
-        if (this._narrStop) return;
+        if (stale()) return;
         await this.startFollow("char");              /* 跟读（范读后"叮"提示，无啰嗦语音指令） */
-        if (this._narrStop) return;
+        if (stale()) return;
         await this.playFile(`e_${ch}`);
       } else if (this.ncStep === 2) {
         await this.playFile(`w_${ch}`);               /* 整体连听 → 逐词跟读 */
-        if (this._narrStop) return;
+        if (stale()) return;
         await this.startFollow("word");
       } else if (this.ncStep === 3) {
         await this.startFollow("sent");               /* 逐句：范读→跟读→✓ */
@@ -262,8 +269,10 @@ const root = createApp({
       const micP = this.ensureMic();                  /* 范读期间并行取麦（RCA：v18 wait 后才取，首个
                                                          wait 有 1~3s 聋窗=对着空气读；且流先建立，
                                                          AEC/AGC 听过范读才预热，冷流会压童声） */
+      const tModel0 = performance.now();
       const played = await this.playFile(it.audio);   /* 范读 */
-      if (!played) console.warn("范读播放失败/被拒:", it.audio);   /* RCA：哑播放曾无迹可查 */
+      this._fModel = { played: played ? 1 : 0, model_ms: Math.round(performance.now() - tModel0) };
+      if (!played) console.warn("范读播放失败/被拒:", it.audio);   /* RCA：哑播放曾无迹可查；v21 落库遥测 */
       if (gen !== this._followGen || !f.on) return;
       f.state = "wait";
       this.playSfx("ding");                          /* "叮"=轮到你（不用啰嗦语音指令） */
@@ -400,12 +409,14 @@ const root = createApp({
       const f = this.follow;
       const char = f.kind === "read" ? (this.readLines[f.idx] || {}).char : this.curItem.char;
       if (!char) return;
-      const s = this._fStats || {};
-      api("POST", "/api/follow/log", {                        /* 过程量遥测：peak/thr/voiced/dur+UA+客户端时刻 */
+      const s = this._fStats || {}, m = this._fModel || {};
+      api("POST", "/api/follow/log", {                        /* 过程量遥测：peak/thr/voiced/dur+范读结果+UA+客户端时刻 */
         char, kind: f.kind, heard, tries,
         peak_rms: s.peak_rms ?? null, noise_base: s.noise_base ?? null,
         thr_used: s.thr_used ?? null, voiced_ms: s.voiced_ms ?? null,
-        dur_ms: s.dur_ms ?? null, ts_ms: Date.now(),
+        dur_ms: s.dur_ms ?? null,
+        played: m.played ?? null, model_ms: m.model_ms ?? null,
+        ts_ms: Date.now(),
         ua: navigator.userAgent.slice(0, 160),
       }).catch(() => {});
     },

@@ -126,6 +126,9 @@ def run(page):
     check("T0 流水 word×4 heard=1/tries=0", len(w) == 4 and all(r[2] == 1 and r[3] == 0 for r in w), w)
     st = page.evaluate("() => window.ziapp._fStats")
     check("T0 遥测 peak_rms>0.1(读到)", st and st["peak_rms"] > 0.1, st)
+    import sqlite3 as _s2
+    _c2 = _s2.connect(DB); _t2 = _c2.execute("SELECT played, model_ms FROM follow_log WHERE kind='word' AND heard=1 ORDER BY id DESC LIMIT 1").fetchone(); _c2.close()
+    check("T0 范读遥测 played=1/model_ms>400", _t2 == (1, _t2[1]) and _t2[1] > 400, _t2)
     page.screenshot(path=str(SHOTS / "fix-t0-word-done.png"), full_page=True)
 
     # ---- T2 挂起的 getUserMedia（句步 sent）：原硬卡死路径 ----
@@ -163,12 +166,12 @@ if __name__ == "__main__":
                   "--use-fake-ui-for-media-stream"])
         page = browser.new_page(viewport={"width": 820, "height": 1100})
         page.on("pageerror", lambda e: errors.append(str(e)))
-        page.on("response", lambda r: v18.append(r.status) if "app.js?v=20" in r.url else None)
+        page.on("response", lambda r: v18.append(r.status) if "app.js?v=21" in r.url else None)
         try:
             run(page)
         finally:
             browser.close()
-    check("T3 app.js?v=20 加载 200", v18 == [200], v18)
+    check("T3 app.js?v=21 加载 200", v18 == [200], v18)
     check("T3 无 JS pageerror", not errors, errors[:3])
     print(f"\n{PASS_N} pass / {FAIL_N} fail  （截图: tests/shots/fix-*.png）")
     sys.exit(1 if FAIL_N else 0)
