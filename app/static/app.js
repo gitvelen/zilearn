@@ -193,7 +193,11 @@ const root = createApp({
           if (!live) {
             if (this._micStream) { try { this._micStream.getTracks().forEach(t => t.stop()); } catch { } }
             const prevStream = this._micStream;         /* 竞态哨兵：await 期间被 closeMic/他处替换则丢弃迟到流 */
-            const g = navigator.mediaDevices.getUserMedia({ audio: true });
+            /* 约束显式化（v20 遥测实证：AEC/NS 在"外放+安静房"把童声压到 0.05 地板下——
+               peak 0.365/voiced 0ms=只有瞬态穿透。关 AEC/NS 放行童声(+3~9dB)，AGC 保开
+               （跨设备绝对电平的前提）；iOS 不支持的部分约束会被忽略，无害 */
+            const g = navigator.mediaDevices.getUserMedia(
+              { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } });
             g.then(s => setTimeout(() => {                /* 迟到流（超时后才 resolve）：已被超越→停掉，别白亮指示灯 */
               if (this._micStream !== s) { try { s.getTracks().forEach(t => t.stop()); } catch { } }
             }, 0)).catch(() => { });
@@ -282,14 +286,14 @@ const root = createApp({
     },
     async followHeard(ms, gen, micReady) {
       /* 留白窗口内监听麦克风电量（不录音不保存）：说到(true)/超时(false)/无麦或拒绝(null=节奏式降级)
-         R1 动态阈值=滚动本底×2.5，绝对下限 0.05。v19 结构修复（RCA 仿真抓到自掩蔽 bug）：
+         R1 动态阈值=滚动本底×2.5，绝对下限 0.035（v20 据遥测分布定）。v19 结构修复（RCA 仿真抓到自掩蔽 bug）：
          孩子说话期间 base 被语音帧自己抬升，thr=2.5×base 在语音结束前反超童声电平——本底
          0.03+童声 0.12 只净积 183ms<200ms 判超时。修法：thr 先用上一帧 base 算，voiced 帧
          (rms>thr)冻结 base；EMA 改时间基准（1-exp(-dt/825)≈60fps×0.02）——120Hz 屏（iPad
          ProMotion）base 升速不再翻倍。数值调参（地板/cap/HEARD_MS）等遥测数据再动。
-         R3 真实时间累积 ~0.2s 才算读到：帧率无关，也滤掉敲一下桌子的瞬态
+         R3 真实时间累积 ~0.12s 才算读到（v20：幼儿短音"天！"<300ms，200ms 偏紧）：滤瞬态
          达标后不立即切下一项：等静音 0.6s 让孩子把话说完（防范读抢话，读到≠读完）
-         前 0.5s 排除"叮"/范读尾音的外放串扰（ding≈0.18s），本底初值取排除期最小值
+         前 0.8s 排除"叮"/范读尾音的外放串扰（ding≈0.18s；v20 关 AEC 后尾音无压制，加长）
          过程量（peak_rms/thr_used/…）随结果落 _fStats 供 logFollow 上报：下次报障直判"没读"还是"漏检" */
       if (!(micReady === true || await this.ensureMic())) return null;
       try {
@@ -298,7 +302,8 @@ const root = createApp({
         an.fftSize = 512;
         src.connect(an);
         const buf = new Uint8Array(an.fftSize);
-        const EXCL = 500, HEARD_MS = 200, QUIET_MS = 600;
+        const EXCL = 800, HEARD_MS = 120, QUIET_MS = 600;   /* v20：EXCL 800(无 AEC 压尾音，防串扰)；
+                                                               HEARD_MS 120(幼儿短音"天！"<300ms) */
         const t0 = performance.now(), hardAt = ms + EXCL + 1500;
         let base = 0.05, minExcl = 1, voicedMs = 0, trailAt = 0, lastT = t0;
         let peak = 0, thrEnd = 0;
@@ -320,7 +325,8 @@ const root = createApp({
               this.micLvl = Math.min(1, rms * 8);               /* 🎤/大字随声音跳动（×8：小声读也可见） */
               const dt = now - lastT; lastT = now;
               if (t < EXCL) { minExcl = Math.min(minExcl, rms); return requestAnimationFrame(tick); }
-              const thr = Math.max(0.05, base * 2.5);           /* 先用上一帧本底定阈 */
+              const thr = Math.max(0.035, base * 2.5);          /* 先用上一帧本底定阈；地板 0.035
+                                                                  （v20 遥测：几乎无声=0.012-0.02，拉开距离） */
               if (rms > peak) peak = rms;
               thrEnd = thr;
               if (t < EXCL + 120) base = Math.max(0.02, minExcl);

@@ -163,12 +163,12 @@ if __name__ == "__main__":
                   "--use-fake-ui-for-media-stream"])
         page = browser.new_page(viewport={"width": 820, "height": 1100})
         page.on("pageerror", lambda e: errors.append(str(e)))
-        page.on("response", lambda r: v18.append(r.status) if "app.js?v=19" in r.url else None)
+        page.on("response", lambda r: v18.append(r.status) if "app.js?v=20" in r.url else None)
         try:
             run(page)
         finally:
             browser.close()
-    check("T3 app.js?v=19 加载 200", v18 == [200], v18)
+    check("T3 app.js?v=20 加载 200", v18 == [200], v18)
     check("T3 无 JS pageerror", not errors, errors[:3])
     print(f"\n{PASS_N} pass / {FAIL_N} fail  （截图: tests/shots/fix-*.png）")
     sys.exit(1 if FAIL_N else 0)
