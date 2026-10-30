@@ -217,17 +217,17 @@ const root = createApp({
       /* 跳步（步指示器可点=家长快进，绕过跟读）；到写步才挂描红 */
       this.stopNarration();
       this.skipFollow();
+      this.stepBusy = false;    /* 被作废的旧音频链 finally 因代际守卫不复位（写步无新链接手），此处直接清 */
       this.ncStep = step;
       if (step === 4) this.$nextTick(() => this.mountTracer(this.curItem.char));
       else this.stepAudio();
     },
     ncNext() {
-      if ((this.follow.on && this.follow.state !== "all") || this.stepBusy) return;   /* 跟读/音频链未完不放行
-                                                                  （连听期 on 仍 false 曾可点=误触跳过词步跟读） */
+      if (this.stepBusy) return;                     /* 仅音频范读期锁定（防没听就走）；跟读不锁：
+                                                        读到就夸、不读直接点走（鼓励式，wordslearn 同哲） */
       this.ncStep >= 4 ? this.advance() : this.ncGo(this.ncStep + 1);
     },
     ncNextLabel() {
-      if ((this.follow.on && this.follow.state !== "all") || this.stepBusy) return "🎤 先读一读 →";
       if (this.ncStep < 4) return "下一步 →";
       return this.hasNextNew() ? "这个字学会啦，下一个 →" : "我会写啦，去答题 →";
     },
@@ -311,11 +311,10 @@ const root = createApp({
       this.follow = { on: true, kind, idx: 0, done: [], state: "model", tries: 0, heardAny: false };
       return new Promise(res => { this._followResolve = res; this.followPlay(0); });
     },
-    async followPlay(i, retry) {
+    async followPlay(i) {
       const f = this.follow;
       if (!f.on || f.state === "all") return;
       const gen = ++this._followGen;                  /* 代际 token：重听/跳过后作废旧链，防双链竞争 */
-      if (!retry) f.tries = 0;
       f.idx = i; f.state = "model";
       const items = this.followItems(f.kind), it = items[i];
       if (!it) return this.followFinish();
@@ -339,10 +338,6 @@ const root = createApp({
       const heard = await this.followHeard(ms, gen, micReady);   /* 音量校验：true读到/false超时/null无麦降级 */
       this.micLvl = 0;
       if (gen !== this._followGen || !f.on || f.state !== "wait") return;
-      if (heard === false && f.tries < 1) {           /* 没听到：再给一轮（重播范读） */
-        f.tries++;
-        return this.followPlay(i, true);
-      }
       this.followDoneOne(heard);                      /* 三态透传(true读到/false超时/null无麦降级)：
                                                           家长报表 na=heard IS NULL 靠它区分，折叠成 false 会全记超时 */
     },
@@ -413,7 +408,7 @@ const root = createApp({
       } catch (e) { return null; }
     },
     followDoneOne(heard) {                             /* heard 三态：true读到/false超时/null无麦降级 */
-      const f = this.follow, gen = this._followGen;
+      const f = this.follow;
       if (!f.on || f.state !== "wait") return;
       this.logFollow(heard, f.tries);                         /* R5：开口流水（fire-and-forget） */
       f.heardAny = f.heardAny || !!heard;
@@ -423,15 +418,7 @@ const root = createApp({
         this.playSfx("ok");
         return this.followAdvance();
       }
-      if (heard === false) {                                  /* 两轮没读到：明示"没关系"再走，不播欢快
-                                                                ok 音掩盖失败（RCA：v18 体感"读了没反应"来源之一） */
-        f.state = "miss";
-        setTimeout(() => {
-          if (this._followGen === gen && f.on && f.state === "miss") this.followAdvance();
-        }, 900);
-        return;
-      }
-      this.followAdvance();                                   /* null=无麦降级：静默推进（家长在场带读） */
+      this.followAdvance();    /* 没读到/无麦：直接过，不重试不停留（鼓励式：跟读是机会不是门槛） */
     },
     followAdvance() {
       const f = this.follow;
@@ -439,23 +426,20 @@ const root = createApp({
       if (f.idx + 1 >= this.followItems(f.kind).length) this.followFinish();
       else this.followPlay(f.idx + 1);
     },
-    fbHint() {                                         /* 跟读条文案分流（RCA：v18 只有 wait 两态，弹窗未决/重试/超时全靠猜） */
+    fbHint() {                                         /* 跟读条文案（鼓励式两态：范读/轮到你；无麦降级明示原因） */
       const f = this.follow;
-      if (f.state === "miss") return "没关系，继续～";
-      if (this.micDenied) {                            /* 无麦降级：范读全程明示原因（曾只闪现 <100ms，家长无从知道为何不听） */
+      if (this.micDenied) {
         if (this.micState === "pending") return "等爸爸妈妈点一下【允许】哦";
         return "麦克风没开，跟爸爸妈妈读一读吧";
       }
-      if (f.state === "model") return f.tries > 0 ? "没听到哦，凑近一点，大声读～" : "先听一听…";
-      if (f.state === "wait") return f.tries > 0 ? "再试一次，凑近大声读！" : "轮到你啦，大声读！";
+      if (f.state === "model") return "先听一听…";
+      if (f.state === "wait") return "轮到你啦，大声读！";
       return "";
     },
     fbHintCls() {
       const f = this.follow;
       if (this.micDenied) return this.micState === "pending" ? "pending" : "denied";
       if (f.state === "wait") return "go";
-      if (f.state === "model" && f.tries > 0) return "retry";
-      if (f.state === "miss") return "miss";
       return "";
     },
     logFollow(heard, tries) {

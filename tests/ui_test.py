@@ -88,11 +88,8 @@ def follow_wait(page, state, timeout=60000):
 
 
 def follow_skip(page):
-    """家长长按跳过跟读（真实事件路径，防 evaluate 绕过 UI 的教训）"""
-    btn = page.locator(".follow-bar .skip-link").first
-    btn.dispatch_event("pointerdown")
-    page.wait_for_timeout(1700)
-    btn.dispatch_event("pointerup")
+    """v24 鼓励式跟读：不锁流程，跟读中直接点"下一步"即可越过（无需长按跳过）"""
+    page.click(".learn-card > button.btn.big")
 
 
 def answer_quiz(page):
@@ -232,15 +229,15 @@ def run(page):
     check("多音字区隐藏/正常", page.locator(".learn-card .zi-big").inner_text().strip()[0] in ("天", "地", "人"))
     shot(page, "04-nc1-recite")
 
-    # ---- 跟读（认步·节奏式）：字音→范读(叮)→留白听读→✓→解锁 ----
+    # ---- 跟读（认步·鼓励式）：字音→范读(叮)→留白听读→✓；不锁按钮 ----
     follow_wait(page, True, timeout=15000)
     page.wait_for_function("window.ziapp.follow.state==='wait'", timeout=15000)
-    check("跟读中(认·大字高亮+聆听指示器+按钮锁)", page.locator(".zi-big.follow-cur").count() == 1
+    check("跟读中(认·大字高亮+聆听指示器+按钮不锁)", page.locator(".zi-big.follow-cur").count() == 1
           and page.locator(".listen-orb.wait").count() == 1
-          and page.locator(".learn-card > button.btn.big").is_disabled())
+          and not page.locator(".learn-card > button.btn.big").is_disabled())
     shot(page, "04b-follow-wait")
     follow_wait(page, False, timeout=20000)      # 留白+确认读+夸奖
-    check("跟读完成解锁(认)", not page.locator(".learn-card > button.btn.big").is_disabled())
+    check("跟读完成后按钮仍可点(认)", not page.locator(".learn-card > button.btn.big").is_disabled())
     shot(page, "04c-follow-done")
     import sqlite3 as _s
     _c = _s.connect("/root/zilearn/app/data/zilearn.db")
@@ -279,12 +276,12 @@ def run(page):
           page.locator(".learn-card > button.btn.big").inner_text())
     shot(page, "07-nc4-trace")
 
-    # ---- 新字2：家长长按跳过认步跟读（真实事件路径）→ while 循环内跳步直达写 ----
+    # ---- 新字2：跟读中直接点"下一步"越步（v24 鼓励式，无需长按）→ while 循环内跳步直达写 ----
     page.click(".learn-card > button.btn.big")   # 新字1 步4 完成 → 新字2
     follow_wait(page, True, timeout=15000)
-    follow_skip(page)
-    follow_wait(page, False, timeout=5000)
-    check("家长长按跳过跟读(新字2认步)", not page.locator(".learn-card > button.btn.big").is_disabled())
+    follow_skip(page)                            # 跟读 wait 态直接点走
+    check("跟读中点下一步即越步(新字2认→词)", app(page)["nc"] == 2)
+    follow_wait(page, False, timeout=5000)       # 点走后跟读链终止
     quiz_seq, gates_seen = [], 0
     while gates_seen < 6:
         st = app(page)

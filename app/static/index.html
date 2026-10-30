@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>字乐 zilearn</title>
-<link rel="stylesheet" href="/style.css?v=9">
+<link rel="stylesheet" href="/style.css?v=10">
 </head>
 <body>
 <div id="app" v-cloak>
@@ -99,8 +99,8 @@
     <template v-if="today.mode==='learn'">
       <template v-if="today.new.length || today.review.length || today.audit.length">
         <div class="row-of-stats">
-          <span>✨ 新字 {{today.new.length}} 个</span>
-          <span>🎯 复习 {{today.review.length + today.audit.length}} 个</span>
+          <span class="task-chip new">✨ 新字 {{today.new.length}} 个</span>
+          <span class="task-chip review">🎯 复习 {{today.review.length + today.audit.length}} 个</span>
         </div>
         <div class="hint">大概 {{estToday}} 分钟</div>
       </template>
@@ -148,7 +148,7 @@
   <div v-if="curItem && curItem.type==='newcard'" class="card learn-card">
     <div class="etym-badge" v-if="curContent">{{etymName(curContent.etym_type)}}</div>
     <div class="nc-steps">
-      <button v-for="(lbl,i) in ['认','词','句','写']" :key="i" class="nc-dot"
+      <button v-for="(lbl,i) in ['👀 认','🔗 词','📖 句','✍️ 写']" :key="i" class="nc-dot"
               :class="{on: ncStep===i+1, done: ncStep>i+1, holding: ncHold===i}"
               @pointerdown="ncDown(i)" @pointerup="ncUp(i)" @pointerleave="ncLeave(i)">{{lbl}}</button>
     </div>
@@ -156,12 +156,14 @@
     <!-- ① 认：字音 → 跟读 → 字源故事 -->
     <template v-if="ncStep===1">
       <div class="zi-row">
-        <div class="zi-big" :class="{'follow-cur': follow.on && follow.kind==='char'}"
-             :style="follow.on && follow.kind==='char' && follow.state==='wait'
-                     ? {transform: 'scale(' + (1 + micLvl * 0.18) + ')'} : null"
-             @click="follow.on && follow.kind==='char' ? followReplay() : playChar(curItem.char)">
-          {{curItem.char}}
-          <span v-if="!follow.on" class="tap-hint">👆</span>
+        <div class="zi-tian">
+          <div class="zi-big" :class="{'follow-cur': follow.on && follow.kind==='char'}"
+               :style="follow.on && follow.kind==='char' && follow.state==='wait'
+                       ? {transform: 'scale(' + (1 + micLvl * 0.18) + ')'} : null"
+               @click="follow.on && follow.kind==='char' ? followReplay() : playChar(curItem.char)">
+            {{curItem.char}}
+            <span v-if="!follow.on" class="tap-hint">👆</span>
+          </div>
         </div>
         <div class="zi-side">
           <div class="pinyin">{{curItem.pinyin}}</div>
@@ -219,11 +221,9 @@
         <div v-if="followPop" class="heard-pop">✓ 听到啦</div>
       </div>
       <span class="fb-hint" :class="fbHintCls()">{{ fbHint() }}</span>
-      <button class="skip-link" @pointerdown="skipHold(true)" @pointerup="skipHold(false)"
-              @pointerleave="skipHold(false)">⏭ 家长长按跳过</button>
     </div>
 
-    <button class="btn big" :disabled="(follow.on && follow.state!=='all') || stepBusy" @click="ncNext">{{ncNextLabel()}}</button>
+    <button class="btn big" :disabled="stepBusy" @click="ncNext">{{ncNextLabel()}}</button>
   </div>
 
   <!-- 今日朗读卡：今日新字例句逐句跟读 → 自由朗读 -->
@@ -249,10 +249,8 @@
         <div v-if="followPop" class="heard-pop">✓ 听到啦</div>
       </div>
       <span class="fb-hint" :class="fbHintCls()">{{ fbHint() }}</span>
-      <button class="skip-link" @pointerdown="skipHold(true)" @pointerup="skipHold(false)"
-              @pointerleave="skipHold(false)">⏭ 家长长按跳过</button>
     </div>
-    <button class="btn big" :disabled="follow.on && follow.state!=='all'" @click="advance">读完了，继续 →</button>
+    <button class="btn big" @click="advance">读完了，继续 →</button>
   </div>
 
   <!-- 四选一题 -->
@@ -421,6 +419,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=23"></script>
+<script src="/app.js?v=24"></script>
 </body>
 </html>
