@@ -104,8 +104,14 @@ const root = createApp({
       return this._playCtx;
     },
     async _loadBuf(ctx, url) {
-      if (!this._bufC) this._bufC = {};
-      if (this._bufC[url]) return this._bufC[url];
+      /* LRU 上限 48 条（2026-10-30 走查：整日会话不同音频数百个，decoded buffer
+         每个百余 KB，无上限缓存在 iPad 上累积数十 MB）——命中提新，超限淘汰最旧 */
+      if (!this._bufC) this._bufC = new Map();
+      if (this._bufC.has(url)) {
+        const b = this._bufC.get(url);
+        this._bufC.delete(url); this._bufC.set(url, b);
+        return b;
+      }
       const r = await fetch(url);
       if (!r.ok) throw new Error("audio " + r.status);
       const ab = await r.arrayBuffer();
@@ -113,7 +119,8 @@ const root = createApp({
         const p = ctx.decodeAudioData(ab, res, rej);
         if (p && p.then) p.then(res, rej);
       });
-      this._bufC[url] = buf;
+      this._bufC.set(url, buf);
+      while (this._bufC.size > 48) this._bufC.delete(this._bufC.keys().next().value);
       return buf;
     },
     _playBuf(url, vol = 1, ch = "narr") {
@@ -500,6 +507,13 @@ const root = createApp({
       if (this.readLines[i]) this.playOne(`s_${this.readLines[i].char}_1`);
     },
     audioDur(name) {
+      /* 时长查询走 _loadBuf 同一缓存（2026-10-30 走查：new Audio 预载与 _playBuf 的
+         fetch 对同文件双下载双缓冲）；ctx 不可用回退 element metadata */
+      const ctx = this._ensurePlayCtx();
+      if (ctx) {
+        return this._loadBuf(ctx, `/static/audio/${encodeURIComponent(name)}.mp3`)
+          .then(b => b.duration || 0).catch(() => 0);
+      }
       return new Promise(res => {
         const a = new Audio(`/static/audio/${encodeURIComponent(name)}.mp3`);
         a.onloadedmetadata = () => res(a.duration || 0);
@@ -546,6 +560,7 @@ const root = createApp({
       clearTimeout(this._tipT); this._tipT = setTimeout(() => this.homeTip = false, 1500);
     },
     exitSession() {                               /* skipFollow：不终止的话跟读链在退出后仍后台响（走查抓到） */
+      this._stopHw();
       this.stopNarration(); this.skipFollow(); this.closeMic();
       this.homeTip = false; this.sessQueue = []; this.sessIdx = 0; this.loadToday();
     },
@@ -704,6 +719,7 @@ const root = createApp({
       this.tracing = false; this.traceMsg = "✏️ 点米字格，跟着橙色笔顺写一写";
       this.findFound = []; this.findMisses = 0; this.findMiss = "";
       this.ncStep = 1; this.readPlaying = false; this.readCur = "";
+      this._stopHw();                               /* 换卡卸载：停上一卡描红实例的无限 loop */
       this.stopNarration();
       this.skipFollow();
       if (it && it.type === "newcard") this.learnDone = false;
@@ -739,7 +755,15 @@ const root = createApp({
       this.curContent = r.content ? { ...r.content, words, sentList, hanzi: r.hanzi }
                                   : { hanzi: r.hanzi, words, sentList };
     },
+    _stopHw() {
+      /* HanziWriter 实例治理（2026-10-30 走查）：loopCharacterAnimation 是 loop:true
+         无限渲染链，实例不随卡片卸载自停——旧实例闭包滞留 detached DOM+字形数据且
+         同 el 重复 create 会双链叠跑。换卡/跳步/退出时统一 pause */
+      if (this._hw) { try { this._hw.pauseAnimation(); } catch { } }
+      this._hw = null;
+    },
     mountTracer(char) {
+      this._stopHw();
       const el = document.getElementById("hw-" + this.curItem.id);
       if (!el || !window.HanziWriter) return;
       try {
@@ -750,6 +774,7 @@ const root = createApp({
             fetch(`/static/strokes/${encodeURIComponent(c)}.json`)
               .then(r => r.ok ? r.json() : null).then(done),
         });
+        this._hw = w;
         w.loopCharacterAnimation();
         el.onclick = () => this.startTrace(el, w, char);
       } catch (e) { /* 描红失败不阻塞学习流 */ }
@@ -773,6 +798,7 @@ const root = createApp({
     },
     /* ---------- 写字关（每日 1 字，写完才过关；HanziWriter quiz 复用写步参数） ---------- */
     mountStrokeQuiz(it) {
+      this._stopHw();                               /* 写字关每日 1 次，但重进会重建：先停旧实例 */
       this.traceDone = false; this.traceFallback = false;
       this.traceMsg = "✏️ 点米字格，跟着橙色笔顺写一写";
       this.playTts("q_write");
@@ -789,6 +815,7 @@ const root = createApp({
                 .then(done)
                 .catch(() => { this.traceFallback = true; done(null); }),
           });
+          this._hw = w;
           w.loopCharacterAnimation();
           el.onclick = () => {
             if (this.traceDone || this.tracing) return;
@@ -976,6 +1003,7 @@ const root = createApp({
       this.advance();
     },
     advance() {
+      if (!this.sessQueue.length) return;          /* 已退出会话：迟到的 submit/跳题定时器不再推进（防甩到完成页） */
       const done = this.curItem;
       /* 新字卡四步完成 → 提交首学（注册 D+1 复习；分关题只记流水不再动调度） */
       if (done && done.type === "newcard" && !this.learnDone) {

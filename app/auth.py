@@ -4,7 +4,7 @@ import bcrypt
 from fastapi import HTTPException
 from database import get_db
 
-_fail = {}  # ip -> [fail_count, window_start_ts]
+_fail = {}  # ip -> [fail_count, window_start_ts]（登录时清扫过期条目，防公网轮换 IP 无限增长）
 
 
 def hash_password(pw: str) -> str:
@@ -20,6 +20,8 @@ def verify_password(pw: str, hashed: str) -> bool:
 
 def login(username, password, ip):
     now = time.time()
+    for k in [k for k, v in _fail.items() if now - v[1] >= 900]:   # 窗口外条目清扫
+        _fail.pop(k, None)
     rec = _fail.get(ip)
     if rec and rec[0] >= 8 and now - rec[1] < 900:
         raise HTTPException(429, "尝试次数过多，请15分钟后再试")

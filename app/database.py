@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS quiz_log (
   ts        TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_qlog_user ON quiz_log(user_id, hanzi_id, phase);
+CREATE INDEX IF NOT EXISTS idx_qlog_user_ts ON quiz_log(user_id, ts);
 
 CREATE TABLE IF NOT EXISTS stars (
   id      INTEGER PRIMARY KEY,

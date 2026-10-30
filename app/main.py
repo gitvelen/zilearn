@@ -91,9 +91,11 @@ VALID_GRADES = {f"{g}{t}" for g in range(1, 7) for t in ("A", "B")}
 
 
 def _client_ip(request):
+    # XFF 取末段：单层 caddy 反代会把自己的 peer 追加在末尾，首段可被客户端伪造
+    # （轮换伪造首段既绕限速又撑大 auth._fail）。多级代理接入时须改为倒数第 N 段
     xff = request.headers.get("x-forwarded-for")
     if xff:
-        return xff.split(",")[0].strip()
+        return xff.split(",")[-1].strip()
     return request.client.host if request.client else "unknown"
 
 
