@@ -163,9 +163,12 @@ const root = createApp({
     stopNarration() {
       /* 三通道统一停（narration 链/指令/字音）：切题、跳步、答题后遗留音频继续响的根源
          是这里只停一个通道（2026-10-28 叠音检测器抓到 4 组）
-         同时作废悬挂的 stepAudio 链（v21：防 resume 后旧链 startFollow 顶掉新步跟读） */
+         同时作废悬挂的 stepAudio 链（v21：防 resume 后旧链 startFollow 顶掉新步跟读）
+         并交还 stepBusy 锁（2026-10-30 断头路修复）：作废链的 finally 因代际守卫不复位，
+         若无新链接手（用户点词卡/听按钮只是自由播放，不开新链）按钮将永久禁用 */
       this._stepGen = (this._stepGen || 0) + 1;
       this._narrStop = true;
+      this.stepBusy = false;
       for (const k of ["_narrSrc", "_ttsSrc", "_charSrc"]) {
         if (this[k]) { try { this[k].stop(); } catch { } this[k] = null; }
       }
@@ -570,8 +573,8 @@ const root = createApp({
       this.phase = "ob-verify"; this.nextVerify();
     },
     async nextVerify() {
-      const r = await api("GET", "/api/confirm/verify/first");
-      this.showVerifyQ(r.next_verify);
+      const r = await api("GET", "/api/confirm/verify/first").catch(() => null);   /* 弱网：验证轮可弃（防卡"生成中…"） */
+      this.showVerifyQ(r ? r.next_verify : null);
     },
     showVerifyQ(q) {
       /* 验证题到达：指令音→延迟自动播字音（对齐主流程 listen 题节奏；孩子答题后不再补播）
@@ -592,9 +595,9 @@ const root = createApp({
       this.playSfx(correct ? "ok" : "no");                 /* 对错音效：验证轮与主流程一致 */
       setTimeout(async () => {
         const r = await api("POST", "/api/confirm/verify",
-          { hanzi_id: this.verifyQ.hanzi_id || this.verifyQ.id, correct });
+          { hanzi_id: this.verifyQ.hanzi_id || this.verifyQ.id, correct }).catch(() => null);
         this.verifyDone++;
-        if (r.next_verify) this.showVerifyQ(r.next_verify);
+        if (r && r.next_verify) this.showVerifyQ(r.next_verify);
         else this.finishVerifyStage();
       }, correct ? 700 : 1300);
     },
@@ -844,7 +847,8 @@ const root = createApp({
     },
     async startQuiz(it) {
       let qt = it.quiz_type || this.randType(it.id);
-      this.curQuiz = await api("GET", `/api/quiz?hanzi_id=${it.id}&quiz_type=${qt}`);
+      /* 弱网兜底：拉题失败并入素材缺失同路径（防永久卡"出题中…"） */
+      this.curQuiz = await api("GET", `/api/quiz?hanzi_id=${it.id}&quiz_type=${qt}`).catch(() => null);
       if (!this.curQuiz) {                          /* 素材缺失兜底：防永久卡"出题中…" */
         this.traceMsg = "这题先跳过啦";
         setTimeout(() => this.advance(), 1200);
@@ -923,10 +927,12 @@ const root = createApp({
     },
     async submitQuiz(correct) {
       const it = this.quizPending;
+      /* 弱网兜底：submit 失败只丢流水不卡推进（答对 900ms 定时 advance 曾因它不调度） */
+      const send = (body) => api("POST", "/api/submit", body).catch(e => console.warn("submit 弱网失败", e));
       if (it.type === "gatequiz") {
         /* 关题：调度已在卡片完成时注册（learn 幂等），此处只记流水+关分；答错半卡重测到对 */
         const first = !it._answered; it._answered = true;
-        await api("POST", "/api/submit", { hanzi_id: it.id, phase: "learn",
+        await send({ hanzi_id: it.id, phase: "learn",
           quiz_type: this.curQuiz.quiz_type, correct });
         if (first) {
           if (correct) this.gateScores[it.gate]++;
@@ -941,7 +947,7 @@ const root = createApp({
       /* 复习/周测/抽检答错：拉内容给"先看半卡再重测" */
       if (!correct) this.mountContent(it.id);
       if (first) {
-        await api("POST", "/api/submit", { hanzi_id: it.id, phase: it.phase,
+        await send({ hanzi_id: it.id, phase: it.phase,
           quiz_type: this.curQuiz.quiz_type, correct });
         if (!correct && this.phase === "weekly") {
           this.weeklyWrong.push(this.curQuiz.hanzi);
@@ -960,7 +966,10 @@ const root = createApp({
         /* 复习/周测错题：同题型重测到对（不重复提交，回炉轨迹完整） */
         this.quizRevealed = false; this.quizPick = null;
         this.findFound = []; this.findMisses = 0; this.findMiss = "";
-        this.curQuiz = await api("GET", `/api/quiz?hanzi_id=${it.id}&quiz_type=${this.curQuiz.quiz_type}`);
+        /* 弱网兜底：重拉失败直接过题（防卡在已重置的旧题上） */
+        this.curQuiz = await api("GET", `/api/quiz?hanzi_id=${it.id}&quiz_type=${this.curQuiz.quiz_type}`)
+          .catch(() => null);
+        if (!this.curQuiz) return this.advance();
         if (this.curQuiz.quiz_type === "listen") setTimeout(() => this.playChar(this.curQuiz.hanzi), 400);
         return;
       }
@@ -985,7 +994,8 @@ const root = createApp({
       this.closeMic();
       if (this.phase === "weekly") {
         await api("POST", "/api/weekly/finish", { week_no: this.today.week_no,
-          score: this.weeklyScore, total: this.weeklyTotal, wrong_ids: this.weeklyWrongIds });
+          score: this.weeklyScore, total: this.weeklyTotal, wrong_ids: this.weeklyWrongIds })
+          .catch(e => console.warn("weekly/finish 弱网失败", e));   /* 结算可丢，流程照走（防空白卡死） */
         localStorage.removeItem(this.weeklyKey());   /* 已结算，清断点 */
         this.phase = "weekly-done";
       } else {
