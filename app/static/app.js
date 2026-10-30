@@ -468,10 +468,11 @@ const root = createApp({
       }).catch(() => {});
     },
     async followFinish() {
-      const f = this.follow, gen = this._followGen;
+      const f = this.follow;
       f.state = "all";
       if (f.kind === "char") await this.playFile(this.curItem.char);   /* 确认读 */
-      if (f.heardAny && gen === this._followGen) await this.playFile("t_great");  /* 读到了才夸；跳过作废代际后不再播（防与后续链叠音） */
+      /* 语音夸奖已删（2026-10-30 用户拍板：音量检测不配下"太棒了"的断言；
+         读到瞬间的 ✓ 爆闪 + ok 短音保留——轻反馈误报成本低于漏报） */
       f.on = false;                                                     /* 转自由点选模式 */
       this._resolveFollow();
     },
@@ -561,6 +562,7 @@ const root = createApp({
     },
     exitSession() {                               /* skipFollow：不终止的话跟读链在退出后仍后台响（走查抓到） */
       this._stopHw();
+      this._quizCache = {};                       /* 预取缓存随会话作废（防陈旧题跨会话命中） */
       this.stopNarration(); this.skipFollow(); this.closeMic();
       this.homeTip = false; this.sessQueue = []; this.sessIdx = 0; this.loadToday();
     },
@@ -684,6 +686,7 @@ const root = createApp({
         this.readNews = news;                      // readcard 行=本次关池字
       } else { this.readNews = []; }
       this.sessQueue = q; this.sessIdx = 0; this.doneStats = { new: 0, review: 0 };
+      this._promptDone = new Set(); this._quizCache = {};   /* 会话级：玩法指令首题化 + 题目预取缓存 */
       this.enterItem();
     },
     isWarm(r) { return r.stage === 0; },   /* stage=0 即只学过首学，就是昨日重现批 */
@@ -697,6 +700,7 @@ const root = createApp({
         const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]];
       }
       this.sessQueue = q; this.sessIdx = 0;
+      this._promptDone = new Set(); this._quizCache = {};   /* 会话级：玩法指令首题化 + 题目预取缓存 */
       this.weeklyScore = prog ? prog.score : 0;
       this.weeklyTotal = this.today.scope.length;
       this.weeklyWrong = prog ? prog.wrong : [];
@@ -872,10 +876,25 @@ const root = createApp({
         if (!this._narrStop) this.playSfx("ding");       /* 连读完"叮"提示（不用啰嗦语音指令） */
       })();
     },
+    _qtOf(it) {                                  /* 复习/周测题题型会话内固定（randType 结果挂 it，预取与出题一致） */
+      return it.quiz_type || it._qt || (it._qt = this.randType(it.id));
+    },
+    _prefetchNext() {
+      /* 答对后 900ms 停留窗内预拉下一题：advance 时直接命中，"出题中…"消失 */
+      const nxt = this.sessQueue[this.sessIdx + 1];
+      if (!nxt || !nxt.type.endsWith("quiz")) return;
+      const key = this._qtOf(nxt) + ":" + nxt.id;
+      if (this._quizCache && this._quizCache[key]) return;
+      api("GET", `/api/quiz?hanzi_id=${nxt.id}&quiz_type=${this._qtOf(nxt)}`)
+        .then(q => { (this._quizCache ||= {})[key] = q; }).catch(() => { });
+    },
     async startQuiz(it) {
-      let qt = it.quiz_type || this.randType(it.id);
-      /* 弱网兜底：拉题失败并入素材缺失同路径（防永久卡"出题中…"） */
-      this.curQuiz = await api("GET", `/api/quiz?hanzi_id=${it.id}&quiz_type=${qt}`).catch(() => null);
+      const qt = this._qtOf(it);
+      const key = qt + ":" + it.id;
+      /* 预取命中直接用（一次性）；未命中现拉，弱网失败并入素材缺失同路径 */
+      this.curQuiz = (this._quizCache && this._quizCache[key]) ||
+        await api("GET", `/api/quiz?hanzi_id=${it.id}&quiz_type=${qt}`).catch(() => null);
+      if (this._quizCache) delete this._quizCache[key];
       if (!this.curQuiz) {                          /* 素材缺失兜底：防永久卡"出题中…" */
         this.traceMsg = "这题先跳过啦";
         setTimeout(() => this.advance(), 1200);
@@ -885,12 +904,16 @@ const root = createApp({
       const aqt = this.curQuiz.quiz_type;   /* 实际题型（可能与请求不同：题库退化） */
       const PROMPT = { listen: "q_listen", mean: "q_mean", sent: "q_sent",
                        find: "q_find", pin: "q_pin", rev: "q_rev" };
-      if (PROMPT[aqt]) this.playTts(PROMPT[aqt]);
+      /* 玩法指令每会话每题型只播首次（2026-10-30 用户反馈：每题都播听着烦，
+         且指令 2-3s 比答题慢，常"做完了还没读完"）；后续题自动播音不再等指令 */
+      (this._promptDone ||= new Set());
+      const firstTime = PROMPT[aqt] && !this._promptDone.has(aqt);
+      if (firstTime) { this.playTts(PROMPT[aqt]); this._promptDone.add(aqt); }
       /* 自动播音用局部引用：孩子快速答完 advance 后 curQuiz 已置空，读它即崩；
          且切题后不再播（curQuiz 守卫），防旧题字音叠到新题；
          延迟=指令实际时长+300ms（固定延迟曾与指令尾叠音） */
       const qz = this.curQuiz;
-      const promptMs = PROMPT[aqt] ? (await this.audioDur(`t_${PROMPT[aqt]}`) || 2) * 1000 + 300 : 400;
+      const promptMs = firstTime ? (await this.audioDur(`t_${PROMPT[aqt]}`) || 2) * 1000 + 300 : 400;
       if (aqt === "listen") setTimeout(() => { if (this.curQuiz === qz) this.playChar(qz.hanzi); }, promptMs);
       else if (aqt === "find") setTimeout(() => { if (this.curQuiz === qz) this.playChar(qz.hanzi); }, promptMs);
       else if (aqt === "rev") setTimeout(() => { if (this.curQuiz === qz) this.playFile(qz.audio); }, promptMs);
@@ -965,7 +988,7 @@ const root = createApp({
           if (correct) this.gateScores[it.gate]++;
           else this.gateWrong[it.gate].push(this.curQuiz.hanzi);
         }
-        if (correct) setTimeout(() => this.advance(), 900);
+        if (correct) { this._prefetchNext(); setTimeout(() => this.advance(), 900); }
         else this.mountContent(it.id);
         return;
       }
@@ -984,6 +1007,7 @@ const root = createApp({
       }
       if (correct) {
         if (first && this.phase === "weekly") this.weeklyScore++;
+        this._prefetchNext();
         setTimeout(() => this.advance(), 900);
       }
     },
