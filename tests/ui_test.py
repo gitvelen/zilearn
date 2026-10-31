@@ -186,6 +186,8 @@ def run(page):
 
     # ---- 计划：52 字 / 30 天（daily_new=ceil(52/26)=2，流程可控） ----
     check("计划页", page.locator(".field").count() >= 1)
+    check("天数五档(7/14/30/60/90)", page.locator(".row .chip").count() == 5
+          and "7 天" in page.locator(".row .chip").first.inner_text())
     page.fill("input[type=number]", "52")
     page.locator(".chip", has_text="30 天").click()
     page.click("button.btn.big")

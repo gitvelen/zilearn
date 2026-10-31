@@ -45,12 +45,13 @@
   <div class="field">
     <label>用多少天完成？</label>
     <div class="row">
-      <button v-for="d in [30,50,90]" :key="d" class="chip" :class="{on: obDays===d}" @click="obDays=d">{{d}} 天</button>
+      <button v-for="d in [7,14,30,60,90]" :key="d" class="chip" :class="{on: obDays===d}" @click="obDays=d">{{d}} 天</button>
     </div>
   </div>
   <div v-if="obTarget && obDays" class="est" :class="{warn: estLocal.over_30min}">
-    <div>每天学 {{estLocal.daily_new}} 个新字</div>
-    <div>预计每天 {{estLocal.est_minutes}} 分钟{{estLocal.over_30min ? ' ⚠️ 有点多哦' : ''}}</div>
+    <div>✨ 新增汉字：每天 {{estLocal.daily_new}} 个，本期共 {{Math.min(obTarget, progress.total_hanzi)}} 个（{{estLocal.study_days}} 个学习日）</div>
+    <div>🔁 存量汉字：{{progress.learned ? '已学 ' + progress.learned + ' 个字，' : ''}}学过的字按 1、3、7、14 天间隔自动回来复习</div>
+    <div>⏱️ 预计每天 {{estLocal.est_minutes}} 分钟{{estLocal.over_30min ? ' ⚠️ 有点多哦' : ''}}</div>
   </div>
   <div class="row">
     <button class="btn ghost" @click="phase='ob-grade'">← 返回</button>
@@ -419,6 +420,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=27"></script>
+<script src="/app.js?v=28"></script>
 </body>
 </html>

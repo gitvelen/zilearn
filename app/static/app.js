@@ -65,9 +65,10 @@ const root = createApp({
     },
     estLocal() {
       const d = this.obDays || 1, t = this.obTarget || 1;
-      const daily = Math.max(1, Math.ceil(t / (d - Math.floor(d / 7))));
+      const studyDays = d - Math.floor(d / 7);           /* 每周 1 天周测不投新字 */
+      const daily = Math.max(1, Math.ceil(t / studyDays));
       const est = Math.round((daily * 2.5 + daily * 4 * 0.2 + 3) * 10) / 10;
-      return { daily_new: daily, est_minutes: est, over_30min: est > 30 };
+      return { daily_new: daily, study_days: studyDays, est_minutes: est, over_30min: est > 30 };
     },
     estToday() {
       const n = (this.today.new || []).length, r = (this.today.review || []).length + (this.today.audit || []).length;
