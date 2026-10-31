@@ -618,14 +618,16 @@ const root = createApp({
       this.phase = "ob-confirm";
     },
     showVerifyQ(q) {
-      /* 验证题到达：指令音→延迟自动播字音（对齐主流程 listen 题节奏；孩子答题后不再补播）
+      /* 验证题到达：指令每轮验证只播首题（2026-10-31 用户反馈：每题都播 3.5s 指令太啰嗦，
+         对齐主流程玩法指令首题化）；后续题 400ms 后直接播字音（孩子答题后不再补播）
          局部引用必须从 this 读回（Vue3 代理）：裸 q 与 this.verifyQ 恒 !==，守卫会永久失效（startQuiz 同款） */
       this.verifyQ = q; this.verifyRevealed = false; this.verifyPick = null;
       if (!q) return this.finishVerifyStage();
       const qz = this.verifyQ;
-      this.playTts("verify");
+      const firstTime = this.verifyDone === 0;        /* confirmSubmit 每轮重置 verifyDone */
+      if (firstTime) this.playTts("verify");
       (async () => {
-        const ms = (await this.audioDur("t_verify") || 2) * 1000 + 300;
+        const ms = firstTime ? (await this.audioDur("t_verify") || 2) * 1000 + 300 : 400;
         setTimeout(() => { if (this.verifyQ === qz && !this.verifyRevealed) this.playChar(qz.hanzi); }, ms);
       })();
     },

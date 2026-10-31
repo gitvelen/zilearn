@@ -251,7 +251,7 @@ def run(page):
     ch1 = page.evaluate("() => window.ziapp.curItem.char")
     seq = page.evaluate("() => window.__audioEvents.map(e => e.name)")
     seqf = [n for n in seq if not n.startswith("sfx_")]
-    check("验证轮音频链(指令→字音 ×2题)", seqf[:4] == ["t_verify", "天", "t_verify", "地"], seqf[:6])
+    check("验证轮音频链(指令首题化:指令→字音→字音)", seqf[:3] == ["t_verify", "天", "地"], seqf[:6])
     expect = [ch1, ch1, ch1, "e_" + ch1]            # 字音→范读→(叮)确认读→故事（sfx 已滤；t_great 已删，读到≠语音夸）
     i0 = seqf.index(ch1)                              # 认步字音起点（跳过摸底验证轮音频）
     check("认步音频链(字音→范读→确认→故事)", seqf[i0:i0 + 4] == expect, seqf[i0:i0 + 5])
