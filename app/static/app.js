@@ -275,11 +275,11 @@ const root = createApp({
           if (!live) {
             if (this._micStream) { try { this._micStream.getTracks().forEach(t => t.stop()); } catch { } }
             const prevStream = this._micStream;         /* 竞态哨兵：await 期间被 closeMic/他处替换则丢弃迟到流 */
-            /* 约束显式化（v20 遥测实证：AEC/NS 在"外放+安静房"把童声压到 0.05 地板下——
-               peak 0.365/voiced 0ms=只有瞬态穿透。关 AEC/NS 放行童声(+3~9dB)，AGC 保开
-               （跨设备绝对电平的前提）；iOS 不支持的部分约束会被忽略，无害 */
+            /* 约束显式化（v20：AEC/NS 把童声压地板下→关；v33 真机遥测：Safari 的 AGC 把
+               童声钳在 0.008-0.018（JS 侧增益×3 被系统归一抵消、大吼才放行 0.039）→
+               AGC 也关。v20 开 AGC 是为"绝对电平前提"，v33 阈值已改相对判据，不再依赖） */
             const g = navigator.mediaDevices.getUserMedia(
-              { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } });
+              { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
             g.then(s => setTimeout(() => {                /* 迟到流（超时后才 resolve）：已被超越→停掉，别白亮指示灯 */
               if (this._micStream !== s) { try { s.getTracks().forEach(t => t.stop()); } catch { } }
             }, 0)).catch(() => { });
@@ -401,8 +401,9 @@ const root = createApp({
         an.fftSize = 512;
         src.connect(gain); gain.connect(an);
         const buf = new Uint8Array(an.fftSize);
-        const EXCL = 800, HEARD_MS = 120, QUIET_MS = 600;   /* v20：EXCL 800(无 AEC 压尾音，防串扰)；
-                                                               HEARD_MS 120(幼儿短音"天！"<300ms) */
+        const EXCL = 800, HEARD_MS = 80, QUIET_MS = 600;    /* EXCL 800(无 AEC 压尾音，防串扰)；
+                                                               HEARD_MS 120→80（v33 真机：单字音被
+                                                               AGC 压到只有起音瞬态，120ms 积不满） */
         const t0 = performance.now(), hardAt = ms + EXCL + 1500;
         let base = 0.05, minExcl = 1, voicedMs = 0, trailAt = 0, lastT = t0;
         let peak = 0, thrEnd = 0;
