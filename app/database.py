@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
   plan_days     INTEGER,                          -- 计划：完成天数
   plan_start    TEXT,                             -- 计划：起始日（日历日）
   plan_base_learned INTEGER DEFAULT 0,            -- 建计划时的已学数（达成=learned-base>=target，续订增量记账）
+  confirm_upto    INTEGER DEFAULT 0,              -- 摸底供应水位：已展示过的字数（按 seq，轮次补摸）
   onboarded     INTEGER DEFAULT 0,                -- 1=引导流完成（年级+计划+摸底）
   created_at    TEXT DEFAULT (datetime('now'))
 );
@@ -136,6 +137,11 @@ def init_db():
     # 迁移：旧库补 sentences 列（新库 SCHEMA 已含）
     try:
         db.execute("ALTER TABLE zi_content ADD COLUMN sentences TEXT")
+    except sqlite3.OperationalError:
+        pass
+    # 迁移：旧库补摸底水位列（轮次补摸，新库 SCHEMA 已含）
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN confirm_upto INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
         pass
     # 迁移：旧库补计划基准列（v29 续订增量记账，新库 SCHEMA 已含）

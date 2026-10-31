@@ -173,7 +173,9 @@ def confirm_verify(body: ConfirmVerifyIn, request: Request):
     finally:
         db.close()
     q = scheduler.gen_quiz(nxt["hanzi_id"], "listen", book=scheduler.book_of(user)) if nxt else None
-    return {"progress": prog, "next_verify": q}
+    # 本轮验证全过 → 池内确认生词不足目标则轮次补摸（more_batch 非空时前端回摸底页）
+    more = scheduler.confirm_more(user) if not nxt else None
+    return {"progress": prog, "next_verify": q, "more_batch": more}
 
 
 @app.get("/api/confirm/verify/first")
@@ -187,8 +189,10 @@ def confirm_first(request: Request):
     finally:
         db.close()
     if not nxt:
-        return {"next_verify": None}
-    return {"next_verify": scheduler.gen_quiz(nxt["hanzi_id"], "listen", book=scheduler.book_of(user))}
+        # 无待验证题（补摸轮全没选/首轮直接跳过）→ 查轮次补摸
+        return {"next_verify": None, "more_batch": scheduler.confirm_more(user)}
+    return {"next_verify": scheduler.gen_quiz(nxt["hanzi_id"], "listen", book=scheduler.book_of(user)),
+            "more_batch": None}
 
 
 @app.get("/api/today")

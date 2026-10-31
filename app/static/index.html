@@ -60,9 +60,9 @@
   </div>
 </div>
 
-<!-- ============ 引导：摸底速选 ============ -->
+<!-- ============ 引导：摸底速选（首批 + 生词不足时轮次补摸） ============ -->
 <div v-else-if="phase==='ob-confirm'" class="wizard wide">
-  <h2>哪些字你已经认识啦？</h2>
+  <h2>{{moreRound ? '再看一批，这些字认识吗？' : '哪些字你已经认识啦？'}}</h2>
   <p class="sub">爸爸妈妈帮着一起选，认识就点亮它 ✨（选完会出小题验证哦）</p>
   <div class="progress-bar"><i :style="{width: (confirmPage+1)/confirmBatches.length*100+'%'}"></i></div>
   <div class="char-grid">
@@ -433,6 +433,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=29"></script>
+<script src="/app.js?v=30"></script>
 </body>
 </html>

@@ -40,7 +40,7 @@ const root = createApp({
       doneStats: { new: 0, review: 0 }, report: null,
       follow: { on: false, kind: "", idx: 0, done: [], state: "off" }, micLvl: 0,
       micDenied: false, micState: "ok", followPop: false, quizBurst: false, stepBusy: false,
-      homeTip: false, homeHold: false, ncHold: -1, renewing: false,
+      homeTip: false, homeHold: false, ncHold: -1, renewing: false, moreRound: false,
       BURST_DIRS: [["-70px","-60px"],["70px","-75px"],["0px","-95px"],["-55px","55px"],["55px","65px"],["0px","-30px"]],
       gateScores: {}, gateWrong: {}, readNews: [],
     };
@@ -587,6 +587,7 @@ const root = createApp({
       }
       const r = await api("GET", "/api/confirm/batches");
       this.confirmBatches = r.batches; this.confirmPage = 0; this.confirmPicked = [];
+      this.moreRound = false;                       /* 首批摸底（补摸轮由 showMoreConfirm 置位） */
       this.phase = "ob-confirm";
     },
     startRenew(from) {                              /* 本期达成 → 家长续订（完成页入口） */
@@ -607,7 +608,14 @@ const root = createApp({
     },
     async nextVerify() {
       const r = await api("GET", "/api/confirm/verify/first").catch(() => null);   /* 弱网：验证轮可弃（防卡"生成中…"） */
+      if (r && r.more_batch && r.more_batch.length) return this.showMoreConfirm(r.more_batch);
       this.showVerifyQ(r ? r.next_verify : null);
+    },
+    showMoreConfirm(batch) {
+      /* 轮次补摸：池内确认生词不足目标 → 再摸一批（后端水位顺延，摸过的字不重复） */
+      this.moreRound = true;
+      this.confirmBatches = [batch]; this.confirmPage = 0; this.confirmPicked = [];
+      this.phase = "ob-confirm";
     },
     showVerifyQ(q) {
       /* 验证题到达：指令音→延迟自动播字音（对齐主流程 listen 题节奏；孩子答题后不再补播）
@@ -631,6 +639,7 @@ const root = createApp({
           { hanzi_id: this.verifyQ.hanzi_id || this.verifyQ.id, correct }).catch(() => null);
         this.verifyDone++;
         if (r && r.next_verify) this.showVerifyQ(r.next_verify);
+        else if (r && r.more_batch && r.more_batch.length) this.showMoreConfirm(r.more_batch);
         else this.finishVerifyStage();
       }, correct ? 700 : 1300);
     },

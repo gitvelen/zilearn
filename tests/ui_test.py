@@ -198,6 +198,7 @@ def run(page):
     # ---- 摸底：选前 2 个字（天地） ----
     page.locator(".char-chip").nth(0).click()
     page.locator(".char-chip").nth(1).click()
+    page.wait_for_function("window.ziapp.confirmPicked.length===2", timeout=5000)   # 点击落空防进验证轮
     page.click("button.btn.big")                 # 选完了去验证
     page.wait_for_selector(".quiz-box", timeout=10000)
 
@@ -451,20 +452,26 @@ def run_weekly(page):
     check("次日入口预告", "第 2 周" in page.locator(".day-card").inner_text())
 
     # ---- 本期达成→续订链路（后端增量记账 e2e 已测；此处验证 UI 接线） ----
-    # 造达成态：续订 target=1（base=当前已学数），再学 1 字即达成。
-    # 周测完成日 /api/today 无 new 字段 → 从字表池逐字 learn 到 learned+1
+    # 造达成态两段式：大目标拿足字表 → 学 1 字 → create(target=1) 定 base → 再学 1 字即达成
+    # （直接 create(1) 时摸底池仅 2 字且都是已 skip 的天地，学不进——池随目标缩量的造数适配）
     page.evaluate("""async () => {
-      await fetch('/api/plan/create', {method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({target_chars: 1, days: 7})});
-      const me0 = await (await fetch('/api/me')).json();
-      const L0 = me0.progress.learned;
-      const b = await (await fetch('/api/confirm/batches')).json();
-      for (const c of b.batches.flat().slice(0, 20)) {
-        await fetch('/api/submit', {method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({hanzi_id: c.id, phase: 'learn', quiz_type: 'card', correct: true})});
-        const me = await (await fetch('/api/me')).json();
-        if (me.progress.learned > L0) break;
-      }
+      const post = (p, b) => fetch(p, {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(b)}).then(r => r.json());
+      const me = () => fetch('/api/me').then(r => r.json());
+      await post('/api/plan/create', {target_chars: 20, days: 7});      // 池 26 字（含可学）
+      const b = await fetch('/api/confirm/batches').then(r => r.json());
+      const list = b.batches.flat();
+      const learnNext = async (start) => {          // 学 start 起第一个能涨 learned 的字
+        const L = (await me()).progress.learned;
+        for (let i = start; i < list.length; i++) {
+          await post('/api/submit', {hanzi_id: list[i].id, phase: 'learn', quiz_type: 'card', correct: true});
+          if ((await me()).progress.learned > L) return i + 1;
+        }
+        return start;
+      };
+      const i = await learnNext(0);                 // 学第 1 个生字
+      await post('/api/plan/create', {target_chars: 1, days: 7});   // base=当前 learned
+      await learnNext(i);                           // 再学 1 个 → learned-base>=1 达成
     }""")
     page.goto(BASE + "/", wait_until="networkidle")   # 刷新 progress
     page.wait_for_selector(".day-card", timeout=10000)
@@ -474,14 +481,14 @@ def run_weekly(page):
       ziapp.phase = 'done';                            // 完成页（达成引导挂载点）
     }""")
     check("达成条幅出现", page.locator(".plan-done-banner").count() == 1)
-    page.locator(".plan-done-banner .btn").click()
+    page.evaluate("() => document.querySelector('.plan-done-banner .btn').click()")   # pulse 动画：JS 点击
     page.wait_for_timeout(400)
     check("续订进入计划页(下一期文案)", "下一期" in page.locator(".wizard h2").inner_text())
     check("续订态显示剩余池", "还可以再学" in page.locator(".field .hint").first.inner_text())
     page.evaluate("() => ziapp.renewBack()")
     page.wait_for_timeout(200)
     check("续订可返回完成页", page.evaluate("() => ziapp.phase") == "done")
-    page.locator(".plan-done-banner .btn").click()
+    page.evaluate("() => document.querySelector('.plan-done-banner .btn').click()")
     page.wait_for_timeout(300)
     page.evaluate("() => document.querySelector('.wizard button.btn.big').click()")   # 订好啦，继续学
     page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=8000)

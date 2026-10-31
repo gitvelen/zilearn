@@ -72,9 +72,9 @@ def create_plan(user_id, target_chars, days):
 
 
 def confirm_batches(user):
-    """摸底速选：本册字表按教材 seq 分批。池=本期目标×1.3 余量（孩子认识的字
-    会被剔除，余量保证 skip 后仍有足量候选；build_today 补新字天然跳过 skipped
-    且不足自动从池外顺延，池大小不影响学满目标）；大目标自动回到全册。"""
+    """摸底速选首批：本册按 seq 取目标×1.3 起步（大目标全册），并记供应水位
+    confirm_upto——验证轮结束后若池内确认生词 < 目标，confirm_more 按水位
+    轮次补摸（保证"开始学习时生词≥目标"，摸过的字不再重复出现）。"""
     db = get_db()
     try:
         target = user["target_chars"] or 0
@@ -83,10 +83,41 @@ def confirm_batches(user):
         n = min(total, math.ceil(target * 1.3)) if target else total
         rows = db.execute("SELECT id, char, pinyin, unit, seq FROM hanzi WHERE book=? ORDER BY seq LIMIT ?",
                           (book_of(user), n)).fetchall()
+        db.execute("UPDATE users SET confirm_upto=? WHERE id=?", (n, user["id"]))
+        db.commit()
         out = []
         for i in range(0, len(rows), CONFIRM_BATCH):
             out.append([dict(r) for r in rows[i:i + CONFIRM_BATCH]])
         return out
+    finally:
+        db.close()
+
+
+def confirm_more(user):
+    """轮次补摸：池内确认生词（摸过且未 pass）< 目标且册内还有未摸字时，
+    供应下一批（水位顺延 50/批）。全册摸完仍不足 → target 收敛到实际生词数
+    （消除目标悬空），返回 None 开始学习。"""
+    db = get_db()
+    try:
+        target = user["target_chars"] or 0
+        upto = user["confirm_upto"] or 0
+        total = db.execute("SELECT COUNT(*) n FROM hanzi WHERE book=?",
+                           (book_of(user),)).fetchone()["n"]
+        passed = db.execute("""SELECT COUNT(*) n FROM confirm_pick p JOIN hanzi h ON h.id=p.hanzi_id
+                               WHERE p.user_id=? AND h.book=? AND p.result='pass'""",
+                            (user["id"], book_of(user))).fetchone()["n"]
+        raw = upto - passed                    # 摸过且确认生词（未选+验证 fail 回池）
+        if target <= raw or upto >= total:
+            if target > raw:                   # 全册摸完仍不足：目标收敛（生词全在这了）
+                db.execute("UPDATE users SET target_chars=? WHERE id=?", (max(raw, 1), user["id"]))
+                db.commit()
+            return None
+        n2 = min(CONFIRM_BATCH, total - upto)
+        rows = db.execute("""SELECT id, char, pinyin, unit, seq FROM hanzi WHERE book=? ORDER BY seq
+                             LIMIT ? OFFSET ?""", (book_of(user), n2, upto)).fetchall()
+        db.execute("UPDATE users SET confirm_upto=? WHERE id=?", (upto + n2, user["id"]))
+        db.commit()
+        return [dict(r) for r in rows]
     finally:
         db.close()
 

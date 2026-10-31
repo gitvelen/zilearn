@@ -53,7 +53,7 @@ def reset_user():
     import database
     db = database.get_db()
     uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
-    db.execute("UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL, onboarded=0 WHERE id=?", (uid,))
+    db.execute("UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0 WHERE id=?", (uid,))
     for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports", "follow_log"):
         db.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
     db.commit()
@@ -321,12 +321,62 @@ def plan_renew_tests():
     reset_user()   # 本组自带清理
 
 
+def confirm_more_tests():
+    """轮次补摸：池内确认生词<目标 → verify 响应 more_batch 续摸；够数开始学；
+    全册摸完仍不足 → target 收敛（目标不悬空）"""
+    reset_user()
+    call("POST", "/api/login", {"username": "mido", "password": MIDO_PASS})
+    call("POST", "/api/profile/grade", {"grade": "1A"})
+    call("POST", "/api/plan/create", {"target_chars": 50, "days": 7})
+    batches = call("GET", "/api/confirm/batches")["batches"]
+    pool = [c for b in batches for c in b]
+    check("首轮池 ceil(50*1.3)=65", len(pool) == 65, len(pool))
+    # 标记前 40 个认识（UI 同款时序：先全量提交，再逐题验证）
+    call("POST", "/api/confirm/submit", {"known_ids": [c["id"] for c in pool[:40]]})
+    for c in pool[:40]:
+        r = call("POST", "/api/confirm/verify", {"hanzi_id": c["id"], "correct": True})
+    check("生词25<目标50 → 触发补摸 50 字", r.get("more_batch") and len(r["more_batch"]) == 50,
+          len(r["more_batch"]) if r.get("more_batch") else None)
+    seen = {c["char"] for c in pool}
+    more1 = r["more_batch"]
+    fresh = [c["char"] for c in more1 if c["char"] not in seen]
+    check("补摸批不与已摸重复", len(fresh) == 50, len(fresh))
+    # 补摸批一个不选（全算生词）→ 生词 75≥50 → 无更多批次，直接开始学
+    call("POST", "/api/confirm/submit", {"known_ids": []})
+    r = call("GET", "/api/confirm/verify/first")
+    check("生词够数 → 无更多批次", not r.get("more_batch"), r.get("more_batch"))
+    t = call("GET", "/api/today")
+    known2 = seen | set(fresh)
+    in_pool = all(h["char"] in known2 for h in t["new"])
+    check("学习字全部来自已摸底池", in_pool, [h["char"] for h in t["new"]])
+
+    # 全册摸完仍不足：target=280（池=全册），skip 260 → 收敛
+    reset_user()
+    call("POST", "/api/login", {"username": "mido", "password": MIDO_PASS})
+    call("POST", "/api/profile/grade", {"grade": "1A"})
+    call("POST", "/api/plan/create", {"target_chars": 280, "days": 30})
+    batches = call("GET", "/api/confirm/batches")["batches"]
+    pool = [c for b in batches for c in b]
+    check("280 目标池=全册 281", len(pool) == 281, len(pool))
+    call("POST", "/api/confirm/submit", {"known_ids": [c["id"] for c in pool[:260]]})
+    for c in pool[:260]:
+        r = call("POST", "/api/confirm/verify", {"hanzi_id": c["id"], "correct": True})
+    check("全册摸完 → 无补摸批次", not r.get("more_batch"), r.get("more_batch"))
+    import sqlite3 as _s
+    conn = _s.connect("/root/zilearn/app/data/zilearn.db")
+    tgt = conn.execute("SELECT target_chars FROM users WHERE username='mido'").fetchone()[0]
+    conn.close()
+    check("目标收敛到实际生词 21", tgt == 21, tgt)
+    reset_user()   # 本组自带清理
+
+
 if __name__ == "__main__":
     api_tests()
     state_machine_tests()
     review_done_tests()
     weekly_done_tests()
     plan_renew_tests()
+    confirm_more_tests()
     reset_user()   # teardown：清 mido 测试状态，防污染线上库
     print(f"\n{PASS_N} pass / {FAIL_N} fail")
     sys.exit(1 if FAIL_N else 0)
