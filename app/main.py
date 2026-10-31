@@ -83,6 +83,7 @@ class FollowLogIn(BaseModel):
     dur_ms: int | None = None
     played: int | None = None       # 范读播放结果（v21 遥测）
     model_ms: int | None = None
+    mic_settings: str | None = None  # gUM 实际生效设置 JSON（Safari 忽略 EC/NS 约束的电平取证）
     ts_ms: int | None = None        # 客户端时刻：区分弱网批量交付
     ua: str | None = None
 
@@ -236,12 +237,13 @@ def follow_log(body: FollowLogIn, request: Request):
         h = db.execute("SELECT id FROM hanzi WHERE char=?", (body.char,)).fetchone()
         db.execute(
             "INSERT INTO follow_log(user_id, hanzi_id, char, kind, heard, tries,"
-            " peak_rms, noise_base, thr_used, voiced_ms, dur_ms, played, model_ms, ts_ms, ua)"
-            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " peak_rms, noise_base, thr_used, voiced_ms, dur_ms, played, model_ms, mic_settings, ts_ms, ua)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (user["id"], h["id"] if h else None, body.char, body.kind,
              None if body.heard is None else int(body.heard), body.tries,
              body.peak_rms, body.noise_base, body.thr_used, body.voiced_ms,
-             body.dur_ms, body.played, body.model_ms, body.ts_ms,
+             body.dur_ms, body.played, body.model_ms,
+             body.mic_settings[:120] if body.mic_settings else None, body.ts_ms,
              body.ua[:160] if body.ua else None))
         db.commit()
     finally:

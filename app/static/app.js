@@ -286,6 +286,13 @@ const root = createApp({
             const s = await tmo(g, 3000);
             if (this._micStream !== prevStream) { try { s.getTracks().forEach(t => t.stop()); } catch { } return this._micFail("busy", 1000); }
             this._micStream = s;
+            /* 麦克风实际生效设置取证（Safari 可能忽略 EC/NS 约束——电平被压的唯一实证来源） */
+            try {
+              const st = s.getAudioTracks()[0];
+              const cfg = st && st.getSettings && st.getSettings();
+              if (cfg) this._micSettings = JSON.stringify(
+                { ec: cfg.echoCancellation, ns: cfg.noiseSuppression, agc: cfg.autoGainControl });
+            } catch { }
           }
           if (!this._micCtx) this._micCtx = new (window.AudioContext || window.webkitAudioContext)();
           if (this._micCtx.state === "suspended") await tmo(this._micCtx.resume(), 3000);
@@ -386,9 +393,13 @@ const root = createApp({
       if (!(micReady === true || await this.ensureMic())) return null;
       try {
         const src = this._micCtx.createMediaStreamSource(this._micStream);
+        /* 增益 ×3（2026-10-31 iPad 实测：Safari 链路童声仅 0.007-0.017，绝对地板 0.035 挡死）：
+           拉回工作区；正常电平设备信号削顶仍远超阈值，base 同步放大、相对判据不变 */
+        const gain = this._micCtx.createGain();
+        gain.gain.value = 3;
         const an = this._micCtx.createAnalyser();
         an.fftSize = 512;
-        src.connect(an);
+        src.connect(gain); gain.connect(an);
         const buf = new Uint8Array(an.fftSize);
         const EXCL = 800, HEARD_MS = 120, QUIET_MS = 600;   /* v20：EXCL 800(无 AEC 压尾音，防串扰)；
                                                                HEARD_MS 120(幼儿短音"天！"<300ms) */
@@ -413,11 +424,14 @@ const root = createApp({
               this.micLvl = Math.min(1, rms * 8);               /* 🎤/大字随声音跳动（×8：小声读也可见） */
               const dt = now - lastT; lastT = now;
               if (t < EXCL) { minExcl = Math.min(minExcl, rms); return requestAnimationFrame(tick); }
-              const thr = Math.max(0.035, base * 2.5);          /* 先用上一帧本底定阈；地板 0.035
-                                                                  （v20 遥测：几乎无声=0.012-0.02，拉开距离） */
+              /* 阈值=本底×2.5（相对判据）；本底地板 0.006 只防数字噪声——绝对地板已删
+                 （2026-10-31 iPad 实测：Safari 链童声 0.007-0.017 被绝对地板 0.035 全挡，
+                 "要非常大声才识别"；20 倍设备电平差异下绝对地板是有害假设，增益×3 配合
+                 相对判据跨设备自适应） */
+              const thr = Math.max(0.006, base) * 2.5;
               if (rms > peak) peak = rms;
               thrEnd = thr;
-              if (t < EXCL + 120) base = Math.max(0.02, minExcl);
+              if (t < EXCL + 120) base = Math.max(0.006, minExcl);
               else if (rms <= thr) {                            /* 非语音帧才更新本底（快降慢升） */
                 const a = 1 - Math.exp(-dt / 825);              /* 时间基准：帧率无关 */
                 base = rms < base ? rms : base + (rms - base) * a;
@@ -484,6 +498,7 @@ const root = createApp({
         thr_used: s.thr_used ?? null, voiced_ms: s.voiced_ms ?? null,
         dur_ms: s.dur_ms ?? null,
         played: m.played ?? null, model_ms: m.model_ms ?? null,
+        mic_settings: this._micSettings || null,
         ts_ms: Date.now(),
         ua: navigator.userAgent.slice(0, 160),
       }).catch(() => {});

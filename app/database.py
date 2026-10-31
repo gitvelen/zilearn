@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS follow_log (   -- 跟读开口记录（有效性度�
   dur_ms    INTEGER,                      -- 检测窗实际时长
   played    INTEGER,                      -- 范读播放结果 1=播完 0=被拒/失败（v21：真机"只读第一句"定位）
   model_ms  INTEGER,                      -- 范读实际耗时（≈0 且 played=0 = autoplay 拒播铁证）
+  mic_settings TEXT,                      -- gUM 实际生效设置 JSON（Safari 忽略约束的电平取证）
   ts_ms     INTEGER,                      -- 客户端时刻（区分弱网批量交付与服务端 ts）
   ua        TEXT,                         -- 截断 UA（设备/浏览器/刷新率排查）
   ts        TEXT DEFAULT (datetime('now'))
@@ -152,7 +153,7 @@ def init_db():
     # 迁移：旧库补 follow_log 遥测列（v19，新库 SCHEMA 已含）
     for col, decl in [("peak_rms", "REAL"), ("noise_base", "REAL"), ("thr_used", "REAL"),
                       ("voiced_ms", "INTEGER"), ("dur_ms", "INTEGER"), ("ts_ms", "INTEGER"), ("ua", "TEXT"),
-                      ("played", "INTEGER"), ("model_ms", "INTEGER")]:
+                      ("played", "INTEGER"), ("model_ms", "INTEGER"), ("mic_settings", "TEXT")]:
         try:
             db.execute(f"ALTER TABLE follow_log ADD COLUMN {col} {decl}")
         except sqlite3.OperationalError:
