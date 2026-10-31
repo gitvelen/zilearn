@@ -286,3 +286,8 @@ input:focus { outline: none; border-color: #ffb74d; }
 .trend-bar.good { background: #66bb6a; } .trend-bar.mid { background: #ffa726; } .trend-bar.low { background: #ef5350; }
 .trend-new { font-size: 10px; color: #1565c0; font-weight: 700; }
 .trend-day small { color: #a1887f; font-size: 10px; }
+
+/* 本期目标达成条幅（完成页，续订入口） */
+.plan-done-banner { margin: 14px 0; padding: 16px 20px; border-radius: 18px;
+  background: #fff8e1; border: 2px dashed #ffb300; text-align: center; }
+.plan-done-banner h3 { color: #ef6c00; margin: 6px 0; }

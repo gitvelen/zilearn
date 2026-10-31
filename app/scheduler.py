@@ -40,7 +40,9 @@ def _d(s):
 # ---------- 引导流：年级 → 计划 → 摸底 ----------
 
 def create_plan(user_id, target_chars, days):
-    """生成计划：池 = 全表 - skipped - 已学；返回预估每日用时（分钟）。"""
+    """生成计划：池 = 全表 - skipped - 已学；返回预估每日用时（分钟）。
+    目标为本期增量（续订场景）：达成判定 learned - plan_base_learned >= target，
+    故建计划时记基准线。"""
     db = get_db()
     try:
         days = max(int(days), MIN_PLAN_DAYS)
@@ -51,12 +53,15 @@ def create_plan(user_id, target_chars, days):
                               WHERE uh.user_id=? AND uh.hanzi_id=h.id
                                 AND uh.status IN ('skipped','learning','mastered'))""",
                           (book, user_id)).fetchone()["n"]
+        base = db.execute("""SELECT COUNT(*) n FROM user_hanzi
+                             WHERE user_id=? AND status IN ('learning','mastered')""",
+                          (user_id,)).fetchone()["n"]
         target = min(int(target_chars), pool)
         study_days = days - days // 7            # 每周 1 天周测不投新字
         daily_new = max(1, math.ceil(target / study_days))
         db.execute("""UPDATE users SET target_chars=?, plan_days=?, plan_start=?,
-                      onboarded=1 WHERE id=?""",
-                   (target, days, today_str(), user_id))
+                      plan_base_learned=?, onboarded=1 WHERE id=?""",
+                   (target, days, today_str(), base, user_id))
         db.commit()
         # 预估：新字 2.5min + 稳态复习约 4×daily_new 题 ×0.2min + 昨日重现 3min
         est = daily_new * 2.5 + daily_new * 4 * 0.2 + 3
@@ -333,6 +338,8 @@ def get_progress(user_id):
             "skipped": cnt["skipped"] or 0,
             "target_chars": user["target_chars"], "plan_days": user["plan_days"],
             "plan_start": user["plan_start"], "stars": stars,
+            "plan_base_learned": user["plan_base_learned"] or 0,
+            "pool": max(0, n_hanzi - (cnt["learned"] or 0) - (cnt["skipped"] or 0)),  # 剩余可学池（续订上限参考）
         }
     finally:
         db.close()

@@ -450,6 +450,43 @@ def run_weekly(page):
           and page.locator("button.btn.pulse").count() == 0)
     check("次日入口预告", "第 2 周" in page.locator(".day-card").inner_text())
 
+    # ---- 本期达成→续订链路（后端增量记账 e2e 已测；此处验证 UI 接线） ----
+    # 造达成态：续订 target=1（base=当前已学数），再学 1 字即达成。
+    # 周测完成日 /api/today 无 new 字段 → 从字表池逐字 learn 到 learned+1
+    page.evaluate("""async () => {
+      await fetch('/api/plan/create', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({target_chars: 1, days: 7})});
+      const me0 = await (await fetch('/api/me')).json();
+      const L0 = me0.progress.learned;
+      const b = await (await fetch('/api/confirm/batches')).json();
+      for (const c of b.batches.flat().slice(0, 20)) {
+        await fetch('/api/submit', {method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({hanzi_id: c.id, phase: 'learn', quiz_type: 'card', correct: true})});
+        const me = await (await fetch('/api/me')).json();
+        if (me.progress.learned > L0) break;
+      }
+    }""")
+    page.goto(BASE + "/", wait_until="networkidle")   # 刷新 progress
+    page.wait_for_selector(".day-card", timeout=10000)
+    page.evaluate("""async () => {
+      const me = await (await fetch('/api/me')).json();
+      ziapp.progress = me.progress;
+      ziapp.phase = 'done';                            // 完成页（达成引导挂载点）
+    }""")
+    check("达成条幅出现", page.locator(".plan-done-banner").count() == 1)
+    page.locator(".plan-done-banner .btn").click()
+    page.wait_for_timeout(400)
+    check("续订进入计划页(下一期文案)", "下一期" in page.locator(".wizard h2").inner_text())
+    check("续订态显示剩余池", "还可以再学" in page.locator(".field .hint").first.inner_text())
+    page.evaluate("() => ziapp.renewBack()")
+    page.wait_for_timeout(200)
+    check("续订可返回完成页", page.evaluate("() => ziapp.phase") == "done")
+    page.locator(".plan-done-banner .btn").click()
+    page.wait_for_timeout(300)
+    page.evaluate("() => document.querySelector('.wizard button.btn.big').click()")   # 订好啦，继续学
+    page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=8000)
+    check("续订提交后回今日(不进摸底)", True)
+
     reset_test_user()   # teardown：清测试状态，防污染线上库（拨日历时代的教训）
 
 

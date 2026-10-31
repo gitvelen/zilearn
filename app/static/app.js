@@ -40,7 +40,7 @@ const root = createApp({
       doneStats: { new: 0, review: 0 }, report: null,
       follow: { on: false, kind: "", idx: 0, done: [], state: "off" }, micLvl: 0,
       micDenied: false, micState: "ok", followPop: false, quizBurst: false, stepBusy: false,
-      homeTip: false, homeHold: false, ncHold: -1,
+      homeTip: false, homeHold: false, ncHold: -1, renewing: false,
       BURST_DIRS: [["-70px","-60px"],["70px","-75px"],["0px","-95px"],["-55px","55px"],["55px","65px"],["0px","-30px"]],
       gateScores: {}, gateWrong: {}, readNews: [],
     };
@@ -73,6 +73,10 @@ const root = createApp({
     estToday() {
       const n = (this.today.new || []).length, r = (this.today.review || []).length + (this.today.audit || []).length;
       return Math.round(n * 3.5 + r * 0.3 + 3.5);
+    },
+    planDone() {                                   /* 本期达成：learned-基准线>=目标（续订增量记账） */
+      const p = this.progress;
+      return !!(p && p.target_chars && (p.learned - (p.plan_base_learned || 0)) >= p.target_chars);
     },
   },
   methods: {
@@ -576,10 +580,21 @@ const root = createApp({
     async createPlan() {
       this.planEst = await api("POST", "/api/plan/create",
         { target_chars: this.obTarget, days: this.obDays });
+      if (this.renewing) {                          /* 续订：不重走摸底，直接回今日 */
+        this.renewing = false;
+        await this.loadToday();
+        return;
+      }
       const r = await api("GET", "/api/confirm/batches");
       this.confirmBatches = r.batches; this.confirmPage = 0; this.confirmPicked = [];
       this.phase = "ob-confirm";
     },
+    startRenew(from) {                              /* 本期达成 → 家长续订（完成页入口） */
+      this.renewing = true; this._renewFrom = from;
+      this.obTarget = Math.min(30, this.progress.pool || 30);
+      this.phase = "ob-plan";
+    },
+    renewBack() { this.renewing = false; this.phase = this._renewFrom || "done"; },
     togglePick(id) {
       const i = this.confirmPicked.indexOf(id);
       i >= 0 ? this.confirmPicked.splice(i, 1) : this.confirmPicked.push(id);

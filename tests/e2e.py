@@ -295,11 +295,38 @@ def review_done_tests():
         db.close()
 
 
+def plan_renew_tests():
+    """续订增量记账：建计划记基准线 base；达成=learned-base>=target；续订后 base 前移"""
+    reset_user()
+    call("POST", "/api/login", {"username": "mido", "password": MIDO_PASS})
+    call("POST", "/api/profile/grade", {"grade": "1A"})
+    r = call("POST", "/api/plan/create", {"target_chars": 10, "days": 7})
+    check("计划: 7天10字 daily=2", r["daily_new"] == 2, r)
+    me = call("GET", "/api/me")["progress"]
+    check("基准线 base=0（首建）", me["plan_base_learned"] == 0, me["plan_base_learned"])
+    # 学满 10 字（learn 提交与日期无关，直接按教材序补齐）
+    pool_ids = [c["id"] for b in call("GET", "/api/confirm/batches")["batches"] for c in b]
+    for hid in pool_ids[:10]:
+        call("POST", "/api/submit", {"hanzi_id": hid, "phase": "learn",
+                                     "quiz_type": "card", "correct": True})
+    me = call("GET", "/api/me")["progress"]
+    check("学满后达成条件成立", me["learned"] >= 10 and me["learned"] - me["plan_base_learned"] >= 10, me)
+    # 续订：下一期 14 字 / 7 天
+    call("POST", "/api/plan/create", {"target_chars": 14, "days": 7})
+    me = call("GET", "/api/me")["progress"]
+    check("续订: base 前移到已学数", me["plan_base_learned"] == 10, me["plan_base_learned"])
+    check("续订: 达成条件重置（未再达成）", me["learned"] - me["plan_base_learned"] < me["target_chars"],
+          (me["learned"], me["plan_base_learned"], me["target_chars"]))
+    check("续订: 剩余池正确", me["pool"] == me["total_hanzi"] - me["learned"] - me["skipped"], me["pool"])
+    reset_user()   # 本组自带清理
+
+
 if __name__ == "__main__":
     api_tests()
     state_machine_tests()
     review_done_tests()
     weekly_done_tests()
+    plan_renew_tests()
     reset_user()   # teardown：清 mido 测试状态，防污染线上库
     print(f"\n{PASS_N} pass / {FAIL_N} fail")
     sys.exit(1 if FAIL_N else 0)

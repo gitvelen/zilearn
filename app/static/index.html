@@ -34,13 +34,13 @@
   <button class="btn big" :disabled="!obGrade" @click="setGrade">下一步 →</button>
 </div>
 
-<!-- ============ 引导：目标与天数 ============ -->
+<!-- ============ 引导：目标与天数（首建/续订共用，续订跳摸底） ============ -->
 <div v-else-if="phase==='ob-plan'" class="wizard">
-  <h2>我们的小目标 🎯</h2>
+  <h2>{{renewing ? '🏆 下一期学多少字？' : '我们的小目标 🎯'}}</h2>
   <div class="field">
     <label>想认识多少个字？</label>
-    <input type="number" v-model.number="obTarget" min="10" :max="progress.total_hanzi">
-    <div class="hint">这本教材共有 {{progress.total_hanzi}} 个字</div>
+    <input type="number" v-model.number="obTarget" min="10" :max="renewing ? progress.pool : progress.total_hanzi">
+    <div class="hint">{{renewing ? '还可以再学 ' + progress.pool + ' 个字' : '这本教材共有 ' + progress.total_hanzi + ' 个字'}}</div>
   </div>
   <div class="field">
     <label>用多少天完成？</label>
@@ -54,8 +54,9 @@
     <div>⏱️ 预计每天 {{estLocal.est_minutes}} 分钟{{estLocal.over_30min ? ' ⚠️ 有点多哦' : ''}}</div>
   </div>
   <div class="row">
-    <button class="btn ghost" @click="phase='ob-grade'">← 返回</button>
-    <button class="btn big" :disabled="!obTarget||!obDays" @click="createPlan">下一步 →</button>
+    <button class="btn ghost" v-if="renewing" @click="renewBack">← 返回</button>
+    <button class="btn ghost" v-else @click="phase='ob-grade'">← 返回</button>
+    <button class="btn big" :disabled="!obTarget||!obDays" @click="createPlan">{{renewing ? '订好啦，继续学 →' : '下一步 →'}}</button>
   </div>
 </div>
 
@@ -358,6 +359,12 @@
     <div>🎯 复习 {{doneStats.review}} 个字</div>
     <div>⭐ 星星 {{progress.stars}}</div>
   </div>
+  <div v-if="planDone" class="plan-done-banner">
+    <div class="big-emoji">🏆</div>
+    <h3>本期目标达成！</h3>
+    <div class="hint">这期学了 {{progress.learned - progress.plan_base_learned}} 个字（目标 {{progress.target_chars}}）</div>
+    <button class="btn big pulse" @click="startRenew('done')">订下一期目标 →</button>
+  </div>
   <button class="btn big" @click="goParent('done')">给爸爸妈妈看成绩</button>
   <button class="btn ghost" @click="boot">明天再来！</button>
 </div>
@@ -370,6 +377,12 @@
     <div class="score-xl">{{weeklyScore}} / {{weeklyTotal}}</div>
     <div class="stars-line">⭐ × {{weeklyScore}}</div>
     <div v-if="weeklyWrong.length" class="hint">要加油的字：{{weeklyWrong.join(' ')}}</div>
+  </div>
+  <div v-if="planDone" class="plan-done-banner">
+    <div class="big-emoji">🏆</div>
+    <h3>本期目标达成！</h3>
+    <div class="hint">这期学了 {{progress.learned - progress.plan_base_learned}} 个字（目标 {{progress.target_chars}}）</div>
+    <button class="btn big pulse" @click="startRenew('weekly-done')">订下一期目标 →</button>
   </div>
   <button class="btn big" @click="goParent('weekly-done')">给爸爸妈妈看成绩</button>
   <button class="btn ghost" @click="boot">完成！</button>
@@ -420,6 +433,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=28"></script>
+<script src="/app.js?v=29"></script>
 </body>
 </html>
