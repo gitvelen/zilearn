@@ -76,6 +76,7 @@ def py_to_tone3(py: str) -> str:
 
 def build_tasks(book="1a"):
     """字表读音 + 内容朗读 → [(fname, text)]"""
+    content = json.loads(CONTENT.read_text())        # 组词式字音与内容朗读共用
     readings, order = set(), []
     with CSV.open() as f:
         for row in csv.DictReader(f):
@@ -99,11 +100,16 @@ def build_tasks(book="1a"):
                 skipped.append(f"{fname}({t3})")      # alt 无词境 → 放弃（防默认音错读）
                 continue
             tasks.append((fname, alt_ctx))
+        elif (ch, t3) in PHRASE:
+            tasks.append((fname, PHRASE[(ch, t3)]))   # 多音字主音词境（防默认音错读，保持）
         else:
-            tasks.append((fname, PHRASE.get((ch, t3), f"{ch}。")))
+            # 组词式字音（2026-10-31 方案 A）：孤立单字 TTS 韵律必坏（"我。"读成降调 wo），
+            # 词内正常——"天空的天。"全字在语流中，教学话术即洪恩式"字的音+用法"
+            words = content.get(ch, {}).get("words") or ["字"]
+            tasks.append((fname, f"{words[0]}的{ch}。"))
     if skipped:
         print("跳过无词境 alt:", skipped)
-    for ch, c in json.loads(CONTENT.read_text()).items():
+    for ch, c in content.items():
         if c.get("etym"):
             tasks.append((f"e_{ch}", c["etym"]))
         if c.get("words"):
