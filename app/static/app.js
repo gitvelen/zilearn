@@ -198,8 +198,8 @@ const root = createApp({
       this._playBuf(u, vol, null).then(ok => { if (ok === null) this._elFallback(u).catch(() => {}); });
     },
     async stepAudio() {
-      /* 四步卡每步音频+跟读（方案 A 节奏式：范读→留白跟读→✓；认步=字音→跟读→字源故事，
-         保证"听到字音立刻轮到孩子"的即时模仿窗口）
+      /* 四步卡每步音频+跟读（方案 A 节奏式：范读→留白跟读→✓；认步=字音→字源故事→跟读，
+         v32 用户拍板：先听完讲解再开口；跟读范读紧贴留白，模仿窗口仍在）
          代际守卫（v21）：跳步（家长长按步指示器）时旧链的 playFile 还在 await，resume 后
          _narrStop 已被新 stepAudio 重置为 false，旧链守卫失效会继续 startFollow 把新步的
          跟读顶掉（复现实锤：认步悬挂链覆盖句步跟读）——gen 与 _narrStop 双查 */
@@ -213,15 +213,16 @@ const root = createApp({
         if (this.ncStep === 1) {
           await this.playFile(ch);
           if (stale()) return;
+          await this.playFile(`e_${ch}`);              /* 字源故事（讲解）跟在字音后整段锁听 */
+          if (stale()) return;
           this.stepBusy = false;                        /* 跟读启动即由 follow.on 接管锁 */
           await this.startFollow("char");              /* 跟读（范读后"叮"提示，无啰嗦语音指令） */
-          if (stale()) return;
-          await this.playFile(`e_${ch}`);              /* 故事期不锁：家长可切（原行为） */
         } else if (this.ncStep === 2) {
-          await this.playFile(`w_${ch}`);               /* 整体连听 → 逐词跟读 */
+          await this.playFile(`w_${ch}`);               /* 整体连听一遍（即全部范读） */
           if (stale()) return;
           this.stepBusy = false;
-          await this.startFollow("word");
+          await this.startFollow("word", true);        /* noModel：连听已是范读，逐词只"叮"→留白（v32 用户拍板：
+                                                          不再系统读一个孩子读一个） */
         } else if (this.ncStep === 3) {
           this.stepBusy = false;
           await this.startFollow("sent");               /* 逐句：范读→跟读→✓ */
@@ -240,10 +241,16 @@ const root = createApp({
     ncNext() {
       if (this.stepBusy) return;                     /* 仅音频范读期锁定（防没听就走）；跟读不锁：
                                                         读到就夸、不读直接点走（鼓励式，wordslearn 同哲） */
+      if (this.ncStep === 4 && !this.traceDone && !this.traceFallback) return;   /* 写步门槛（v32）：
+                                                        写对才放行，按钮禁用为主，此处兜底键盘/时序残留 */
       this.ncStep >= 4 ? this.advance() : this.ncGo(this.ncStep + 1);
+    },
+    ncNextDisabled() {
+      return this.stepBusy || (this.ncStep === 4 && !this.traceDone && !this.traceFallback);
     },
     ncNextLabel() {
       if (this.ncStep < 4) return "下一步 →";
+      if (!this.traceDone && !this.traceFallback) return "写完才能继续哦 ✍️";
       return this.hasNextNew() ? "这个字学会啦，下一个 →" : "我会写啦，去答题 →";
     },
     hasNextNew() {                                    /* 后面还有新字卡（写步按钮文案据此区分） */
@@ -318,31 +325,40 @@ const root = createApp({
         .map((s, i) => ({ key: "s" + i, audio: `s_${this.curItem.char}_${i + 1}` }));
       return this.readLines.map(l => ({ key: "r" + l.char, audio: `s_${l.char}_1` }));
     },
-    startFollow(kind) {
+    startFollow(kind, noModel = false) {
       /* 返回 Promise：跟读全流程（范读→留白→✓→夸奖，或家长跳过）结束后才 resolve——
-         认步的 e_故事必须等它，否则故事压着留白与跟读反馈叠音（2026-10-28 用户抓到） */
+         认步的 e_故事必须等它，否则故事压着留白与跟读反馈叠音（2026-10-28 用户抓到）
+         noModel（词步 v32）：整体连听已是范读，逐项不再重播，直接"叮"→留白 */
       const items = this.followItems(kind);
       if (!items.length) return Promise.resolve();
-      this.follow = { on: true, kind, idx: 0, done: [], state: "model", tries: 0, heardAny: false };
+      this.follow = { on: true, kind, idx: 0, done: [], state: "model", tries: 0, heardAny: false, noModel };
       return new Promise(res => { this._followResolve = res; this.followPlay(0); });
     },
-    async followPlay(i) {
+    async followPlay(i, replay = false) {
       const f = this.follow;
       if (!f.on || f.state === "all") return;
       const gen = ++this._followGen;                  /* 代际 token：重听/跳过后作废旧链，防双链竞争 */
-      f.idx = i; f.state = "model";
+      f.idx = i;
       const items = this.followItems(f.kind), it = items[i];
       if (!it) return this.followFinish();
       const micP = this.ensureMic();                  /* 范读期间并行取麦（RCA：v18 wait 后才取，首个
                                                          wait 有 1~3s 聋窗=对着空气读；且流先建立，
                                                          AEC/AGC 听过范读才预热，冷流会压童声） */
-      const tModel0 = performance.now();
-      const played = await this.playFile(it.audio);   /* 范读 */
-      this._fModel = { played: played ? 1 : 0, model_ms: Math.round(performance.now() - tModel0) };
-      if (!played) console.warn("范读播放失败/被拒:", it.audio);   /* RCA：哑播放曾无迹可查；v21 落库遥测 */
-      if (gen !== this._followGen || !f.on) return;
-      f.state = "wait";
-      this.playSfx("ding");                          /* "叮"=轮到你（不用啰嗦语音指令） */
+      if (f.noModel && !replay) {
+        /* 无范读轮次：遥测 _fModel 置空——played 落 NULL，与"范读失败=0"可区分 */
+        this._fModel = null;
+        f.state = "wait";
+        this.playSfx("ding");                        /* "叮"=轮到你（不用啰嗦语音指令） */
+      } else {
+        f.state = "model";
+        const tModel0 = performance.now();
+        const played = await this.playFile(it.audio);   /* 范读（replay=用户点当前对象重听，主动重播） */
+        this._fModel = { played: played ? 1 : 0, model_ms: Math.round(performance.now() - tModel0) };
+        if (!played) console.warn("范读播放失败/被拒:", it.audio);   /* RCA：哑播放曾无迹可查；v21 落库遥测 */
+        if (gen !== this._followGen || !f.on) return;
+        f.state = "wait";
+        this.playSfx("ding");                          /* "叮"=轮到你（不用啰嗦语音指令） */
+      }
       /* 留白按内容自适应：句=范读时长+2.5s（TTS 成人语速，幼儿复述慢得多，1.5s 余量实测偏紧），词 4s，字 3.5s */
       const ms = (f.kind === "sent" || f.kind === "read")
         ? (await this.audioDur(it.audio) || 3) * 1000 + 2500
@@ -484,10 +500,11 @@ const root = createApp({
     _resolveFollow() {
       if (this._followResolve) { const r = this._followResolve; this._followResolve = null; r(); }
     },
-    followReplay() {                                   /* 留白中点当前对象=重听范读（代际作废旧检测） */
+    followReplay() {                                   /* 留白中点当前对象=重听范读（代际作废旧检测）；
+                                                          noModel 轮也走范读分支——重听是用户主动要的 */
       const f = this.follow;
       if (!f.on || f.state !== "wait") return;
-      this.followPlay(f.idx);
+      this.followPlay(f.idx, true);
     },
     skipFollow() {
       this._followGen = (this._followGen || 0) + 1;   /* 作废进行中的检测/播放链 */
@@ -747,7 +764,8 @@ const root = createApp({
     enterItem() {
       const it = this.curItem;
       this.curQuiz = null; this.quizRevealed = false; this.quizCorrect = false; this.curContent = null;
-      this.tracing = false; this.traceMsg = "✏️ 点米字格，跟着橙色笔顺写一写";
+      this.tracing = false; this.traceDone = false; this.traceFallback = false;
+      this.traceMsg = "✏️ 点米字格，跟着橙色笔顺写一写";
       this.findFound = []; this.findMisses = 0; this.findMiss = "";
       this.ncStep = 1; this.readPlaying = false; this.readCur = "";
       this._stopHw();                               /* 换卡卸载：停上一卡描红实例的无限 loop */
@@ -795,20 +813,23 @@ const root = createApp({
     },
     mountTracer(char) {
       this._stopHw();
+      this.traceDone = false; this.traceFallback = false;   /* 写步门槛（v32）：写对才放行，重挂即重置 */
       const el = document.getElementById("hw-" + this.curItem.id);
-      if (!el || !window.HanziWriter) return;
+      if (!el || !window.HanziWriter) { this.traceFallback = true; return; }
       try {
         const w = HanziWriter.create(el, char, {
           width: 210, height: 210, padding: 5, showOutline: true,
           strokeAnimationSpeed: 1.2, strokeColor: "#ff9800", outlineColor: "#ffe0b2",
           charDataLoader: (c, done) =>
             fetch(`/static/strokes/${encodeURIComponent(c)}.json`)
-              .then(r => r.ok ? r.json() : null).then(done),
+              .then(r => { if (!r.ok) throw 0; return r.json(); })
+              .then(done)
+              .catch(() => { this.traceFallback = true; done(null); }),   /* 笔画数据缺失：门槛降级放行（同写字关） */
         });
         this._hw = w;
         w.loopCharacterAnimation();
         el.onclick = () => this.startTrace(el, w, char);
-      } catch (e) { /* 描红失败不阻塞学习流 */ }
+      } catch (e) { this.traceFallback = true; }   /* 描红失败不阻塞学习流：门槛降级放行 */
     },
     startTrace(el, w, char) {
       if (this.tracing) return;
@@ -821,7 +842,7 @@ const root = createApp({
         onMistake: () => { this.traceMsg = "没关系，再试一次～"; },
         onComplete: () => {
           el.classList.remove("tracing"); el.classList.add("done");
-          this.tracing = false;
+          this.tracing = false; this.traceDone = true;   /* 写对=解锁下一步（v32） */
           this.traceMsg = "写完啦 🎉 再点一下还能再写一遍";
           this.playChar(char);
         },

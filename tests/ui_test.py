@@ -232,9 +232,9 @@ def run(page):
     check("多音字区隐藏/正常", page.locator(".learn-card .zi-big").inner_text().strip()[0] in ("天", "地", "人"))
     shot(page, "04-nc1-recite")
 
-    # ---- 跟读（认步·鼓励式）：字音→范读(叮)→留白听读→✓；不锁按钮 ----
-    follow_wait(page, True, timeout=15000)
-    page.wait_for_function("window.ziapp.follow.state==='wait'", timeout=15000)
+    # ---- 跟读（认步·鼓励式）：字音→故事→范读(叮)→留白听读→✓；不锁按钮 ----
+    follow_wait(page, True, timeout=20000)       # v32：跟读前多一段字源故事（~5s）
+    page.wait_for_function("window.ziapp.follow.state==='wait'", timeout=20000)
     check("跟读中(认·大字高亮+聆听指示器+按钮不锁)", page.locator(".zi-big.follow-cur").count() == 1
           and page.locator(".listen-orb.wait").count() == 1
           and not page.locator(".learn-card > button.btn.big").is_disabled())
@@ -252,18 +252,30 @@ def run(page):
     seq = page.evaluate("() => window.__audioEvents.map(e => e.name)")
     seqf = [n for n in seq if not n.startswith("sfx_")]
     check("验证轮音频链(指令首题化:指令→字音→字音)", seqf[:3] == ["t_verify", "天", "地"], seqf[:6])
-    expect = [ch1, ch1, ch1, "e_" + ch1]            # 字音→范读→(叮)确认读→故事（sfx 已滤；t_great 已删，读到≠语音夸）
+    expect = [ch1, "e_" + ch1, ch1, ch1]            # 字音→故事→范读→(叮)确认读（v32：讲解挪到跟读前；sfx 已滤）
     i0 = seqf.index(ch1)                              # 认步字音起点（跳过摸底验证轮音频）
-    check("认步音频链(字音→范读→确认→故事)", seqf[i0:i0 + 4] == expect, seqf[i0:i0 + 5])
+    check("认步音频链(字音→故事→范读→确认)", seqf[i0:i0 + 4] == expect, seqf[i0:i0 + 5])
 
-    page.click(".learn-card > button.btn.big")   # 下一步 → 词（连听→逐词跟读）
-    follow_wait(page, True, timeout=20000)
+    # v32 词步：整体连听后直接逐词跟读（无逐词范读）——stub 放慢到 700ms 留观察窗
+    page.evaluate("() => { window.ziapp.followHeard = (ms, gen) => "
+                  "new Promise(r => setTimeout(() => r(true), 700)); }")
+    i_w = page.evaluate("() => window.__audioEvents.length")   # 词步音频窗起点（须在 click 前：
+    page.click(".learn-card > button.btn.big")   # w_ 事件在点击派发内同步入列）→ 词（连听→逐词直接跟读）
+    page.wait_for_function("window.ziapp.follow.on===true && window.ziapp.follow.idx===0 "
+                           "&& window.ziapp.follow.state==='wait'", timeout=20000, polling=50)
     check("步2(词)词卡≥2", page.locator(".word-chip.big").count() >= 2)
     check("词内目标字高亮", page.locator(".word-chip.big b").count() >= 2)
     check("词跟读当前词高亮其余变暗", page.locator(".word-chip.big.cur").count() == 1
           and page.locator(".word-chip.big.dim").count() >= 1)
+    check("词跟读无范读态(连听后直进wait)", page.evaluate("() => window.ziapp.follow.noModel") is True)
     shot(page, "05-nc2-words")
     follow_wait(page, False, timeout=60000)      # 逐词全部完成
+    wseq = [n for n in page.evaluate("() => window.__audioEvents.map(e => e.name)")[i_w:]
+            if not n.startswith("sfx_")]
+    check("词步音频=整体连听一遍(v32 不再逐词范读)", ("w_" + ch1) in wseq
+          and not any(n.startswith("n_") for n in wseq), wseq)
+    page.evaluate("() => { window.ziapp.followHeard = (ms, gen) => "   # 恢复快速 stub
+                  "new Promise(r => setTimeout(() => r(true), 300)); }")
     page.click(".learn-card > button.btn.big")   # → 句（逐句跟读）
 
     follow_wait(page, True, timeout=10000)
@@ -275,13 +287,23 @@ def run(page):
     page.click(".learn-card > button.btn.big")   # → 写
     page.wait_for_timeout(1200)                  # HanziWriter 动画挂载
     check("步4(写)描红挂载", page.locator(".hanzi-wrap svg").count() >= 1)
-    check("写步按钮文案(还有下一字→'下一个')", "下一个" in page.locator(".learn-card > button.btn.big").inner_text(),
+    check("写步未写完按钮锁(v32)", page.locator(".learn-card > button.btn.big").is_disabled())
+    check("写步锁定文案", "写完" in page.locator(".learn-card > button.btn.big").inner_text(),
           page.locator(".learn-card > button.btn.big").inner_text())
     shot(page, "07-nc4-trace")
+    # 家长长按跳过解锁（真实路径：skipHold 返回值驱动 traceDone，勿用 evaluate 绕过）
+    skip = page.locator(".learn-card .skip-link")
+    skip.dispatch_event("pointerdown")
+    page.wait_for_timeout(1700)
+    skip.dispatch_event("pointerup")
+    page.wait_for_timeout(200)
+    check("写步家长长按跳过解锁", not page.locator(".learn-card > button.btn.big").is_disabled())
+    check("写步解锁文案(还有下一字→'下一个')", "下一个" in page.locator(".learn-card > button.btn.big").inner_text(),
+          page.locator(".learn-card > button.btn.big").inner_text())
 
     # ---- 新字2：跟读中直接点"下一步"越步（v24 鼓励式，无需长按）→ while 循环内跳步直达写 ----
     page.click(".learn-card > button.btn.big")   # 新字1 步4 完成 → 新字2
-    follow_wait(page, True, timeout=15000)
+    follow_wait(page, True, timeout=20000)       # v32：跟读前有字源故事
     follow_skip(page)                            # 跟读 wait 态直接点走
     check("跟读中点下一步即越步(新字2认→词)", app(page)["nc"] == 2)
     follow_wait(page, False, timeout=5000)       # 点走后跟读链终止
@@ -297,9 +319,15 @@ def run(page):
             page.wait_for_timeout(1200)
             check("跳步直达写(描红挂载)", page.locator(".hanzi-wrap svg").count() >= 1
                   and app(page)["nc"] == 4)
-            check("末字写步按钮文案('去答题')", "去答题" in page.locator(".learn-card > button.btn.big").inner_text(),
-                  page.locator(".learn-card > button.btn.big").inner_text())
+            check("末字写步按钮锁(v32)", page.locator(".learn-card > button.btn.big").is_disabled())
             shot(page, "09-nc-skip-trace")
+            skip = page.locator(".learn-card .skip-link")   # 家长长按跳过（真实路径）
+            skip.dispatch_event("pointerdown")
+            page.wait_for_timeout(1700)
+            skip.dispatch_event("pointerup")
+            page.wait_for_timeout(200)
+            check("末字写步解锁文案('去答题')", "去答题" in page.locator(".learn-card > button.btn.big").inner_text(),
+                  page.locator(".learn-card > button.btn.big").inner_text())
             page.click(".learn-card > button.btn.big")
             page.wait_for_function(
                 "window.ziapp.curItem && (window.ziapp.curItem.type === 'gatequiz' "

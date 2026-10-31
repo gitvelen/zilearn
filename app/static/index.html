@@ -155,7 +155,7 @@
               @pointerdown="ncDown(i)" @pointerup="ncUp(i)" @pointerleave="ncLeave(i)">{{lbl}}</button>
     </div>
 
-    <!-- ① 认：字音 → 跟读 → 字源故事 -->
+    <!-- ① 认：字音 → 字源故事 → 跟读（v32：先听讲解再开口） -->
     <template v-if="ncStep===1">
       <div class="zi-row">
         <div class="zi-tian">
@@ -182,7 +182,7 @@
       </div>
     </template>
 
-    <!-- ② 词：整体连听 → 逐词跟读（当前词高亮）→ 自由点选 -->
+    <!-- ② 词：整体连听 → 直接逐词跟读（不逐词范读，当前词高亮）→ 自由点选 -->
     <template v-else-if="ncStep===2">
       <div class="nc-title">{{follow.on ? '轮到这个词，大声读 🎤' : '「'+curItem.char+'」和好朋友手拉手，点一点听一听'}}</div>
       <div v-if="curContent && curContent.words && curContent.words.length" class="words-row big">
@@ -203,13 +203,16 @@
            @click="followSentClick(i)" v-html="sentHtml(s)"></div>
     </template>
 
-    <!-- ④ 写：描红 -->
+    <!-- ④ 写：描红（写对才放行；家长长按跳过防死路，同写字关） -->
     <template v-else>
       <div class="zi-row">
         <div class="zi-mid">{{curItem.char}}</div>
         <div class="hanzi-wrap" :id="'hw-'+curItem.id"></div>
       </div>
       <div class="trace-tip">{{traceMsg}}</div>
+      <button v-if="!traceDone && !traceFallback" class="skip-link"
+              @pointerdown="skipHold(true)" @pointerup="skipHold(false) && (traceDone = true)"
+              @pointerleave="skipHold(false)">⏭ 家长长按跳过</button>
     </template>
 
     <div v-if="follow.on" class="follow-bar">
@@ -225,7 +228,7 @@
       <span class="fb-hint" :class="fbHintCls()">{{ fbHint() }}</span>
     </div>
 
-    <button class="btn big" :disabled="stepBusy" @click="ncNext">{{ncNextLabel()}}</button>
+    <button class="btn big" :disabled="ncNextDisabled()" @click="ncNext">{{ncNextLabel()}}</button>
   </div>
 
   <!-- 今日朗读卡：今日新字例句逐句跟读 → 自由朗读 -->
@@ -433,6 +436,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=31"></script>
+<script src="/app.js?v=32"></script>
 </body>
 </html>
