@@ -72,11 +72,17 @@ def create_plan(user_id, target_chars, days):
 
 
 def confirm_batches(user):
-    """摸底速选：本册字表按教材 seq 分批。"""
+    """摸底速选：本册字表按教材 seq 分批。池=本期目标×1.3 余量（孩子认识的字
+    会被剔除，余量保证 skip 后仍有足量候选；build_today 补新字天然跳过 skipped
+    且不足自动从池外顺延，池大小不影响学满目标）；大目标自动回到全册。"""
     db = get_db()
     try:
-        rows = db.execute("SELECT id, char, pinyin, unit, seq FROM hanzi WHERE book=? ORDER BY seq",
-                          (book_of(user),)).fetchall()
+        target = user["target_chars"] or 0
+        total = db.execute("SELECT COUNT(*) n FROM hanzi WHERE book=?",
+                           (book_of(user),)).fetchone()["n"]
+        n = min(total, math.ceil(target * 1.3)) if target else total
+        rows = db.execute("SELECT id, char, pinyin, unit, seq FROM hanzi WHERE book=? ORDER BY seq LIMIT ?",
+                          (book_of(user), n)).fetchall()
         out = []
         for i in range(0, len(rows), CONFIRM_BATCH):
             out.append([dict(r) for r in rows[i:i + CONFIRM_BATCH]])
