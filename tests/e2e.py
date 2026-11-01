@@ -77,6 +77,10 @@ def api_tests():
     check("set grade 1A", r.get("ok"))
     r = call("POST", "/api/profile/grade", {"grade": "9X"})
     check("grade 校验拒绝", r.get("__error__") == 400, r)
+    r = call("POST", "/api/profile/grade", {"grade": "1B"})
+    check("未生产册(1B)选年级拒绝", r.get("__error__") == 400, r)
+    r = call("GET", "/api/me")
+    check("me.grades_ready=['1A']", r.get("grades_ready") == ["1A"], r.get("grades_ready"))
     r = call("POST", "/api/plan/create", {"target_chars": 300, "days": 50})
     check("plan 创建", r.get("daily_new", 0) >= 1, r)
     r = call("GET", "/api/confirm/batches")
@@ -370,6 +374,43 @@ def confirm_more_tests():
     reset_user()   # 本组自带清理
 
 
+def content_gate_tests():
+    """内容就绪门禁回归（2026-11-01 1B 事故）：zi_content 未覆盖的字（1b+ 册）
+    不得进入新字/复习/抽检/当日已学——否则排出无音频无词句的"哑巴卡"（只剩提示音效）"""
+    print("== 内容就绪门禁 ==")
+    import database, scheduler
+    reset_user()
+    db = database.get_db()
+    uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
+    # 模拟被污染的 1B 账号：1b 册计划 + 今日已"学"过 1b 字 + 1b 字挂到期复习
+    t0 = date.today().isoformat()
+    db.execute("UPDATE users SET grade='1B', target_chars=30, plan_days=7, plan_start=?, onboarded=1",
+               (t0,))
+    b1 = db.execute("SELECT h.id, h.char FROM hanzi h WHERE h.book='1b' ORDER BY h.seq LIMIT 2").fetchall()
+    for r in b1:
+        db.execute("INSERT INTO quiz_log(user_id, hanzi_id, phase, quiz_type, correct, ts) "
+                   "VALUES(?,?,'learn','card',1,?)", (uid, r["id"], t0))
+        db.execute("INSERT INTO user_hanzi(user_id, hanzi_id, status, stage, next_date, first_date, last_date) "
+                   "VALUES(?,?,'learning',0,?,?,?)", (uid, r["id"], t0, t0, t0))
+    db.commit(); db.close()
+
+    r = call("GET", "/api/me")
+    check("1B 账号 stage 打回 onboard(重选年级)", r.get("stage") == "onboard", r.get("stage"))
+    t = scheduler.build_today(uid)
+    ids_bad = {x["id"] for x in b1}
+    ids_all = ({x["id"] for x in t["new"]} | {x["id"] for x in t["review"]}
+               | {x["id"] for x in t["audit"]} | {x["id"] for x in t["learned_today"]})
+    check("1b 无内容字不进新字/复习/抽检/已学", not (ids_all & ids_bad), sorted(ids_all & ids_bad))
+    db = database.get_db()
+    n_bad = db.execute(
+        f"""SELECT COUNT(*) n FROM hanzi h WHERE h.id IN ({','.join('?' * len(ids_all))})
+            AND NOT {scheduler.CONTENT_READY}""", tuple(ids_all)).fetchone()["n"] if ids_all else 0
+    db.close()
+    check("当日字池全部内容就绪", n_bad == 0, n_bad)
+    check("全册未就绪 → 当日无新字（宁空不排哑巴卡）", t["new"] == [], t["new"])
+    reset_user()   # 本组自带清理
+
+
 if __name__ == "__main__":
     api_tests()
     state_machine_tests()
@@ -377,6 +418,7 @@ if __name__ == "__main__":
     weekly_done_tests()
     plan_renew_tests()
     confirm_more_tests()
+    content_gate_tests()
     reset_user()   # teardown：清 mido 测试状态，防污染线上库
     print(f"\n{PASS_N} pass / {FAIL_N} fail")
     sys.exit(1 if FAIL_N else 0)

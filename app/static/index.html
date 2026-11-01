@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>字乐 zilearn</title>
-<link rel="stylesheet" href="/style.css?v=10">
+<link rel="stylesheet" href="/style.css?v=11">
 </head>
 <body>
 <div id="app" v-cloak>
@@ -27,8 +27,9 @@
   <h2>你是几年级呀？</h2>
   <div class="grade-grid">
     <button v-for="g in ['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B']"
-            :key="g" class="grade" :class="{on: obGrade===g}" @click="obGrade=g">
-      {{g[0]}}年级{{g[1]==='A'?'上':'下'}}
+            :key="g" class="grade" :class="{on: obGrade===g}"
+            :disabled="!gradesReady.includes(g)" @click="obGrade=g">
+      {{g[0]}}年级{{g[1]==='A'?'上':'下'}}<small v-if="!gradesReady.includes(g)">制作中</small>
     </button>
   </div>
   <button class="btn big" :disabled="!obGrade" @click="setGrade">下一步 →</button>
@@ -330,7 +331,7 @@
       <div class="hanzi-wrap" id="hw-gate"></div>
     </div>
     <div class="trace-tip">{{traceMsg}}</div>
-    <div class="hint" v-if="!traceDone && !traceFallback">点米字格开始写，写完才能过关哦</div>
+    <div class="hint" v-if="!traceDone && !traceFallback">先看完笔顺演示，再点米字格开写哦</div>
     <div class="hint" v-if="traceFallback">这个字今天写不了，读给爸爸妈妈听吧</div>
     <button v-if="!traceDone && !traceFallback" class="skip-link"
             @pointerdown="skipHold(true)" @pointerup="skipHold(false) && (traceDone = true)"
@@ -436,6 +437,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=35"></script>
+<script src="/app.js?v=36"></script>
 </body>
 </html>

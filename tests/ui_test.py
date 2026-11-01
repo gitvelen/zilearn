@@ -291,6 +291,17 @@ def run(page):
     check("写步锁定文案", "写完" in page.locator(".learn-card > button.btn.big").inner_text(),
           page.locator(".learn-card > button.btn.big").inner_text())
     shot(page, "07-nc4-trace")
+    # v36 写步先看笔顺：演示完一遍才可开写；门槛两分支不依赖动画时序（强制翻转态验证）
+    page.wait_for_function("window.ziapp.traceWatched === true", timeout=20000, polling=100)
+    check("笔顺演示一遍完成", True)
+    page.evaluate("() => { window.ziapp.traceWatched = false; }")
+    page.locator(".hanzi-wrap").first.click()
+    page.wait_for_timeout(150)
+    check("未看完笔顺点按不进描红", page.evaluate("() => window.ziapp.tracing") is False)
+    page.evaluate("() => { window.ziapp.traceWatched = true; }")
+    page.locator(".hanzi-wrap").first.click()
+    page.wait_for_timeout(150)
+    check("看完笔顺点按进描红", page.evaluate("() => window.ziapp.tracing") is True)
     # 家长长按跳过解锁（真实路径：skipHold 返回值驱动 traceDone，勿用 evaluate 绕过）
     skip = page.locator(".learn-card .skip-link")
     skip.dispatch_event("pointerdown")
@@ -336,6 +347,8 @@ def run(page):
         if st["type"] == "strokegate":
             page.wait_for_timeout(1200)              # HanziWriter 动画挂载
             check("写字关描红挂载", page.locator(".stroke-card .hanzi-wrap svg").count() >= 1)
+            page.wait_for_function("window.ziapp.traceWatched === true", timeout=20000, polling=100)
+            check("写字关笔顺演示一遍完成", True)
             check("写字关未写完按钮锁", page.locator(".stroke-card > button.btn.big").is_disabled())
             shot(page, "10b-stroke-gate")
             # 家长长按跳过（真实路径：skipHold 返回值驱动 traceDone，勿用 evaluate 绕过）

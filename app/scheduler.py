@@ -24,6 +24,11 @@ AUDIT_N = 3                   # 掌握词每日抽检数
 CONFIRM_BATCH = 50            # 摸底速选表格每批字数
 MIN_PLAN_DAYS = 7             # 计划天数下限（一个完整周循环）
 
+# 内容就绪过滤（2026-11-01 线上事故）：zi_content 只建了 1a 全量 281 字，1b+ 册无
+# 词/句/字源素材也无 TTS 音频。选字入口（计划池/摸底/新字/复习/周测范围）一律要求
+# 内容就绪，否则排出"哑巴卡"——字音词句全 404 只剩提示音效、句步空白。扩册建好内容自动放开。
+CONTENT_READY = "EXISTS (SELECT 1 FROM zi_content c WHERE c.hanzi_id = h.id)"
+
 today_str = lambda: date.today().isoformat()  # noqa: E731
 
 
@@ -31,6 +36,16 @@ def book_of(user):
     """用户年级 → 字表册（grade '1A' → '1a'）；无年级默认 1a"""
     g = user["grade"] or "1A"
     return g[0].lower() + g[1].lower()
+
+
+def ready_books():
+    """已建内容（zi_content 覆盖）的册集合——年级可选与计划池的边界。"""
+    db = get_db()
+    try:
+        return {r["book"] for r in db.execute(
+            f"SELECT DISTINCT h.book FROM hanzi h WHERE {CONTENT_READY}")}
+    finally:
+        db.close()
 
 
 def _d(s):
@@ -48,8 +63,8 @@ def create_plan(user_id, target_chars, days):
         days = max(int(days), MIN_PLAN_DAYS)
         user = db.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
         book = book_of(user)
-        pool = db.execute("""SELECT COUNT(*) n FROM hanzi h
-            WHERE h.book=? AND NOT EXISTS (SELECT 1 FROM user_hanzi uh
+        pool = db.execute(f"""SELECT COUNT(*) n FROM hanzi h
+            WHERE h.book=? AND {CONTENT_READY} AND NOT EXISTS (SELECT 1 FROM user_hanzi uh
                               WHERE uh.user_id=? AND uh.hanzi_id=h.id
                                 AND uh.status IN ('skipped','learning','mastered'))""",
                           (book, user_id)).fetchone()["n"]
@@ -78,10 +93,11 @@ def confirm_batches(user):
     db = get_db()
     try:
         target = user["target_chars"] or 0
-        total = db.execute("SELECT COUNT(*) n FROM hanzi WHERE book=?",
+        total = db.execute(f"SELECT COUNT(*) n FROM hanzi h WHERE h.book=? AND {CONTENT_READY}",
                            (book_of(user),)).fetchone()["n"]
         n = min(total, math.ceil(target * 1.3)) if target else total
-        rows = db.execute("SELECT id, char, pinyin, unit, seq FROM hanzi WHERE book=? ORDER BY seq LIMIT ?",
+        rows = db.execute(f"""SELECT id, char, pinyin, unit, seq FROM hanzi h
+                              WHERE h.book=? AND {CONTENT_READY} ORDER BY seq LIMIT ?""",
                           (book_of(user), n)).fetchall()
         db.execute("UPDATE users SET confirm_upto=? WHERE id=?", (n, user["id"]))
         db.commit()
@@ -101,7 +117,7 @@ def confirm_more(user):
     try:
         target = user["target_chars"] or 0
         upto = user["confirm_upto"] or 0
-        total = db.execute("SELECT COUNT(*) n FROM hanzi WHERE book=?",
+        total = db.execute(f"SELECT COUNT(*) n FROM hanzi h WHERE h.book=? AND {CONTENT_READY}",
                            (book_of(user),)).fetchone()["n"]
         passed = db.execute("""SELECT COUNT(*) n FROM confirm_pick p JOIN hanzi h ON h.id=p.hanzi_id
                                WHERE p.user_id=? AND h.book=? AND p.result='pass'""",
@@ -113,8 +129,9 @@ def confirm_more(user):
                 db.commit()
             return None
         n2 = min(CONFIRM_BATCH, total - upto)
-        rows = db.execute("""SELECT id, char, pinyin, unit, seq FROM hanzi WHERE book=? ORDER BY seq
-                             LIMIT ? OFFSET ?""", (book_of(user), n2, upto)).fetchall()
+        rows = db.execute(f"""SELECT id, char, pinyin, unit, seq FROM hanzi h
+                              WHERE h.book=? AND {CONTENT_READY} ORDER BY seq
+                              LIMIT ? OFFSET ?""", (book_of(user), n2, upto)).fetchall()
         db.execute("UPDATE users SET confirm_upto=? WHERE id=?", (upto + n2, user["id"]))
         db.commit()
         return [dict(r) for r in rows]
@@ -214,18 +231,20 @@ def build_today(user_id):
             week_start = active[(week_no - 1) * 7]
             scope = {}
             # 本周新字
-            for r in db.execute("""SELECT h.id, h.char FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
-                                   WHERE uh.user_id=? AND uh.first_date>=? AND uh.status!='skipped'""",
+            for r in db.execute(f"""SELECT h.id, h.char FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
+                                   WHERE uh.user_id=? AND uh.first_date>=? AND uh.status!='skipped'
+                                   AND {CONTENT_READY}""",
                                 (user_id, week_start)):
                 scope[r["id"]] = dict(r)
             # 本周答错过的字（含前几周的旧字本周答错）
-            for r in db.execute("""SELECT DISTINCT h.id, h.char FROM quiz_log q JOIN hanzi h ON h.id=q.hanzi_id
-                                   WHERE q.user_id=? AND q.correct=0 AND q.ts>=?""",
+            for r in db.execute(f"""SELECT DISTINCT h.id, h.char FROM quiz_log q JOIN hanzi h ON h.id=q.hanzi_id
+                                   WHERE q.user_id=? AND q.correct=0 AND q.ts>=? AND {CONTENT_READY}""",
                                 (user_id, week_start)):
                 scope[r["id"]] = dict(r)
             # 当日到期复习（并入，避免同字重复出现）
-            for r in db.execute("""SELECT h.id, h.char FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
-                                   WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=?""",
+            for r in db.execute(f"""SELECT h.id, h.char FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
+                                   WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=?
+                                   AND {CONTENT_READY}""",
                                 (user_id, today_str())):
                 scope[r["id"]] = dict(r)
             return {"mode": "weekly", "week_no": week_no, "scope": list(scope.values())}
@@ -235,12 +254,13 @@ def build_today(user_id):
                               (user["plan_days"] - user["plan_days"] // 7))
         # 新字：按 seq 补齐（幂等：当日已 learn 的计入 daily_new）
         learned_today = [r["hanzi_id"] for r in db.execute(
-            "SELECT DISTINCT hanzi_id FROM quiz_log WHERE user_id=? AND phase='learn' AND ts>=?",
+            f"""SELECT DISTINCT q.hanzi_id FROM quiz_log q JOIN hanzi h ON h.id=q.hanzi_id
+                WHERE q.user_id=? AND q.phase='learn' AND q.ts>=? AND {CONTENT_READY}""",
             (user_id, today_str()))]
         new_ids = list(learned_today)
         if len(new_ids) < daily_new:
-            for r in db.execute("""SELECT id, char FROM hanzi h
-                WHERE h.book=? AND NOT EXISTS (SELECT 1 FROM user_hanzi uh WHERE uh.user_id=? AND uh.hanzi_id=h.id
+            for r in db.execute(f"""SELECT id, char FROM hanzi h
+                WHERE h.book=? AND {CONTENT_READY} AND NOT EXISTS (SELECT 1 FROM user_hanzi uh WHERE uh.user_id=? AND uh.hanzi_id=h.id
                                   AND uh.status IN ('skipped','learning','mastered'))
                 AND NOT EXISTS (SELECT 1 FROM quiz_log q WHERE q.user_id=? AND q.hanzi_id=h.id AND q.phase='learn')
                 ORDER BY seq LIMIT ?""", (book_of(user), user_id, user_id, daily_new - len(new_ids))):
@@ -250,22 +270,22 @@ def build_today(user_id):
             new_ids)] if new_ids else []
         # 到期复习
         reviews = [dict(r) for r in db.execute(
-            """SELECT h.id, h.char, h.pinyin, h.tone3, uh.stage FROM user_hanzi uh
+            f"""SELECT h.id, h.char, h.pinyin, h.tone3, uh.stage FROM user_hanzi uh
                JOIN hanzi h ON h.id=uh.hanzi_id
-               WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=?
+               WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=? AND {CONTENT_READY}
                ORDER BY uh.next_date""", (user_id, today_str()))]  # stage/first_date 已含
         # 掌握词抽检
         audits = [dict(r) for r in db.execute(
-            """SELECT h.id, h.char, h.pinyin, h.tone3 FROM user_hanzi uh
+            f"""SELECT h.id, h.char, h.pinyin, h.tone3 FROM user_hanzi uh
                JOIN hanzi h ON h.id=uh.hanzi_id
                WHERE uh.user_id=? AND uh.status='mastered' AND
-                     (uh.audit_date IS NULL OR uh.audit_date<?)
+                     (uh.audit_date IS NULL OR uh.audit_date<?) AND {CONTENT_READY}
                ORDER BY RANDOM() LIMIT ?""", (user_id, today_str(), AUDIT_N))]
         # 当日已学字（分关测验中途退出重进时，前端据此重建关队列）
         learned_today_chars = [dict(r) for r in db.execute(
-            """SELECT DISTINCT h.id, h.char, h.pinyin, h.tone3 FROM quiz_log q
+            f"""SELECT DISTINCT h.id, h.char, h.pinyin, h.tone3 FROM quiz_log q
                JOIN hanzi h ON h.id=q.hanzi_id
-               WHERE q.user_id=? AND q.phase='learn' AND q.ts=? ORDER BY h.seq""",
+               WHERE q.user_id=? AND q.phase='learn' AND q.ts=? AND {CONTENT_READY} ORDER BY h.seq""",
             (user_id, today_str()))]
         # 当日已答复习/抽检数（完成页统计真源：重进后 review 列表只剩未答项，直接取 length 会少计）
         review_done = db.execute(

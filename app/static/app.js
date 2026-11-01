@@ -26,7 +26,7 @@ const root = createApp({
   data() {
     return {
       phase: "boot", loginForm: { u: "", p: "" }, loginErr: "", userName: "",
-      progress: {}, obGrade: "", obTarget: 300, obDays: 50, planEst: null,
+      progress: {}, obGrade: "", obTarget: 300, obDays: 50, planEst: null, gradesReady: [],
       confirmBatches: [], confirmPage: 0, confirmPicked: [],
       verifyQ: null, verifyPick: null, verifyRevealed: false,
       verifyDone: 0, verifyTotal: 0,
@@ -35,7 +35,7 @@ const root = createApp({
       curQuiz: null, quizPick: null, quizRevealed: false, quizCorrect: false, quizPending: null,
       weeklyDoneIds: [],
       curContent: null, weeklyScore: 0, weeklyTotal: 0, weeklyWrong: [], weeklyWrongIds: [],
-      traceMsg: "", tracing: false, traceDone: false, traceFallback: false,
+      traceMsg: "", tracing: false, traceDone: false, traceFallback: false, traceWatched: false,
       findFound: [], findMisses: 0, findMiss: "",
       doneStats: { new: 0, review: 0 }, report: null,
       follow: { on: false, kind: "", idx: 0, done: [], state: "off" }, micLvl: 0,
@@ -85,6 +85,7 @@ const root = createApp({
       try {
         const me = await api("GET", "/api/me");
         this.progress = me.progress; this.userName = me.user.display_name || me.user.username;
+        this.gradesReady = me.grades_ready || [];   /* 册内容就绪度（年级选择禁选"制作中"） */
         if (me.stage === "onboard") this.phase = "ob-grade";
         else if (me.stage === "plan") { this.obTarget = Math.min(300, me.progress.total_hanzi - (me.progress.skipped || 0)); this.phase = "ob-plan"; }
         else { await this.loadToday(); }
@@ -608,6 +609,7 @@ const root = createApp({
     /* ---------- 引导流 ---------- */
     async setGrade() {
       await api("POST", "/api/profile/grade", { grade: this.obGrade });
+      const me = await api("GET", "/api/me"); this.progress = me.progress;   /* 换册：字数口径随新册刷新 */
       this.phase = "ob-plan";
     },
     async createPlan() {
@@ -780,7 +782,7 @@ const root = createApp({
     enterItem() {
       const it = this.curItem;
       this.curQuiz = null; this.quizRevealed = false; this.quizCorrect = false; this.curContent = null;
-      this.tracing = false; this.traceDone = false; this.traceFallback = false;
+      this.tracing = false; this.traceDone = false; this.traceFallback = false; this.traceWatched = false;
       this.traceMsg = "✏️ 点米字格，跟着橙色笔顺写一写";
       this.findFound = []; this.findMisses = 0; this.findMiss = "";
       this.ncStep = 1; this.readPlaying = false; this.readCur = "";
@@ -830,6 +832,7 @@ const root = createApp({
     mountTracer(char) {
       this._stopHw();
       this.traceDone = false; this.traceFallback = false;   /* 写步门槛（v32）：写对才放行，重挂即重置 */
+      this.traceWatched = false;                             /* v36：先看完一遍笔顺才可开写，重挂即重置 */
       const el = document.getElementById("hw-" + this.curItem.id);
       if (!el || !window.HanziWriter) { this.traceFallback = true; return; }
       try {
@@ -843,8 +846,19 @@ const root = createApp({
               .catch(() => { this.traceFallback = true; done(null); }),   /* 笔画数据缺失：门槛降级放行（同写字关） */
         });
         this._hw = w;
-        w.loopCharacterAnimation();
-        el.onclick = () => this.startTrace(el, w, char);
+        /* 完整笔顺演示一遍（v36 用户拍板：强制看完才开写）；完毕转循环演示供开写后对照，
+           quiz 启动会自动接管渲染。换卡/跳步后旧实例的回调以 _hw 引用守卫拦下 */
+        this.traceMsg = "👀 先看一遍笔顺演示…";
+        w.animateCharacter({ onComplete: () => {
+          if (this._hw !== w) return;
+          this.traceWatched = true;
+          this.traceMsg = "✏️ 看完啦，点米字格跟着写一写";
+          w.loopCharacterAnimation();
+        } });
+        el.onclick = () => {
+          if (!this.traceWatched) { this.holdTip("先看完一遍笔顺演示哦 👀"); return; }
+          this.startTrace(el, w, char);
+        };
       } catch (e) { this.traceFallback = true; }   /* 描红失败不阻塞学习流：门槛降级放行 */
     },
     startTrace(el, w, char) {
@@ -868,7 +882,8 @@ const root = createApp({
     mountStrokeQuiz(it) {
       this._stopHw();                               /* 写字关每日 1 次，但重进会重建：先停旧实例 */
       this.traceDone = false; this.traceFallback = false;
-      this.traceMsg = "✏️ 点米字格，跟着橙色笔顺写一写";
+      this.traceWatched = false;                    /* v36：先看完一遍笔顺才可开写（同写步） */
+      this.traceMsg = "👀 先看一遍笔顺演示…";
       this.playTts("q_write");
       this.$nextTick(() => {
         const el = document.getElementById("hw-gate");
@@ -884,11 +899,17 @@ const root = createApp({
                 .catch(() => { this.traceFallback = true; done(null); }),
           });
           this._hw = w;
-          w.loopCharacterAnimation();
+          /* 完整笔顺演示一遍才可开写（v36）；完毕转循环演示，quiz 启动自动接管 */
+          w.animateCharacter({ onComplete: () => {
+            if (this._hw !== w) return;
+            this.traceWatched = true;
+            this.traceMsg = `✏️ 看完啦，点米字格把「${it.char}」一笔一笔写完吧`;
+            w.loopCharacterAnimation();
+          } });
           el.onclick = () => {
             if (this.traceDone || this.tracing) return;
+            if (!this.traceWatched) { this.holdTip("先看完一遍笔顺演示哦 👀"); return; }
             this.tracing = true; el.classList.add("tracing");
-            this.traceMsg = `跟着橙色提示，把「${it.char}」一笔一笔写完吧 ✍️`;
             w.quiz({
               leniency: 1.4, showHintAfterMisses: 1,
               onCorrectStroke: d => { this.traceMsg = `真棒！第 ${d.strokeNum + 1} 笔写对了，继续～`; this.playSfx("ok", 0.3); },

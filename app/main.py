@@ -117,14 +117,18 @@ def logout(request: Request):
 def me(request: Request):
     user = auth.current_user(request)
     progress = scheduler.get_progress(user["id"])
+    ready = scheduler.ready_books()
     stage = "onboard"
     if user["grade"]:
         stage = "plan"
     if user["target_chars"]:
         stage = "confirm" if user["onboarded"] == 0 else "study"
+    if user["grade"] and scheduler.book_of(user) not in ready:
+        stage = "onboard"   # 所选册内容未生产（2026-11-01 1B 事故）：打回年级重选
     return {"user": {"username": user["username"], "display_name": user["display_name"],
                      "grade": user["grade"]},
-            "progress": progress, "stage": stage}
+            "progress": progress, "stage": stage,
+            "grades_ready": sorted(b.upper() for b in ready)}
 
 
 @app.post("/api/profile/grade")
@@ -132,9 +136,14 @@ def set_grade(body: GradeIn, request: Request):
     user = auth.current_user(request)
     if body.grade not in VALID_GRADES:
         raise HTTPException(400, "无效年级")
+    if body.grade[0].lower() + body.grade[1].lower() not in scheduler.ready_books():
+        raise HTTPException(400, "这本教材的字还在制作中，先选已上线的教材吧")
     db = database.get_db()
     try:
         db.execute("UPDATE users SET grade=? WHERE id=?", (body.grade, user["id"]))
+        if (user["grade"] or "") != body.grade:   # 换册：旧册摸底未决项与水位作废
+            db.execute("DELETE FROM confirm_pick WHERE user_id=? AND result IS NULL", (user["id"],))
+            db.execute("UPDATE users SET confirm_upto=0 WHERE id=?", (user["id"],))
         db.commit()
     finally:
         db.close()

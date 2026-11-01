@@ -56,6 +56,8 @@ input:focus { outline: none; border-color: #ffb74d; }
 .grade { padding: 18px 8px; border-radius: 18px; border: 2px solid #ffe0b2; background: #fff;
   font-size: 18px; font-weight: 700; color: #8d6e63; }
 .grade.on { background: #ff9800; color: #fff; border-color: #ff9800; transform: scale(1.05); }
+.grade:disabled { opacity: .45; }               /* 册内容未生产（制作中）：禁选但可见 */
+.grade small { display: block; font-size: 11px; font-weight: 400; margin-top: 2px; }
 
 /* ---------- 摸底字格 ---------- */
 .char-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; }
