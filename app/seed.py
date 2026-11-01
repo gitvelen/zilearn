@@ -80,15 +80,18 @@ def upsert_content(db, content):
         if not row:
             continue
         sents = c.get("sentences") or ([c["sentence"]] if c.get("sentence") else [])
-        db.execute("""INSERT INTO zi_content(hanzi_id, words, sentence, sentences, etym_type, etym, emoji)
-                      VALUES(?,?,?,?,?,?,?)
+        db.execute("""INSERT INTO zi_content(hanzi_id, words, sentence, sentences, etym_type, etym, emoji,
+                                              mean, avoid)
+                      VALUES(?,?,?,?,?,?,?,?,?)
                       ON CONFLICT(hanzi_id) DO UPDATE SET
                         words=excluded.words, sentence=excluded.sentence,
                         sentences=excluded.sentences,
-                        etym_type=excluded.etym_type, etym=excluded.etym, emoji=excluded.emoji""",
+                        etym_type=excluded.etym_type, etym=excluded.etym, emoji=excluded.emoji,
+                        mean=excluded.mean, avoid=excluded.avoid""",
                    (row["id"], json.dumps(c["words"], ensure_ascii=False),
                     sents[0] if sents else None, json.dumps(sents, ensure_ascii=False),
-                    c["etym_type"], c["etym"], c.get("emoji", "")))
+                    c["etym_type"], c["etym"], c.get("emoji", ""),
+                    c.get("mean"), c.get("avoid")))
         n_content += 1
     return n_content
 

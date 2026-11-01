@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>字乐 zilearn</title>
-<link rel="stylesheet" href="/style.css?v=11">
+<link rel="stylesheet" href="/style.css?v=12">
 </head>
 <body>
 <div id="app" v-cloak>
@@ -25,6 +25,7 @@
 <!-- ============ 引导：选年级 ============ -->
 <div v-else-if="phase==='ob-grade'" class="wizard">
   <h2>你是几年级呀？</h2>
+  <p class="sub kick" v-if="obKick">你选的教材内容还在制作中，先换一本已经上线的吧</p>
   <div class="grade-grid">
     <button v-for="g in ['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B']"
             :key="g" class="grade" :class="{on: obGrade===g}"
@@ -163,23 +164,23 @@
           <div class="zi-big" :class="{'follow-cur': follow.on && follow.kind==='char'}"
                :style="follow.on && follow.kind==='char' && follow.state==='wait'
                        ? {transform: 'scale(' + (1 + micLvl * 0.18) + ')'} : null"
-               @click="follow.on && follow.kind==='char' ? followReplay() : playChar(curItem.char)">
+               @click="ziClick">
             {{curItem.char}}
-            <span v-if="!follow.on" class="tap-hint">👆</span>
+            <span v-if="!follow.on && !stepBusy" class="tap-hint">👆</span>
           </div>
         </div>
         <div class="zi-side">
           <div class="pinyin">{{curItem.pinyin}}</div>
           <div class="emoji" v-if="curContent && curContent.emoji">{{curContent.emoji}}</div>
-          <button class="speak" @click="playChar(curItem.char)">🔊 {{listenLabel(curItem.char)}}</button>
+          <button class="speak" @click="charListen()">🔊 {{listenLabel(curItem.char)}}</button>
           <div v-if="curAlt && curAlt.length" class="alt-reading">
-            <span @click="playChar(curItem.char, curAlt[0][1])">还有个读音：{{curAlt[0][0]}}{{curAlt[0][2] ? '·'+curAlt[0][2] : ''}} 🔊</span>
+            <span @click="charListen(curAlt[0][1])">还有个读音：{{curAlt[0][0]}}{{curAlt[0][2] ? '·'+curAlt[0][2] : ''}} 🔊</span>
           </div>
         </div>
       </div>
       <div v-if="curContent && curContent.etym" class="etym-story">
         📖 {{curContent.etym}}
-        <button class="speak-sm" @click="playOne('e_'+curItem.char)">🔊</button>
+        <button class="speak-sm" @click="etymListen">🔊</button>
       </div>
     </template>
 
@@ -192,7 +193,7 @@
                          dim: follow.on && follow.idx!==i && !follow.done.includes(i)}"
                 @click="followWordClick(i)" v-html="wordHtml(w)"></button>
       </div>
-      <button v-if="!follow.on" class="speak" @click="playOne('w_'+curItem.char)">🔊 全部读一遍</button>
+      <button v-if="!follow.on && !stepBusy" class="speak" @click="playOne('w_'+curItem.char)">🔊 全部读一遍</button>
     </template>
 
     <!-- ③ 句：逐句跟读（当前句高亮）→ 自由点选 -->
@@ -289,6 +290,16 @@
       <div v-else-if="curQuiz.quiz_type==='rev'" class="quiz-stem">
         <button class="speak-xl" @click="playFile(curQuiz.audio)">🔊</button>
         <div class="hint">听一听词语，是哪个字？</div>
+      </div>
+      <!-- lsent: 听句选字（第四关：整句音频，选出句中出现过的字） -->
+      <div v-else-if="curQuiz.quiz_type==='lsent'" class="quiz-stem">
+        <button class="speak-xl" @click="playFile(curQuiz.audio)">🔊</button>
+        <div class="hint">听一听这句话，哪个字藏在里面？</div>
+      </div>
+      <!-- defi: 听释义选字（第五关：系统读字的意思，选最恰当的字） -->
+      <div v-else-if="curQuiz.quiz_type==='defi'" class="quiz-stem">
+        <button class="speak-xl" @click="playFile(curQuiz.audio)">🔊</button>
+        <div class="hint">听一听意思，是哪个字？</div>
       </div>
       <!-- find: 找一找 -->
       <div v-else-if="curQuiz.quiz_type==='find'" class="quiz-stem">
@@ -395,11 +406,21 @@
 <!-- ============ 家长页 ============ -->
 <div v-else-if="phase==='parent'" class="wizard wide">
   <h2>家长中心 👨‍👩‍👦</h2>
+  <div class="p-card wide plan-card">
+    <div class="plan-head"><b>本期计划</b><span class="plan-pct">{{planPct}}%</span></div>
+    <div class="progress-bar"><i :style="{width: planPct+'%'}"></i></div>
+    <div class="plan-nums">
+      <span>目标 {{progress.target_chars}} 字</span>
+      <span>已学 <b>{{planLearned}}</b> 字</span>
+      <span>剩 {{Math.max(0, progress.target_chars - planLearned)}} 字</span>
+    </div>
+    <div class="hint">今日新学 {{todayNewN}} 字 · 复习 {{today.review_done ?? 0}} 字 · 剩余可学 {{progress.pool}} 字</div>
+  </div>
   <div class="parent-grid">
     <div class="p-card"><b>已学</b><span>{{progress.learned}} 字</span></div>
     <div class="p-card"><b>已掌握</b><span>{{progress.mastered}} 字</span></div>
-    <div class="p-card"><b>摸底跳过</b><span>{{progress.skipped}} 字</span></div>
     <div class="p-card"><b>星星</b><span>⭐ {{progress.stars}}</span></div>
+    <div class="p-card"><b>近7天正确率</b><span>{{trendAcc}}</span></div>
   </div>
   <div class="p-card wide" v-if="report && report.weekly.length">
     <b>周测成绩</b>
@@ -429,7 +450,7 @@
     <span class="score-md">{{ Math.round(report.follow.heard / report.follow.n * 100) }}%</span>
     <div class="hint">读到 {{report.follow.heard}} / {{report.follow.n}} 次 · 超时 {{report.follow.timeout}} 次 · 麦克风未开 {{report.follow.na}} 次</div>
   </div>
-  <button class="btn ghost" @click="boot">← 返回</button>
+  <button class="btn ghost" @click="parentBack">← 返回</button>
 </div>
 
 <div v-else class="loading">加载中… 🐣</div>
@@ -437,6 +458,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=36"></script>
+<script src="/app.js?v=39"></script>
 </body>
 </html>

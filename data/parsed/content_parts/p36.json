@@ -1,0 +1,740 @@
+{
+ "超": {
+  "words": [
+   "超过",
+   "超越"
+  ],
+  "sentences": [
+   "成绩超过了上次。"
+  ],
+  "etym_type": "component",
+  "etym": "走（走）得（召）更快，超。",
+  "emoji": "🏃"
+ },
+ "缸": {
+  "words": [
+   "水缸",
+   "鱼缸"
+  ],
+  "sentences": [
+   "鱼缸里养金鱼。"
+  ],
+  "etym_type": "component",
+  "etym": "缶（缶）器（工），缸。",
+  "emoji": "🐠"
+ },
+ "隙": {
+  "words": [
+   "缝隙",
+   "空隙"
+  ],
+  "sentences": [
+   "光从缝隙照进来。"
+  ],
+  "etym_type": "component",
+  "etym": "墙（阝）上（小日）的小缝，隙。",
+  "emoji": "💡"
+ },
+ "掀": {
+  "words": [
+   "掀开",
+   "掀起"
+  ],
+  "sentences": [
+   "掀开锅盖看一眼。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）用力（欣）翻，掀。",
+  "emoji": "🍲"
+ },
+ "末": {
+  "words": [
+   "周末",
+   "末尾"
+  ],
+  "sentences": [
+   "周末去图书馆。",
+   "队排到末尾。"
+  ],
+  "etym_type": "picto",
+  "etym": "树梢（木）上（一）一点，末。",
+  "emoji": "🌳"
+ },
+ "副": {
+  "words": [
+   "副手",
+   "一副"
+  ],
+  "sentences": [
+   "一副新的手套。"
+  ],
+  "etym_type": "picto",
+  "etym": "切分（畐刀）开的一份，副。",
+  "emoji": "🧤"
+ },
+ "钳": {
+  "words": [
+   "钳子"
+  ],
+  "sentences": [
+   "钳子夹紧铁丝。"
+  ],
+  "etym_type": "component",
+  "etym": "金（钅）制（甘）的工具，钳。",
+  "emoji": "🔧"
+ },
+ "搏": {
+  "words": [
+   "搏斗",
+   "拼搏"
+  ],
+  "sentences": [
+   "拼搏才有收获。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）对抗（尃），搏。",
+  "emoji": "🥊"
+ },
+ "较": {
+  "words": [
+   "比较",
+   "较量"
+  ],
+  "sentences": [
+   "比较两幅图的不同。"
+  ],
+  "etym_type": "component",
+  "etym": "车（车）并（交）排比，较。",
+  "emoji": "⚖️"
+ },
+ "腹": {
+  "words": [
+   "腹部",
+   "空腹"
+  ],
+  "sentences": [
+   "腹部贴地爬行。"
+  ],
+  "etym_type": "component",
+  "etym": "月（月）里（复）的部位，腹。",
+  "emoji": ""
+ },
+ "栅": {
+  "words": [
+   "栅栏"
+  ],
+  "sentences": [
+   "栅栏围着花园。"
+  ],
+  "etym_type": "component",
+  "etym": "木（木）条编（册）成，栅。",
+  "emoji": "🚧"
+ },
+ "麻": {
+  "words": [
+   "麻雀",
+   "麻花"
+  ],
+  "sentences": [
+   "麻雀叽叽喳喳。",
+   "麻花香香脆脆。"
+  ],
+  "etym_type": "picto",
+  "etym": "屋（广）里晒（林）的纤维，麻。",
+  "emoji": "🐦"
+ },
+ "悠": {
+  "words": [
+   "悠扬",
+   "悠闲"
+  ],
+  "sentences": [
+   "笛声悠扬。"
+  ],
+  "etym_type": "component",
+  "etym": "心（攸）放宽（心），悠。",
+  "emoji": "🎶"
+ },
+ "揉": {
+  "words": [
+   "揉一揉"
+  ],
+  "sentences": [
+   "揉一揉酸痛的手。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）搓（柔）动，揉。",
+  "emoji": "👐"
+ },
+ "沫": {
+  "words": [
+   "泡沫",
+   "浪沫"
+  ],
+  "sentences": [
+   "肥皂泡沫飞。"
+  ],
+  "etym_type": "component",
+  "etym": "水（氵）的末（末）梢，沫。",
+  "emoji": "🫧"
+ },
+ "唯": {
+  "words": [
+   "唯一",
+   "唯有"
+  ],
+  "sentences": [
+   "这是唯一的答案。"
+  ],
+  "etym_type": "component",
+  "etym": "口（口）只（隹）这样说，唯。",
+  "emoji": "1️⃣"
+ },
+ "碍": {
+  "words": [
+   "阻碍",
+   "障碍"
+  ],
+  "sentences": [
+   "跨过障碍物。"
+  ],
+  "etym_type": "component",
+  "etym": "石（石）头挡（得）道，碍。",
+  "emoji": "🚧"
+ },
+ "系": {
+  "words": [
+   "关系",
+   "系统"
+  ],
+  "sentences": [
+   "大家关系很好。"
+  ],
+  "etym_type": "picto",
+  "etym": "丝（糸）相（丿）连，系。",
+  "emoji": "🔗"
+ },
+ "希": {
+  "words": [
+   "希望"
+  ],
+  "sentences": [
+   "希望明天更精彩。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "心里织（乂布）的盼望，希。",
+  "emoji": "🌟"
+ },
+ "痒": {
+  "words": [
+   "挠痒"
+  ],
+  "sentences": [
+   "挠痒痒笑个不停。"
+  ],
+  "etym_type": "component",
+  "etym": "病（疒）得（羊）想抓，痒。",
+  "emoji": "😆"
+ },
+ "鳄": {
+  "words": [
+   "鳄鱼"
+  ],
+  "sentences": [
+   "鳄鱼张着大嘴。"
+  ],
+  "etym_type": "component",
+  "etym": "鱼（鱼）名，鳄。",
+  "emoji": "🐊"
+ },
+ "零": {
+  "words": [
+   "零钱",
+   "零食"
+  ],
+  "sentences": [
+   "零钱放进存钱罐。",
+   "少吃零食。"
+  ],
+  "etym_type": "component",
+  "etym": "雨（雨）点（令）落下，零。",
+  "emoji": "🌧️"
+ },
+ "肠": {
+  "words": [
+   "香肠",
+   "肠道"
+  ],
+  "sentences": [
+   "香肠切成片。"
+  ],
+  "etym_type": "component",
+  "etym": "月（月）里的长（长）管，肠。",
+  "emoji": "🌭"
+ },
+ "醋": {
+  "words": [
+   "醋酸",
+   "米醋"
+  ],
+  "sentences": [
+   "米醋酸酸的。"
+  ],
+  "etym_type": "component",
+  "etym": "酒（酉）变（昔）酸，醋。",
+  "emoji": "🧴"
+ },
+ "秘": {
+  "words": [
+   "秘密",
+   "奥秘"
+  ],
+  "sentences": [
+   "大海藏着许多奥秘。",
+   "这是我们的秘密。"
+  ],
+  "etym_type": "component",
+  "etym": "藏（禾）在心里（必），秘。",
+  "emoji": "🤫"
+ },
+ "墨": {
+  "words": [
+   "墨水",
+   "墨绿"
+  ],
+  "sentences": [
+   "钢笔吸墨水。"
+  ],
+  "etym_type": "component",
+  "etym": "黑（黑）土（土）做的，墨。",
+  "emoji": "🖋️"
+ },
+ "染": {
+  "words": [
+   "染色",
+   "染红"
+  ],
+  "sentences": [
+   "把布染成蓝色。"
+  ],
+  "etym_type": "component",
+  "etym": "水（氵）+木（木）+九（九）次浸，染。",
+  "emoji": "🎨"
+ },
+ "碎": {
+  "words": [
+   "打碎",
+   "碎块"
+  ],
+  "sentences": [
+   "花瓶打碎了。"
+  ],
+  "etym_type": "component",
+  "etym": "石头（石卒）砸开，碎。",
+  "emoji": "💔"
+ },
+ "浪": {
+  "words": [
+   "浪花",
+   "海浪"
+  ],
+  "sentences": [
+   "浪花拍打沙滩。"
+  ],
+  "etym_type": "component",
+  "etym": "水（氵）起（良）波，浪。",
+  "emoji": "🌊"
+ },
+ "溅": {
+  "words": [
+   "溅起",
+   "溅落"
+  ],
+  "sentences": [
+   "水花溅起来。"
+  ],
+  "etym_type": "component",
+  "etym": "水（氵）跳（贱）起来，溅。",
+  "emoji": "💦"
+ },
+ "爽": {
+  "words": [
+   "凉爽",
+   "爽快"
+  ],
+  "sentences": [
+   "秋风吹得凉爽。",
+   "他答应得爽快。"
+  ],
+  "etym_type": "picto",
+  "etym": "人（大）在窗（㸚）边透风，爽。",
+  "emoji": "🍃"
+ },
+ "剃": {
+  "words": [
+   "剃头"
+  ],
+  "sentences": [
+   "剃头师傅手艺好。"
+  ],
+  "etym_type": "component",
+  "etym": "刀（刂）剪（弟）头发，剃。",
+  "emoji": "💈"
+ },
+ "执": {
+  "words": [
+   "执行",
+   "执笔"
+  ],
+  "sentences": [
+   "执行约定。",
+   "执笔写字。"
+  ],
+  "etym_type": "picto",
+  "etym": "手（扌）拿（丸）住，执。",
+  "emoji": "✍️"
+ },
+ "否": {
+  "words": [
+   "是否",
+   "否定"
+  ],
+  "sentences": [
+   "是否同行由你定。"
+  ],
+  "etym_type": "component",
+  "etym": "口（不口）说不行，否。",
+  "emoji": "❓"
+ },
+ "骂": {
+  "words": [
+   "骂人"
+  ],
+  "sentences": [
+   "骂人话不能说。"
+  ],
+  "etym_type": "component",
+  "etym": "两个口（口口）对着（马）吼，骂。",
+  "emoji": "🤐"
+ },
+ "仇": {
+  "words": [
+   "报仇",
+   "仇人"
+  ],
+  "sentences": [
+   "故事里勇士斗仇人。"
+  ],
+  "etym_type": "component",
+  "etym": "人（亻）结（九）怨，仇。",
+  "emoji": ""
+ },
+ "惯": {
+  "words": [
+   "习惯",
+   "惯性"
+  ],
+  "sentences": [
+   "好习惯早养成。"
+  ],
+  "etym_type": "component",
+  "etym": "心（忄贯）里定型，惯。",
+  "emoji": "🪥"
+ },
+ "刑": {
+  "words": [
+   "刑法"
+  ],
+  "sentences": [
+   "法律设有刑法。"
+  ],
+  "etym_type": "picto",
+  "etym": "刀（开刀）处罚，刑。",
+  "emoji": "⚖️"
+ },
+ "替": {
+  "words": [
+   "代替",
+   "替班"
+  ],
+  "sentences": [
+   "帮生病的同学替班。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "两个（夫夫）换（曰）着上，替。",
+  "emoji": "🔄"
+ },
+ "厘": {
+  "words": [
+   "厘米"
+  ],
+  "sentences": [
+   "尺子上一小格是一厘米。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一（厂里）点点小，厘。",
+  "emoji": "📏"
+ },
+ "廊": {
+  "words": [
+   "走廊",
+   "长廊"
+  ],
+  "sentences": [
+   "走廊里挂满画。"
+  ],
+  "etym_type": "component",
+  "etym": "宽（广）长的（郎）通道，廊。",
+  "emoji": "🖼️"
+ },
+ "若": {
+  "words": [
+   "若非",
+   "假若"
+  ],
+  "sentences": [
+   "假若明天下雨就改期。"
+  ],
+  "etym_type": "picto",
+  "etym": "像草（艹右）一样，若。",
+  "emoji": ""
+ },
+ "薄": {
+  "words": [
+   "薄薄",
+   "薄片"
+  ],
+  "sentences": [
+   "一张薄薄的纸。",
+   "黄瓜切成薄片。"
+  ],
+  "etym_type": "component",
+  "etym": "草（艹）少（溥）而稀，薄。",
+  "emoji": "📄"
+ },
+ "颤": {
+  "words": [
+   "颤动",
+   "颤抖"
+  ],
+  "sentences": [
+   "琴弦轻轻颤动。",
+   "冷得微微颤抖。"
+  ],
+  "etym_type": "component",
+  "etym": "页（页）摇（亶）动，颤。",
+  "emoji": "🎻"
+ },
+ "巍": {
+  "words": [
+   "巍然",
+   "巍巍"
+  ],
+  "sentences": [
+   "大山巍然屹立。"
+  ],
+  "etym_type": "component",
+  "etym": "山（山）高（魏）大，巍。",
+  "emoji": "🏔️"
+ },
+ "巅": {
+  "words": [
+   "巅峰",
+   "山巅"
+  ],
+  "sentences": [
+   "登上山巅看日出。"
+  ],
+  "etym_type": "component",
+  "etym": "山顶（巅）最高处，巅。",
+  "emoji": "⛰️"
+ },
+ "婴": {
+  "words": [
+   "婴儿"
+  ],
+  "sentences": [
+   "婴儿睡得香甜。"
+  ],
+  "etym_type": "component",
+  "etym": "妈妈怀里（贝贝）的女（女）娃，婴。",
+  "emoji": "👶"
+ },
+ "耀": {
+  "words": [
+   "耀眼",
+   "闪耀"
+  ],
+  "sentences": [
+   "星光闪耀。",
+   "阳光耀眼。"
+  ],
+  "etym_type": "component",
+  "etym": "光（光）照（翟），耀。",
+  "emoji": "✨"
+ },
+ "庆": {
+  "words": [
+   "庆祝",
+   "欢庆"
+  ],
+  "sentences": [
+   "庆祝生日。"
+  ],
+  "etym_type": "component",
+  "etym": "鹿（鹿）皮（大）鼓欢庆，庆。",
+  "emoji": "🎉"
+ },
+ "盼": {
+  "words": [
+   "盼望",
+   "期盼"
+  ],
+  "sentences": [
+   "盼望春天快快来。"
+  ],
+  "etym_type": "component",
+  "etym": "眼（目）睛分（分）神望，盼。",
+  "emoji": "🤩"
+ },
+ "叠": {
+  "words": [
+   "重叠",
+   "叠好"
+  ],
+  "sentences": [
+   "把衣服叠好。"
+  ],
+  "etym_type": "picto",
+  "etym": "一层（疉）压一层，叠。",
+  "emoji": "👕"
+ },
+ "歉": {
+  "words": [
+   "道歉",
+   "歉收"
+  ],
+  "sentences": [
+   "做错事先道歉。"
+  ],
+  "etym_type": "component",
+  "etym": "兼（兼）欠（欠）别人的，歉。",
+  "emoji": "🙏"
+ },
+ "旭": {
+  "words": [
+   "旭日"
+  ],
+  "sentences": [
+   "旭日东升。"
+  ],
+  "etym_type": "picto",
+  "etym": "太阳（日）刚（九）出来，旭。",
+  "emoji": "🌅"
+ },
+ "屿": {
+  "words": [
+   "岛屿"
+  ],
+  "sentences": [
+   "海上有小岛屿。"
+  ],
+  "etym_type": "component",
+  "etym": "山（山）与（与）水相连，屿。",
+  "emoji": "🏝️"
+ },
+ "瞭": {
+  "words": [
+   "瞭望"
+  ],
+  "sentences": [
+   "哨兵登高瞭望。"
+  ],
+  "etym_type": "component",
+  "etym": "眼（目）看得（尞）远，瞭。",
+  "emoji": "🔭"
+ },
+ "巡": {
+  "words": [
+   "巡查"
+  ],
+  "sentences": [
+   "保安夜里巡查。"
+  ],
+  "etym_type": "picto",
+  "etym": "来回（巛）走（辶），巡。",
+  "emoji": "👮"
+ },
+ "缆": {
+  "words": [
+   "缆车",
+   "电缆"
+  ],
+  "sentences": [
+   "坐缆车上山顶。"
+  ],
+  "etym_type": "component",
+  "etym": "丝（纟）绕（览）的绳，缆。",
+  "emoji": "🚡"
+ },
+ "锚": {
+  "words": [
+   "铁锚"
+  ],
+  "sentences": [
+   "轮船抛下铁锚。"
+  ],
+  "etym_type": "component",
+  "etym": "金（钅）锚（苗）抓底，锚。",
+  "emoji": "⚓"
+ },
+ "呈": {
+  "words": [
+   "呈现"
+  ],
+  "sentences": [
+   "彩虹呈现眼前。"
+  ],
+  "etym_type": "component",
+  "etym": "口（口）呈（王）上东西，呈。",
+  "emoji": "🌈"
+ },
+ "雕": {
+  "words": [
+   "雕刻",
+   "雕像"
+  ],
+  "sentences": [
+   "石雕刻成狮子。"
+  ],
+  "etym_type": "component",
+  "etym": "鸟（隹）啄（周）般精细，雕。",
+  "emoji": "🗿"
+ },
+ "幻": {
+  "words": [
+   "幻想",
+   "幻灯"
+  ],
+  "sentences": [
+   "幻想飞上蓝天。",
+   "幻灯片放起来。"
+  ],
+  "etym_type": "component",
+  "etym": "丝（幺）乱（𠃌）绕如梦，幻。",
+  "emoji": "🎈"
+ },
+ "辉": {
+  "words": [
+   "光辉",
+   "辉煌"
+  ],
+  "sentences": [
+   "光辉洒满大地。",
+   "灯火辉煌。"
+  ],
+  "etym_type": "component",
+  "etym": "光（光）如军（军）阵，辉。",
+  "emoji": "🌟"
+ }
+}

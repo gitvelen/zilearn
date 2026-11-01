@@ -42,7 +42,9 @@ CREATE TABLE IF NOT EXISTS zi_content (
   sentences TEXT,          -- 例句 JSON ["天上飘着白云。","白天太阳出来了。"]（2-3 句）
   etym_type TEXT,          -- picto|component|mnemonic|scene
   etym      TEXT,          -- 字源/部件故事
-  emoji     TEXT           -- 视觉锚点（高置信才配，可空）
+  emoji     TEXT,          -- 视觉锚点（高置信才配，可空）
+  mean      TEXT,          -- 释义（字义关素材：听释义选字；12-30 字、不含目标字、特异无歧义）
+  avoid     TEXT           -- 义近/同类禁扰字（逗号分隔，出题时排除——防"释义也能套"的歧义）
 );
 
 CREATE TABLE IF NOT EXISTS user_hanzi (
@@ -117,6 +119,13 @@ CREATE TABLE IF NOT EXISTS follow_log (   -- 跟读开口记录（有效性度�
 );
 CREATE INDEX IF NOT EXISTS idx_flog_user ON follow_log(user_id, ts);
 
+CREATE TABLE IF NOT EXISTS daily_mail (   -- 学习日报幂等（v39）：完成事件发送成功才置位
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  date    TEXT NOT NULL,
+  sent    INTEGER DEFAULT 0,              -- 1=已发送（测试账号 0=已生成未发）
+  UNIQUE(user_id, date)
+);
+
 CREATE TABLE IF NOT EXISTS questions (  -- 预生成题库（离线生成+人工审查后才可出题）
   id        INTEGER PRIMARY KEY,
   hanzi_id  INTEGER NOT NULL REFERENCES hanzi(id),
@@ -150,10 +159,18 @@ def init_db():
         db.execute("ALTER TABLE users ADD COLUMN plan_base_learned INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
         pass
+    # 迁移：旧库补 zi_content 释义列（字义关 v39，新库 SCHEMA 已含）
+    for col, decl in [("mean", "TEXT"), ("avoid", "TEXT")]:
+        try:
+            db.execute(f"ALTER TABLE zi_content ADD COLUMN {col} {decl}")
+        except sqlite3.OperationalError:
+            pass
     # 迁移：旧库补 follow_log 遥测列（v19，新库 SCHEMA 已含）
     for col, decl in [("peak_rms", "REAL"), ("noise_base", "REAL"), ("thr_used", "REAL"),
                       ("voiced_ms", "INTEGER"), ("dur_ms", "INTEGER"), ("ts_ms", "INTEGER"), ("ua", "TEXT"),
-                      ("played", "INTEGER"), ("model_ms", "INTEGER"), ("mic_settings", "TEXT")]:
+                      ("played", "INTEGER"), ("model_ms", "INTEGER"), ("mic_settings", "TEXT"),
+                      # 词步 ASR 校验（v38）：识别文本+匹配结果（degraded 时 text 为空可辨）
+                      ("asr_text", "TEXT"), ("asr_pass", "INTEGER")]:
         try:
             db.execute(f"ALTER TABLE follow_log ADD COLUMN {col} {decl}")
         except sqlite3.OperationalError:

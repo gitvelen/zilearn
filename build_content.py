@@ -15,7 +15,7 @@
 
 目标册集可用参数扩展（2026-11-02 三册扩容）：
   python3 build_content.py 三年级上册 三年级下册 ...
-（册名以 data/parsed/zi_books.json 键为准；默认四册）
+（册名以 data/parsed/zi_books.json 键为准；默认一至四年级八册）
 """
 import json
 import re
@@ -24,13 +24,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 PARTS_DIR = ROOT / "data/parsed/content_parts"
+MEAN_DIR = ROOT / "data/parsed/content_mean"   # 释义叠加层 {char: {mean, avoid}}（字义关素材）
 BOOKS = ROOT / "data/parsed/zi_books.json"
 OUT = ROOT / "data/parsed/zi_content.json"
-DEFAULT_BOOKS = ["一年级上册", "一年级下册", "二年级上册", "二年级下册"]
+DEFAULT_BOOKS = ["一年级上册", "一年级下册", "二年级上册", "二年级下册",
+                 "三年级上册", "三年级下册", "四年级上册", "四年级下册"]
 
 PUNCT = set("，。！？、；：—…“”‘’")
 TYPES = {"picto", "component", "mnemonic", "scene"}
-EXEMPT = set("走过亮玩笑快给边孩己以时听海什成活变爬灯衣挂远住猫丽苹膏娃呱喔咩很睡卡那真同诗穿服近候全华台无洞")
+EXEMPT = set("走过亮玩笑快给边孩己以时听海什成活变爬灯衣挂远住猫丽苹膏娃呱喔咩很睡卡那真同诗穿服近候全华台无洞叭")
 
 
 def main():
@@ -56,6 +58,18 @@ def main():
             if ch in merged:
                 errors.append(f"[{ch}] 重复定义（{f.name}）")
             merged[ch] = c
+
+    # 释义叠加层（char 级字段合并，不与 parts 冲突定义字段）
+    for f in sorted(MEAN_DIR.glob("*.json")) if MEAN_DIR.exists() else []:
+        for ch, c in json.loads(f.read_text()).items():
+            if ch not in merged:
+                errors.append(f"[{ch}] 释义叠加了不存在的字（{f.name}）")
+                continue
+            for k in ("mean", "avoid"):
+                if k in c:
+                    if k in merged[ch]:
+                        errors.append(f"[{ch}] {k} 重复定义（{f.name}）")
+                    merged[ch][k] = c[k]
 
     # 覆盖检查
     for ch in target:
@@ -100,6 +114,23 @@ def main():
         em = c.get("emoji", "")
         if em and re.search(r"[一-鿿]", em):
             errors.append(f"[{ch}] emoji 含汉字：{em}")
+        # 释义（可选字段，字义关素材）：不含目标字（防读释义泄漏答案）、12-30 字、
+        # 白名单内用字（释义会被 TTS 读给孩子听）、avoid 禁扰字必须在册表内
+        mean = c.get("mean", "")
+        if mean:
+            core = re.sub(r"[，。！？、；：—…“”‘’『』]", "", mean)
+            if not (6 <= len(core) <= 30):
+                errors.append(f"[{ch}] 释义长度 {len(core)} 不在 6-30：{mean}")
+            if ch in mean:
+                errors.append(f"[{ch}] 释义含目标字：{mean}")
+            check_chars(mean, "释义", ch)
+        avoid = c.get("avoid", "")
+        if avoid:
+            for x in avoid.split(","):
+                if x == ch:
+                    errors.append(f"[{ch}] avoid 含目标字")
+                elif x and x not in valid:
+                    errors.append(f"[{ch}] avoid 非册内字：{x}")
 
     if errors:
         print(f"✗ {len(errors)} 处违反：")

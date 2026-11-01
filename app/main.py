@@ -3,13 +3,15 @@ import json
 import secrets
 from pathlib import Path
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, File, Form, UploadFile
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from pydantic import BaseModel
 
+import asr
 import database
 import auth
+import report
 import scheduler
 
 BASE = Path(__file__).parent
@@ -86,6 +88,8 @@ class FollowLogIn(BaseModel):
     mic_settings: str | None = None  # gUM 实际生效设置 JSON（Safari 忽略 EC/NS 约束的电平取证）
     ts_ms: int | None = None        # 客户端时刻：区分弱网批量交付
     ua: str | None = None
+    asr_text: str | None = None     # 词步 ASR 识别文本（v38：无 ASR/降级为 None）
+    asr_pass: int | None = None     # 词步 ASR 匹配结果 1/0（未走 ASR 为 None）
 
 
 VALID_GRADES = {f"{g}{t}" for g in range(1, 7) for t in ("A", "B")}
@@ -246,18 +250,31 @@ def follow_log(body: FollowLogIn, request: Request):
         h = db.execute("SELECT id FROM hanzi WHERE char=?", (body.char,)).fetchone()
         db.execute(
             "INSERT INTO follow_log(user_id, hanzi_id, char, kind, heard, tries,"
-            " peak_rms, noise_base, thr_used, voiced_ms, dur_ms, played, model_ms, mic_settings, ts_ms, ua)"
-            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " peak_rms, noise_base, thr_used, voiced_ms, dur_ms, played, model_ms, mic_settings, ts_ms, ua,"
+            " asr_text, asr_pass)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (user["id"], h["id"] if h else None, body.char, body.kind,
              None if body.heard is None else int(body.heard), body.tries,
              body.peak_rms, body.noise_base, body.thr_used, body.voiced_ms,
              body.dur_ms, body.played, body.model_ms,
              body.mic_settings[:120] if body.mic_settings else None, body.ts_ms,
-             body.ua[:160] if body.ua else None))
+             body.ua[:160] if body.ua else None,
+             body.asr_text[:60] if body.asr_text else None, body.asr_pass))
         db.commit()
     finally:
         db.close()
     return {"ok": True}
+
+
+@app.post("/api/follow/verify")
+async def follow_verify(request: Request, char: str = Form(...), word: str = Form(...),
+                        file: UploadFile = File(...)):
+    """词步跟读音校验（v38 拍板"必须跟读+低门槛正确性，对孩子无感知"）：
+    录音→ASR 转写→拼音容错匹配。ASR 未配置/失败/超限一律降级放行（pass=true+degraded），
+    前端另有 1.6s 超时兜底——判定层永不卡孩子节奏。"""
+    auth.current_user(request)
+    raw = await file.read()
+    return asr.verify_audio(raw, file.content_type or "", word)
 
 
 @app.post("/api/weekly/finish")
@@ -265,6 +282,14 @@ def weekly_finish(body: WeeklyFinishIn, request: Request):
     user = auth.current_user(request)
     scheduler.weekly_finish(user["id"], body.week_no, body.score, body.total, body.wrong_ids)
     return {"ok": True}
+
+
+@app.post("/api/report/daily")
+def report_daily(request: Request):
+    """学习日报（wordslearn 同模式）：完成当日学习后前端触发，服务端聚合+SMTP，
+    幂等（daily_mail 唯一日）；失败可重试，永不阻塞完成流程"""
+    user = auth.current_user(request)
+    return report.send_daily_report(user["id"])
 
 
 @app.get("/api/report/weekly")

@@ -268,6 +268,10 @@ def build_today(user_id):
         new_chars = [dict(r) for r in db.execute(
             f"SELECT id, char, pinyin, tone3 FROM hanzi WHERE id IN ({','.join('?'*len(new_ids))}) ORDER BY seq",
             new_ids)] if new_ids else []
+        # new 只含未学字：当日已学字曾混入 new——重进后 intro 误报"还有新字"、点开始
+        # 又整卡重学一遍（2026-11-01 实锤）。重进恢复走 learned_today，已完成当日 new 为空。
+        done_ids = set(learned_today)
+        new_chars = [r for r in new_chars if r["id"] not in done_ids]
         # 到期复习
         reviews = [dict(r) for r in db.execute(
             f"""SELECT h.id, h.char, h.pinyin, h.tone3, uh.stage FROM user_hanzi uh
@@ -515,7 +519,10 @@ def _sent_window_bad(sentence, char, d_char, valid):
 
 
 def _distractors(db, h, book, n=12):
-    """干扰字池（形近 → 同单元 → 随机），返回 [{char, tone3}]，排除目标本身"""
+    """干扰字池（形近 → 同单元 → 随机），返回 [{char, tone3}]，排除目标本身。
+    同册池锚定**目标字所在册**（h.book），不用请求方册：请求方 grade 册可能与目标字
+    不同（跨册出题/测试），按 unit 匹配时同名单元（"字组1"各册都有）会跨册污染——
+    2026-11-01 实锤：1b 字的题混进 5a 生僻字。"""
     chars, seen = [], {h["char"]}
     conf = CONFUSABLE.get(h["char"], set())
     if conf:
@@ -523,7 +530,7 @@ def _distractors(db, h, book, n=12):
                             tuple(conf)):
             if r["char"] not in seen:
                 chars.append(r["char"]); seen.add(r["char"])
-    bk = book or h["book"]
+    bk = h["book"]
     for sql, args in (
         ("SELECT char FROM hanzi WHERE book=? AND unit=? ORDER BY RANDOM()", (bk, h["unit"])),
         ("SELECT char FROM hanzi WHERE book=? ORDER BY RANDOM()", (bk,)),
@@ -546,7 +553,9 @@ def _distractors(db, h, book, n=12):
 # 题库内退化方向（与运行时生成退化链一致；题库缺该题型时降级取）
 _QB_DEGRADE = {"find": ("sent", "mean", "listen"),
                "sent": ("mean", "listen"), "mean": ("listen",),
-               "pin": ("listen",), "rev": ("listen",)}
+               "pin": ("listen",), "rev": ("listen",),
+               # defi 无题库（未创作释义的册）→ 退化 listen（不排哑巴题）
+               "defi": ("listen",), "lsent": ()}
 
 
 def _qbank(db, hanzi_id, quiz_types):
@@ -626,6 +635,44 @@ def gen_quiz(hanzi_id, quiz_type, book=None):
                             "tone3": h["tone3"], "stem": stem,
                             "sentence": sentence, "options": opts, "answer": h["char"]}
             return gen_quiz(hanzi_id, "mean", book=book)
+
+        # lsent 听句选字（第四关 v39）：播含目标字的例句，选出句中出现过的字。
+        # 干扰排除：①句中现字 ②与句中任何字同音（句有"他"选"她"=听句无法区分的双解）
+        # ③选项间两两异音。无题库——机械校验运行时生成即安全。
+        if quiz_type == "lsent":
+            cands = [(i, s) for i, s in enumerate(sentences) if h["char"] in s]
+            random.shuffle(cands)
+            for i, s in cands:
+                in_s = {c for c in s if c != h["char"]}
+                seen_t = {h["tone3"]}
+                if in_s:
+                    seen_t |= {r["tone3"] for r in db.execute(
+                        f"SELECT tone3 FROM hanzi WHERE char IN ({','.join('?' * len(in_s))})",
+                        tuple(in_s))}
+                dr = []
+                for d in ds:
+                    if d["char"] in s or d["tone3"] in seen_t:
+                        continue
+                    dr.append(d["char"])
+                    seen_t.add(d["tone3"])
+                    if len(dr) == 3:
+                        break
+                if len(dr) < 3:
+                    for r in db.execute("SELECT char, tone3 FROM hanzi WHERE book=? AND char != ? "
+                                        "ORDER BY RANDOM() LIMIT 20", (h["book"], h["char"])):
+                        if r["char"] in s or r["tone3"] in seen_t:
+                            continue
+                        dr.append(r["char"])
+                        seen_t.add(r["tone3"])
+                        if len(dr) >= 3:
+                            break
+                if len(dr) >= 3:
+                    opts = [h["char"]] + dr[:3]
+                    random.shuffle(opts)
+                    return {"quiz_type": "lsent", "hanzi_id": hanzi_id, "hanzi": h["char"],
+                            "tone3": h["tone3"], "stem": "", "sentence": s,
+                            "audio": f"s_{h['char']}_{i + 1}", "options": opts, "answer": h["char"]}
+            return gen_quiz(hanzi_id, "listen", book=book)
 
         if quiz_type == "mean":
             valid = _valid_words(db)

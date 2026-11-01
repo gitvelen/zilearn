@@ -211,6 +211,15 @@ input:focus { outline: none; border-color: #ffb74d; }
 .p-card.wide { grid-column: 1 / -1; }
 .p-card b { color: #a1887f; font-size: 14px; }
 .p-card span { font-size: 26px; font-weight: 800; color: #5d4037; }
+/* 本期计划进度卡（置顶）：家长最关心的目标进度 */
+.plan-card { gap: 10px; width: 100%; }
+.plan-head { display: flex; justify-content: space-between; align-items: baseline; width: 100%; }
+.plan-head b { font-size: 16px; }
+.plan-pct { font-size: 28px; font-weight: 900; color: #ff9800; }
+.plan-nums { display: flex; gap: 20px; font-size: 15px; color: #8d6e63; font-weight: 700; }
+.plan-nums b { color: #ef6c00; font-size: 19px; }
+/* ob-grade 打回解释（册内容缺失重选，非首次引导） */
+.sub.kick { color: #ef6c00; font-weight: 700; margin: 0; }
 .wr-row { padding: 6px 0; border-bottom: 1px dashed #f0e0cc; width: 100%; text-align: center; font-size: 18px; }
 .wrong-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 

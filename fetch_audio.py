@@ -46,6 +46,8 @@ PROMPTS = {
     "q_find": "把听到的字全都找出来",
     "q_pin": "看一看拼音，是哪个字",
     "q_rev": "听一听，出现了哪个字",
+    "q_lsent": "听一听这句话，哪个字藏在里面",
+    "q_defi": "听一听意思，是哪个字",
     "readcard": "今天学的字都在这些句子里，一句一句读出来吧",
     "q_write": "轮到你写啦，跟着橙色笔顺，一笔一笔写",
 }
@@ -74,7 +76,7 @@ def py_to_tone3(py: str) -> str:
     return "".join(out) + str(tone)
 
 
-def build_tasks(books=("1a", "1b", "2a", "2b")):
+def build_tasks(books=("1a", "1b", "2a", "2b", "3a", "3b", "4a", "4b")):
     """字表读音 + 内容朗读 → [(fname, text)]（books=内容覆盖册集，字表 CSV 同 book 列）"""
     content = json.loads(CONTENT.read_text())        # 组词式字音与内容朗读共用
     readings, order = set(), []
@@ -118,6 +120,8 @@ def build_tasks(books=("1a", "1b", "2a", "2b")):
                 tasks.append((f"n_{ch}_{i}", w))
         for i, s in enumerate(c.get("sentences", []), 1):
             tasks.append((f"s_{ch}_{i}", s))
+        if c.get("mean"):                           # 字义关释义（v39）：句式收尾保韵律
+            tasks.append((f"m_{ch}", f"{c['mean']}。"))
     return tasks
 
 

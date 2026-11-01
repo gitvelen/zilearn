@@ -26,7 +26,7 @@ const root = createApp({
   data() {
     return {
       phase: "boot", loginForm: { u: "", p: "" }, loginErr: "", userName: "",
-      progress: {}, obGrade: "", obTarget: 300, obDays: 50, planEst: null, gradesReady: [],
+      progress: {}, obGrade: "", obTarget: 300, obDays: 50, planEst: null, gradesReady: [], obKick: false,
       confirmBatches: [], confirmPage: 0, confirmPicked: [],
       verifyQ: null, verifyPick: null, verifyRevealed: false,
       verifyDone: 0, verifyTotal: 0,
@@ -78,6 +78,22 @@ const root = createApp({
       const p = this.progress;
       return !!(p && p.target_chars && (p.learned - (p.plan_base_learned || 0)) >= p.target_chars);
     },
+    planLearned() {                                /* 本期已学（家长中心进度卡） */
+      return Math.max(0, (this.progress.learned || 0) - (this.progress.plan_base_learned || 0));
+    },
+    planPct() {
+      const t = this.progress.target_chars || 0;
+      return t ? Math.min(100, Math.round(this.planLearned / t * 100)) : 0;
+    },
+    trendAcc() {                                   /* 近 7 天答题正确率（家长中心数字卡） */
+      if (!this.report || !this.report.trend) return "—";
+      const n = this.report.trend.reduce((s, d) => s + d.n, 0);
+      const ok = this.report.trend.reduce((s, d) => s + d.ok, 0);
+      return n ? Math.round(ok / n * 100) + "%" : "—";
+    },
+    todayNewN() {                                  /* 今日新学：完成页统计真源，重进路径取 learned_today */
+      return this.doneStats.new || (this.today.learned_today || []).length;
+    },
   },
   methods: {
     /* ---------- 通用 ---------- */
@@ -86,7 +102,7 @@ const root = createApp({
         const me = await api("GET", "/api/me");
         this.progress = me.progress; this.userName = me.user.display_name || me.user.username;
         this.gradesReady = me.grades_ready || [];   /* 册内容就绪度（年级选择禁选"制作中"） */
-        if (me.stage === "onboard") this.phase = "ob-grade";
+        if (me.stage === "onboard") { this.obKick = !!me.user.grade; this.phase = "ob-grade"; }
         else if (me.stage === "plan") { this.obTarget = Math.min(300, me.progress.total_hanzi - (me.progress.skipped || 0)); this.phase = "ob-plan"; }
         else { await this.loadToday(); }
       } catch (e) { if (this.phase !== "login") this.phase = "login"; }
@@ -240,16 +256,21 @@ const root = createApp({
       else this.stepAudio();
     },
     ncNext() {
-      if (this.stepBusy) return;                     /* 仅音频范读期锁定（防没听就走）；跟读不锁：
-                                                        读到就夸、不读直接点走（鼓励式，wordslearn 同哲） */
+      if (this.stepBusy || (this.follow.on && this.follow.kind === "word")) return;
+                                                      /* stepBusy=音频范读期锁定（防没听就走）；
+                                                         词步跟读门=必须读完（disabled 为主此处兜底，
+                                                         家长长按步指示器 ncGo 可绕过） */
       if (this.ncStep === 4 && !this.traceDone && !this.traceFallback) return;   /* 写步门槛（v32）：
                                                         写对才放行，按钮禁用为主，此处兜底键盘/时序残留 */
       this.ncStep >= 4 ? this.advance() : this.ncGo(this.ncStep + 1);
     },
     ncNextDisabled() {
+      if (this.follow.on && this.follow.kind === "word")
+        return true;   /* 词步跟读门（必须读完）：家长长按步指示器可跳（ncGo 绕过） */
       return this.stepBusy || (this.ncStep === 4 && !this.traceDone && !this.traceFallback);
     },
     ncNextLabel() {
+      if (this.follow.on && this.follow.kind === "word") return "读完这几个词哦 🎤";
       if (this.ncStep < 4) return "下一步 →";
       if (!this.traceDone && !this.traceFallback) return "写完才能继续哦 ✍️";
       return this.hasNextNew() ? "这个字学会啦，下一个 →" : "我会写啦，去答题 →";
@@ -320,11 +341,55 @@ const root = createApp({
     },
     closeMic() {
       /* 会话结束放掉麦克风（整节课亮指示灯会让家长不安；下次 startToday 手势内重开） */
+      this._recStop();
       if (this._micStream) { try { this._micStream.getTracks().forEach(t => t.stop()); } catch { } this._micStream = null; }
       if (this._micCtx) { try { this._micCtx.close(); } catch { } this._micCtx = null; }
       this._micFailUntil = 0; this.micState = "ok"; this.micDenied = false;   /* 新会话重给麦克风一次机会 */
     },
     /* ---------- 跟读（节奏式+音量校验：范读→叮→留白听你读→✓；读到才夸，无录音无回放） ---------- */
+    _recStart() {
+      /* 词步 ASR 录音：留白窗起点开录（范读已停——录音不含范读，堵"重听范读声=假通过"）。
+         设备不支持 MediaRecorder/流失效则静默放弃（_recBlob=null → verify 降级放行） */
+      if (this._recorder) { try { this._recorder.onstop = null; this._recorder.stop(); } catch { } this._recorder = null; }
+      this._recBlob = null; this._recChunks = [];
+      try {
+        if (!this._micStream || !window.MediaRecorder) return;
+        const mt = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "";   /* Safari=mp4，Chrome 默认 webm */
+        const r = new MediaRecorder(this._micStream, mt ? { mimeType: mt } : undefined);
+        r.ondataavailable = e => { if (e.data && e.data.size) this._recChunks.push(e.data); };
+        r.start(1000);
+        this._recorder = r;
+      } catch { this._recorder = null; }
+    },
+    _recStop() {
+      const r = this._recorder;
+      this._recorder = null;
+      if (!r) return Promise.resolve();
+      return new Promise(res => {
+        r.onstop = () => {
+          this._recBlob = this._recChunks.length
+            ? new Blob(this._recChunks, { type: r.mimeType || "audio/webm" }) : null;
+          res();
+        };
+        try { r.state !== "inactive" ? r.stop() : r.onstop(); } catch { res(); }
+      });
+    },
+    async verifyWord() {
+      /* 上传录音→ASR 内容匹配（1.6s 超时/任何失败=降级放行）——判定层永不卡节奏 */
+      const blob = this._recBlob;
+      if (!blob) return { pass: true, text: null, degraded: true };
+      const fd = new FormData();
+      fd.append("char", this.curItem.char);
+      fd.append("word", (this.curContent ? this.curContent.words : [])[this.follow.idx] || this.curItem.char);
+      fd.append("file", blob, "rec." + (blob.type.includes("mp4") ? "mp4" : "webm"));
+      try {
+        const r = await Promise.race([
+          fetch("/api/follow/verify", { method: "POST", body: fd }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error("asr-timeout")), 1600)),
+        ]);
+        return await r.json();
+      } catch { return { pass: true, text: null, degraded: true }; }
+    },
     followItems(kind) {
       if (kind === "char") return [{ key: "c", audio: this.curItem.char }];
       if (kind === "word") return (this.curContent ? this.curContent.words : [])
@@ -346,6 +411,8 @@ const root = createApp({
       const f = this.follow;
       if (!f.on || f.state === "all") return;
       const gen = ++this._followGen;                  /* 代际 token：重听/跳过后作废旧链，防双链竞争 */
+      this._fStats = null;                            /* 每项清零：无麦/范读失败轮不再带上一个检测窗的
+                                                          遥测（2026-11-01 抓到 heard=NULL 批量恒同值失真） */
       f.idx = i;
       const items = this.followItems(f.kind), it = items[i];
       if (!it) return this.followFinish();
@@ -393,6 +460,7 @@ const root = createApp({
          过程量（peak_rms/thr_used/…）随结果落 _fStats 供 logFollow 上报：下次报障直判"没读"还是"漏检" */
       if (!(micReady === true || await this.ensureMic())) return null;
       try {
+        if (this.follow.kind === "word") this._recStart();   /* 词步录音（范读已停，窗内无外放） */
         const src = this._micCtx.createMediaStreamSource(this._micStream);
         /* 增益 ×3（2026-10-31 iPad 实测：Safari 链路童声仅 0.007-0.017，绝对地板 0.035 挡死）：
            拉回工作区；正常电平设备信号削顶仍远超阈值，base 同步放大、相对判据不变 */
@@ -454,9 +522,30 @@ const root = createApp({
         } finally { src.disconnect(); }
       } catch (e) { return null; }
     },
-    followDoneOne(heard) {                             /* heard 三态：true读到/false超时/null无麦降级 */
+    async followDoneOne(heard) {                       /* heard 三态：true读到/false超时/null无麦降级 */
       const f = this.follow;
       if (!f.on || f.state !== "wait") return;
+      this._asrRes = null;
+      if (f.kind === "word") await this._recStop();    /* 组装录音 blob（幂等；等待期被跳步则中止） */
+      if (!f.on || f.state !== "wait") return;
+      if (f.kind === "word" && heard !== null) {
+        /* 词步门（2026-11-01 拍板：必须跟读+低门槛正确性，对孩子无感知）：
+           有麦没声 → 重播范读再来一轮；读到 → ASR 内容匹配（声调容错拼音比对），
+           没读对同样再一轮；二次仍不过 → 放行（正确性不卡死，遥测记录）。
+           重试的呈现=范读重播（"再听一遍"节奏信号），无任何评判反馈 */
+        if (heard === false && f.tries < 1) {
+          f.tries++;
+          return this.followPlay(f.idx, true);
+        }
+        if (heard === true && this._recBlob) {
+          this._asrRes = await this.verifyWord();
+          if (!f.on || f.state !== "wait") return;     /* 判定等待期被跳步/重听 */
+          if (!this._asrRes.pass && f.tries < 1) {
+            f.tries++;
+            return this.followPlay(f.idx, true);
+          }
+        }
+      }
       this.logFollow(heard, f.tries);                         /* R5：开口流水（fire-and-forget） */
       f.heardAny = f.heardAny || !!heard;
       if (heard) {                                            /* 读到瞬间 ✓ 爆闪+推进音（反馈可感知） */
@@ -465,13 +554,13 @@ const root = createApp({
         this.playSfx("ok");
         return this.followAdvance();
       }
-      this.followAdvance();    /* 没读到/无麦：直接过，不重试不停留（鼓励式：跟读是机会不是门槛） */
+      this.followAdvance();    /* 认/句/朗读步没读到：直接过（鼓励式）；词步二次失败同路径放行 */
     },
     followAdvance() {
       const f = this.follow;
       f.done.push(f.idx);
       if (f.idx + 1 >= this.followItems(f.kind).length) this.followFinish();
-      else this.followPlay(f.idx + 1);
+      else { f.tries = 0; this.followPlay(f.idx + 1); }   /* 重试计数按项独立（词步门 tries 语义） */
     },
     fbHint() {                                         /* 跟读条文案（鼓励式两态：范读/轮到你；无麦降级明示原因） */
       const f = this.follow;
@@ -501,6 +590,8 @@ const root = createApp({
         dur_ms: s.dur_ms ?? null,
         played: m.played ?? null, model_ms: m.model_ms ?? null,
         mic_settings: this._micSettings || null,
+        asr_text: this._asrRes ? (this._asrRes.text ?? null) : null,
+        asr_pass: this._asrRes ? (this._asrRes.degraded ? null : (this._asrRes.pass ? 1 : 0)) : null,
         ts_ms: Date.now(),
         ua: navigator.userAgent.slice(0, 160),
       }).catch(() => {});
@@ -525,6 +616,7 @@ const root = createApp({
     },
     skipFollow() {
       this._followGen = (this._followGen || 0) + 1;   /* 作废进行中的检测/播放链 */
+      this._recStop();                                /* 词步录音随链作废（不产判定） */
       /* 跳过=跟读链音频（范读/确认读/夸奖）立即停。不能用 stopNarration：会置 _narrStop
          卡掉后续链（认步故事）——跳过跟读≠跳过故事（2026-10-28 叠音检测器抓到确认读×故事） */
       if (this._narrSrc) { try { this._narrSrc.stop(); } catch { } }
@@ -533,18 +625,35 @@ const root = createApp({
       this.follow = { on: false, kind: "", idx: 0, done: [], state: "off", tries: 0, heardAny: false };
       this._resolveFollow();                       /* 家长跳过也放行后续链（如认步故事） */
     },
-    /* 跟读中：点当前对象重听（其余忽略）；自由模式：点对象听音 */
+    /* 跟读中：点当前对象重听（其余忽略）；自由模式：点对象听音。
+       连听/讲解期（stepBusy）忽略点击：playOne/playChar 会 stopNarration 作废 stepAudio 链，
+       startFollow 永不执行——"这个字没有跟读"的根源（2026-11-01 复现实锤 followOn=false） */
     followWordClick(i) {
+      if (this.stepBusy) return;
       if (this.follow.on) { if (i === this.follow.idx) this.followReplay(); return; }
       this.playOne(`n_${this.curItem.char}_${i + 1}`);
     },
     followSentClick(i) {
+      if (this.stepBusy) return;
       if (this.follow.on) { if (i === this.follow.idx) this.followReplay(); return; }
       this.playOne(`s_${this.curItem.char}_${i + 1}`);
     },
     followReadClick(i) {
+      if (this.stepBusy) return;
       if (this.follow.on) { if (i === this.follow.idx) this.followReplay(); return; }
       if (this.readLines[i]) this.playOne(`s_${this.readLines[i].char}_1`);
+    },
+    ziClick() {                                    /* 认步大字（同上：讲解期防误触） */
+      if (this.stepBusy) return;
+      this.follow.on && this.follow.kind === "char" ? this.followReplay() : this.playChar(this.curItem.char);
+    },
+    charListen(altTone3) {                         /* 🔊 按钮/多音字（同上） */
+      if (this.stepBusy) return;
+      this.playChar(this.curItem.char, altTone3);
+    },
+    etymListen() {                                 /* 字源故事 🔊（同上） */
+      if (this.stepBusy) return;
+      this.playOne('e_' + this.curItem.char);
     },
     audioDur(name) {
       /* 时长查询走 _loadBuf 同一缓存（2026-10-30 走查：new Audio 预载与 _playBuf 的
@@ -576,7 +685,7 @@ const root = createApp({
     sessionLabel() {
       const t = this.curItem && this.curItem.type;
       if (t === "newcard") return "✨ 新字探索";
-      if (t === "gatequiz" || t === "gatesummary") return `🚪 第${this.curItem.gate}关 · ${["听音", "拼音", "组词", "听词", "读句", "写字"][this.curItem.gate - 1]}`;
+      if (t === "gatequiz" || t === "gatesummary") return `🚪 第${this.curItem.gate}关 · ${["听音", "拼音", "组词", "听句", "字义", "写字"][this.curItem.gate - 1]}`;
       if (this.phase === "weekly") return "🏆 周大挑战";
       if (t === "auditquiz") return "🕵️ 小侦探抽查";
       return "🎯 复习挑战";
@@ -610,6 +719,10 @@ const root = createApp({
     async setGrade() {
       await api("POST", "/api/profile/grade", { grade: this.obGrade });
       const me = await api("GET", "/api/me"); this.progress = me.progress;   /* 换册：字数口径随新册刷新 */
+      if (me.progress.target_chars) {          /* 被打回重选册但计划还在（册内容事故恢复）：不重定目标不重摸底 */
+        await this.loadToday();
+        return;
+      }
       this.phase = "ob-plan";
     },
     async createPlan() {
@@ -713,19 +826,19 @@ const root = createApp({
       this.today.new.forEach(h => q.push({ type: "newcard", ...h }));             // 新字连播（纯呈现+跟读）
       gen.forEach(r => q.push({ type: "reviewquiz", phase: "review", ...r }));    // 复习沉淀
       this.today.audit.forEach(r => q.push({ type: "auditquiz", phase: "audit", ...r }));
-      /* 分关：重进恢复——new 已空但当日学过且关未完成 → 用 learned_today 重建关 */
+      /* 分关：重进恢复——today.new 只含未学字（build_today 已剔除当日已学），关池 =
+         未学字 ∪ 当日已学（关未完成时）；当日全部学完且关已过 → 不重建 */
       const gateDone = sessionStorage.getItem("gateDone_" + new Date().toISOString().slice(0, 10)) === "1";
-      const news = this.today.new.length ? this.today.new
-        : (!gateDone ? (this.today.learned_today || []) : []);
+      const seenIds = new Set(this.today.new.map(h => h.id));
+      const news = [...this.today.new,
+        ...(!gateDone ? (this.today.learned_today || []).filter(l => !seenIds.has(l.id)) : [])];
       if (news.length) {
-        const thirdQt = {};                        // 第三关 sent/find 按字原序交替（稳定，乱序不漂移）
-        news.forEach((h, i) => { thirdQt[h.id] = i % 2 ? "sent" : "find"; });
         const gates = [
           { gate: 1, label: "听音关", qt: "listen", icon: "👂" },
           { gate: 2, label: "拼音关", qt: "pin", icon: "🔤" },
           { gate: 3, label: "组词关", qt: "mean", icon: "🧩" },
-          { gate: 4, label: "听词关", qt: "rev", icon: "🎧" },
-          { gate: 5, label: "读句关", qt: null, icon: "📖" },
+          { gate: 4, label: "听句关", qt: "lsent", icon: "🎧" },
+          { gate: 5, label: "字义关", qt: "defi", icon: "💡" },
           { gate: 6, label: "写字关", qt: "stroke", icon: "✍️" },
         ];
         gates.forEach(g => {
@@ -738,7 +851,7 @@ const root = createApp({
             return;
           }
           chars.forEach(h => q.push({ type: "gatequiz", phase: "learn",
-            gate: g.gate, quiz_type: g.qt || thirdQt[h.id], ...h }));
+            gate: g.gate, quiz_type: g.qt, ...h }));
           q.push({ type: "gatesummary", gate: g.gate, label: g.label, icon: g.icon,
                    total: chars.length });
         });
@@ -802,7 +915,9 @@ const root = createApp({
         this.loadReadLines().then(async () => {
           if (this.curItem !== item) return;
           this._narrStop = false;
+          this.stepBusy = true;                     /* 指令播放期点行不作废跟读启动（同四步卡连听守卫） */
           await this.playFile("t_readcard");
+          this.stepBusy = false;
           if (!this._narrStop) await this.startFollow("read");   /* 逐句跟读 */
         });
       } else if (it.type === "strokegate") {
@@ -948,6 +1063,7 @@ const root = createApp({
       return out;
     },
     readPlayAll() {
+      if (this.stepBusy) return;                       /* 指令播放期点连读会作废跟读启动（同点行守卫） */
       if (this.readPlaying) { this.stopNarration(); this.readPlaying = false; this.readCur = ""; return; }
       this.readPlaying = true;
       this._narrStop = false;
@@ -988,7 +1104,8 @@ const root = createApp({
       this.quizPending = it;
       const aqt = this.curQuiz.quiz_type;   /* 实际题型（可能与请求不同：题库退化） */
       const PROMPT = { listen: "q_listen", mean: "q_mean", sent: "q_sent",
-                       find: "q_find", pin: "q_pin", rev: "q_rev" };
+                       find: "q_find", pin: "q_pin", rev: "q_rev",
+                       lsent: "q_lsent", defi: "q_defi" };
       /* 玩法指令每会话每题型只播首次（2026-10-30 用户反馈：每题都播听着烦，
          且指令 2-3s 比答题慢，常"做完了还没读完"）；后续题自动播音不再等指令 */
       (this._promptDone ||= new Set());
@@ -1001,7 +1118,8 @@ const root = createApp({
       const promptMs = firstTime ? (await this.audioDur(`t_${PROMPT[aqt]}`) || 2) * 1000 + 300 : 400;
       if (aqt === "listen") setTimeout(() => { if (this.curQuiz === qz) this.playChar(qz.hanzi); }, promptMs);
       else if (aqt === "find") setTimeout(() => { if (this.curQuiz === qz) this.playChar(qz.hanzi); }, promptMs);
-      else if (aqt === "rev") setTimeout(() => { if (this.curQuiz === qz) this.playFile(qz.audio); }, promptMs);
+      else if (aqt === "rev" || aqt === "lsent" || aqt === "defi")
+        setTimeout(() => { if (this.curQuiz === qz) this.playFile(qz.audio); }, promptMs);
     },
     /* ---------- 找一找（点出句/词中所有目标字） ---------- */
     findTap(li, ti, ch) {
@@ -1142,12 +1260,18 @@ const root = createApp({
         this.phase = "done";
       }
       this.playSfx("win");
+      api("POST", "/api/report/daily").catch(() => {});   /* 学习日报（fire-and-forget）：完成即送家长邮箱 */
       const me = await api("GET", "/api/me"); this.progress = me.progress;
     },
     async goParent(from) {
+      this._parentFrom = from || null;          /* 返回回来源页——不能用 boot()：任何 stage 降级（册内容
+                                                  事故等）都会把"返回"变成重走引导流（2026-11-01 实锤） */
       this.report = await api("GET", "/api/report/weekly");
       const me = await api("GET", "/api/me"); this.progress = me.progress;
       this.phase = "parent";
+    },
+    parentBack() {
+      this.phase = this._parentFrom || "today-intro";   /* today 数据在进入前已载，直接回显 */
     },
   },
   async mounted() {

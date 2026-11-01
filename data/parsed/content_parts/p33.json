@@ -1,0 +1,751 @@
+{
+ "妙": {
+  "words": [
+   "美妙",
+   "奇妙"
+  ],
+  "sentences": [
+   "琴声真美妙。",
+   "大自然很奇妙。"
+  ],
+  "etym_type": "component",
+  "etym": "女（女）少（少）而巧，妙。",
+  "emoji": "🎵"
+ },
+ "奏": {
+  "words": [
+   "演奏",
+   "奏乐"
+  ],
+  "sentences": [
+   "乐队演奏乐曲。"
+  ],
+  "etym_type": "picto",
+  "etym": "手（手）捧着（廾）乐器，奏。",
+  "emoji": "🎺"
+ },
+ "喃": {
+  "words": [
+   "喃喃"
+  ],
+  "sentences": [
+   "老人喃喃自语。"
+  ],
+  "etym_type": "component",
+  "etym": "口（口）轻轻说，喃。",
+  "emoji": ""
+ },
+ "伟": {
+  "words": [
+   "伟大",
+   "雄伟"
+  ],
+  "sentences": [
+   "伟大的祖国。",
+   "长城雄伟。"
+  ],
+  "etym_type": "component",
+  "etym": "人（亻）不寻常（韦），伟。",
+  "emoji": "🏔️"
+ },
+ "击": {
+  "words": [
+   "击掌",
+   "击鼓"
+  ],
+  "sentences": [
+   "我们击掌加油。",
+   "鼓手击鼓。"
+  ],
+  "etym_type": "picto",
+  "etym": "手（扌）拿着棒打，击。",
+  "emoji": "🥁"
+ },
+ "汇": {
+  "words": [
+   "汇聚",
+   "汇成"
+  ],
+  "sentences": [
+   "小溪汇成大河。"
+  ],
+  "etym_type": "component",
+  "etym": "水（氵）聚到一起，汇。",
+  "emoji": "🏞️"
+ },
+ "喳": {
+  "words": [
+   "叽喳",
+   "喳喳"
+  ],
+  "sentences": [
+   "喜鹊喳喳叫。"
+  ],
+  "etym_type": "component",
+  "etym": "口（口）学鸟叫，喳。",
+  "emoji": "🐦"
+ },
+ "黎": {
+  "words": [
+   "黎明"
+  ],
+  "sentences": [
+   "黎明前最安静。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "天快亮的时候，黎。",
+  "emoji": "🌅"
+ },
+ "凝": {
+  "words": [
+   "凝结",
+   "凝视"
+  ],
+  "sentences": [
+   "水汽凝成露珠。",
+   "他凝视远方。"
+  ],
+  "etym_type": "component",
+  "etym": "冰（冫）结在一起，凝。",
+  "emoji": "💧"
+ },
+ "畅": {
+  "words": [
+   "流畅",
+   "畅通"
+  ],
+  "sentences": [
+   "朗读课文很流畅。",
+   "道路畅通。"
+  ],
+  "etym_type": "component",
+  "etym": "水流（申）无阻，畅。",
+  "emoji": "🛣️"
+ },
+ "瞬": {
+  "words": [
+   "瞬间",
+   "转瞬"
+  ],
+  "sentences": [
+   "流星瞬间划过。"
+  ],
+  "etym_type": "component",
+  "etym": "眼（目）一眨的工夫，瞬。",
+  "emoji": "⚡"
+ },
+ "猎": {
+  "words": [
+   "猎人",
+   "打猎"
+  ],
+  "sentences": [
+   "猎人走进森林。"
+  ],
+  "etym_type": "component",
+  "etym": "狗（犭）帮人打猎，猎。",
+  "emoji": "🏹"
+ },
+ "枣": {
+  "words": [
+   "枣树",
+   "红枣"
+  ],
+  "sentences": [
+   "枣树结满红枣。"
+  ],
+  "etym_type": "picto",
+  "etym": "树上（朿）结果，枣。",
+  "emoji": "🌰"
+ },
+ "馋": {
+  "words": [
+   "嘴馋",
+   "馋猫"
+  ],
+  "sentences": [
+   "小馋猫盯着鱼。"
+  ],
+  "etym_type": "component",
+  "etym": "食（饣）欲上来，馋。",
+  "emoji": "😋"
+ },
+ "缓": {
+  "words": [
+   "缓慢",
+   "缓冲"
+  ],
+  "sentences": [
+   "汽车缓慢行驶。"
+  ],
+  "etym_type": "component",
+  "etym": "丝（纟）慢慢松，缓。",
+  "emoji": "🐢"
+ },
+ "讶": {
+  "words": [
+   "惊讶",
+   "讶异"
+  ],
+  "sentences": [
+   "大家都惊讶了。"
+  ],
+  "etym_type": "component",
+  "etym": "话（讠）说出来吃惊，讶。",
+  "emoji": "😲"
+ },
+ "测": {
+  "words": [
+   "测量",
+   "测验"
+  ],
+  "sentences": [
+   "测量教室长度。",
+   "数学测验。"
+  ],
+  "etym_type": "component",
+  "etym": "水（氵）量一量，测。",
+  "emoji": "📏"
+ },
+ "监": {
+  "words": [
+   "监视",
+   "监工"
+  ],
+  "sentences": [
+   "猫头鹰监视田鼠。"
+  ],
+  "etym_type": "picto",
+  "etym": "低头（临）看器皿，监。",
+  "emoji": "🦉"
+ },
+ "恍": {
+  "words": [
+   "恍然",
+   "恍若"
+  ],
+  "sentences": [
+   "恍然明白了。"
+  ],
+  "etym_type": "component",
+  "etym": "心（忄）忽然一亮，恍。",
+  "emoji": "💡"
+ },
+ "悟": {
+  "words": [
+   "觉悟",
+   "领悟"
+  ],
+  "sentences": [
+   "领悟了其中的道理。"
+  ],
+  "etym_type": "component",
+  "etym": "心（忄吾）里明白，悟。",
+  "emoji": "🧠"
+ },
+ "逐": {
+  "words": [
+   "逐渐",
+   "追逐"
+  ],
+  "sentences": [
+   "天气逐渐暖了。",
+   "小猫追逐蝴蝶。"
+  ],
+  "etym_type": "component",
+  "etym": "猪（豕）跑人追，逐。",
+  "emoji": "🐱"
+ },
+ "聪": {
+  "words": [
+   "聪明",
+   "聪慧"
+  ],
+  "sentences": [
+   "聪明在于勤奋。"
+  ],
+  "etym_type": "component",
+  "etym": "耳（耳）总（总）听得清，聪。",
+  "emoji": "🦉"
+ },
+ "司": {
+  "words": [
+   "司机",
+   "司令"
+  ],
+  "sentences": [
+   "司机开车真稳。"
+  ],
+  "etym_type": "picto",
+  "etym": "管理（司）的人，司。",
+  "emoji": "🚗"
+ },
+ "跌": {
+  "words": [
+   "跌倒",
+   "跌落"
+  ],
+  "sentences": [
+   "跌倒了爬起来。"
+  ],
+  "etym_type": "component",
+  "etym": "足（足）失（失）足，跌。",
+  "emoji": "🤕"
+ },
+ "皆": {
+  "words": [
+   "皆是",
+   "比比皆"
+  ],
+  "sentences": [
+   "举手之劳皆是爱。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一个个（比白）都是，皆。",
+  "emoji": ""
+ },
+ "弃": {
+  "words": [
+   "放弃",
+   "丢弃"
+  ],
+  "sentences": [
+   "不放弃小目标。",
+   "丢弃杂物。"
+  ],
+  "etym_type": "picto",
+  "etym": "把簸箕（𠫓）倒掉，弃。",
+  "emoji": "🗑️"
+ },
+ "持": {
+  "words": [
+   "坚持",
+   "保持"
+  ],
+  "sentences": [
+   "坚持晨跑。",
+   "保持安静。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）一直拿（寺）着，持。",
+  "emoji": "🤝"
+ },
+ "默": {
+  "words": [
+   "默读",
+   "沉默"
+  ],
+  "sentences": [
+   "默读课文两遍。"
+  ],
+  "etym_type": "component",
+  "etym": "狗（犬）黑（黑）夜不出声，默。",
+  "emoji": "🤐"
+ },
+ "姿": {
+  "words": [
+   "姿势",
+   "舞姿"
+  ],
+  "sentences": [
+   "写字姿势要端正。",
+   "舞姿真优美。"
+  ],
+  "etym_type": "component",
+  "etym": "女（次女）子体态，姿。",
+  "emoji": "💃"
+ },
+ "势": {
+  "words": [
+   "姿势",
+   "气势"
+  ],
+  "sentences": [
+   "扔球的姿势很帅。"
+  ],
+  "etym_type": "component",
+  "etym": "力（力）量表现出的样子，势。",
+  "emoji": "🏋️"
+ },
+ "投": {
+  "words": [
+   "投球",
+   "投票"
+  ],
+  "sentences": [
+   "投球进篮。",
+   "大家投票选班长。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）往远处扔，投。",
+  "emoji": "🏀"
+ },
+ "况": {
+  "words": [
+   "情况",
+   "况且"
+  ],
+  "sentences": [
+   "了解情况再作决定。"
+  ],
+  "etym_type": "component",
+  "etym": "水位（兄）的变化，况。",
+  "emoji": "📋"
+ },
+ "烈": {
+  "words": [
+   "热烈",
+   "激烈"
+  ],
+  "sentences": [
+   "掌声热烈。",
+   "比赛激烈。"
+  ],
+  "etym_type": "component",
+  "etym": "火（灬）势凶猛，烈。",
+  "emoji": "🔥"
+ },
+ "镇": {
+  "words": [
+   "小镇",
+   "镇定"
+  ],
+  "sentences": [
+   "小镇安静。",
+   "遇事镇定。"
+  ],
+  "etym_type": "component",
+  "etym": "金（钅）压住，镇。",
+  "emoji": "🏘️"
+ },
+ "述": {
+  "words": [
+   "讲述",
+   "描述"
+  ],
+  "sentences": [
+   "讲述英雄故事。"
+  ],
+  "etym_type": "component",
+  "etym": "跟着（术）道（辶）说，述。",
+  "emoji": "🗣️"
+ },
+ "普": {
+  "words": [
+   "普通",
+   "普及"
+  ],
+  "sentences": [
+   "普通的一天也精彩。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "日（日）光普照，普。",
+  "emoji": "☀️"
+ },
+ "忧": {
+  "words": [
+   "担忧",
+   "忧虑"
+  ],
+  "sentences": [
+   "别为小事担忧。"
+  ],
+  "etym_type": "component",
+  "etym": "心（忄尤）里放不下，忧。",
+  "emoji": "😟"
+ },
+ "联": {
+  "words": [
+   "联合",
+   "联系"
+  ],
+  "sentences": [
+   "联系好朋友。",
+   "联合起来办好事。"
+  ],
+  "etym_type": "component",
+  "etym": "耳（耳）朵连（关）着听，联。",
+  "emoji": "📞"
+ },
+ "宁": {
+  "words": [
+   "安宁",
+   "宁静"
+  ],
+  "sentences": [
+   "校园安宁。",
+   "夜晚宁静。"
+  ],
+  "etym_type": "component",
+  "etym": "心（宀丁）放下了，宁。",
+  "emoji": "🌙"
+ },
+ "胸": {
+  "words": [
+   "胸怀",
+   "心胸"
+  ],
+  "sentences": [
+   "心胸开阔。",
+   "挺起胸走路。"
+  ],
+  "etym_type": "picto",
+  "etym": "身体（匈）里的（月）部位，胸。",
+  "emoji": "🫀"
+ },
+ "脯": {
+  "words": [
+   "胸脯",
+   "果脯"
+  ],
+  "sentences": [
+   "拍着胸脯打保票。"
+  ],
+  "etym_type": "component",
+  "etym": "月（月）旁部位，脯。",
+  "emoji": ""
+ },
+ "惹": {
+  "words": [
+   "惹事",
+   "惹人"
+  ],
+  "sentences": [
+   "小猫惹人喜爱。"
+  ],
+  "etym_type": "component",
+  "etym": "心（心）被（若）牵动，惹。",
+  "emoji": "😺"
+ },
+ "仰": {
+  "words": [
+   "仰望",
+   "仰头"
+  ],
+  "sentences": [
+   "仰望星空。",
+   "仰头看风筝。"
+  ],
+  "etym_type": "component",
+  "etym": "人（亻）抬头（卬），仰。",
+  "emoji": "⭐"
+ },
+ "渣": {
+  "words": [
+   "渣子",
+   "豆渣"
+  ],
+  "sentences": [
+   "杯底剩下茶渣。",
+   "炉渣要清理干净。"
+  ],
+  "etym_type": "component",
+  "etym": "水（氵）里的碎屑，渣。",
+  "emoji": ""
+ },
+ "或": {
+  "words": [
+   "或者",
+   "或许"
+  ],
+  "sentences": [
+   "你或者他都能行。",
+   "或许明天天晴。"
+  ],
+  "etym_type": "picto",
+  "etym": "持戈（戈）守疆域（口），或。",
+  "emoji": "❓"
+ },
+ "惜": {
+  "words": [
+   "可惜",
+   "珍惜"
+  ],
+  "sentences": [
+   "珍惜宝贵时光。"
+  ],
+  "etym_type": "component",
+  "etym": "心（忄）觉得（昔）难得，惜。",
+  "emoji": "💎"
+ },
+ "诚": {
+  "words": [
+   "诚实",
+   "真诚"
+  ],
+  "sentences": [
+   "诚实的孩子人人夸。"
+  ],
+  "etym_type": "component",
+  "etym": "话（讠）说得（成）真，诚。",
+  "emoji": "🤝"
+ },
+ "棒": {
+  "words": [
+   "真棒",
+   "木棒"
+  ],
+  "sentences": [
+   "你跳绳跳得真棒。",
+   "接力棒传起来。"
+  ],
+  "etym_type": "component",
+  "etym": "木（木）棍好用，棒。",
+  "emoji": "👍"
+ },
+ "恩": {
+  "words": [
+   "恩情",
+   "感恩"
+  ],
+  "sentences": [
+   "感恩父母。"
+  ],
+  "etym_type": "component",
+  "etym": "心（心）记着好处（因），恩。",
+  "emoji": "💞"
+ },
+ "血": {
+  "words": [
+   "血汗",
+   "心血"
+  ],
+  "sentences": [
+   "成果是血汗换来的。"
+  ],
+  "etym_type": "picto",
+  "etym": "器皿（皿）上的一滴，血。",
+  "emoji": "🩸"
+ },
+ "撤": {
+  "words": [
+   "撤退",
+   "撤走"
+  ],
+  "sentences": [
+   "洪水退了，警戒撤走。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）拿走（育），撤。",
+  "emoji": ""
+ },
+ "险": {
+  "words": [
+   "危险",
+   "险情"
+  ],
+  "sentences": [
+   "不去做危险的事。"
+  ],
+  "etym_type": "component",
+  "etym": "山（阝）高难走（佥），险。",
+  "emoji": "⚠️"
+ },
+ "瓦": {
+  "words": [
+   "瓦片",
+   "砖瓦"
+  ],
+  "sentences": [
+   "屋顶盖着瓦片。"
+  ],
+  "etym_type": "picto",
+  "etym": "屋上相扣的土器，瓦。",
+  "emoji": "🏠"
+ },
+ "迅": {
+  "words": [
+   "迅速"
+  ],
+  "sentences": [
+   "迅速集合站好队。"
+  ],
+  "etym_type": "component",
+  "etym": "走（辶）得像风，迅。",
+  "emoji": "💨"
+ },
+ "夺": {
+  "words": [
+   "争夺",
+   "夺目"
+  ],
+  "sentences": [
+   "光彩夺目的花。",
+   "争夺冠军。"
+  ],
+  "etym_type": "picto",
+  "etym": "手（寸）把（大）东西抢走，夺。",
+  "emoji": "🏆"
+ },
+ "秒": {
+  "words": [
+   "秒针",
+   "分秒"
+  ],
+  "sentences": [
+   "秒针走得最快。",
+   "珍惜分秒。"
+  ],
+  "etym_type": "component",
+  "etym": "禾（禾）芒一样细小，秒。",
+  "emoji": "⏱️"
+ },
+ "眨": {
+  "words": [
+   "眨眼",
+   "一眨眼"
+  ],
+  "sentences": [
+   "星星眨眼睛。",
+   "一眨眼就到家。"
+  ],
+  "etym_type": "component",
+  "etym": "眼（目）皮快速合，眨。",
+  "emoji": "👁️"
+ },
+ "瞪": {
+  "words": [
+   "瞪眼"
+  ],
+  "sentences": [
+   "他瞪大眼睛看。"
+  ],
+  "etym_type": "component",
+  "etym": "眼（目）睁得（登）老大，瞪。",
+  "emoji": "😮"
+ },
+ "瞅": {
+  "words": [
+   "瞅见",
+   "瞅一瞅"
+  ],
+  "sentences": [
+   "瞅见路边新花。"
+  ],
+  "etym_type": "component",
+  "etym": "眼（目）瞟一眼，瞅。",
+  "emoji": "👀"
+ },
+ "眶": {
+  "words": [
+   "眼眶"
+  ],
+  "sentences": [
+   "眼眶湿润了。"
+  ],
+  "etym_type": "component",
+  "etym": "眼（目）四周的框（匡），眶。",
+  "emoji": ""
+ },
+ "睹": {
+  "words": [
+   "目睹"
+  ],
+  "sentences": [
+   "亲眼目睹了比赛。"
+  ],
+  "etym_type": "component",
+  "etym": "眼（目）看（者）见了，睹。",
+  "emoji": ""
+ }
+}

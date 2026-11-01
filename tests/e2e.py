@@ -68,9 +68,9 @@ def api_tests():
     import database as _dbc
     _d = _dbc.get_db()
     n_content = _d.execute("""SELECT COUNT(*) n FROM zi_content c JOIN hanzi h ON h.id=c.hanzi_id
-                              WHERE h.book IN ('1a','1b','2a','2b')""").fetchone()["n"]
+                              WHERE h.book IN ('1a','1b','2a','2b','3a','3b','4a','4b')""").fetchone()["n"]
     _d.close()
-    check("内容覆盖四册 1543 字全量", n_content == 1543, n_content)
+    check("内容覆盖八册 2535 字全量", n_content == 2535, n_content)
     r = call("GET", "/api/me")
     check("me.stage=onboard", r.get("stage") == "onboard", r)
     r = call("POST", "/api/profile/grade", {"grade": "1A"})
@@ -80,7 +80,8 @@ def api_tests():
     r = call("POST", "/api/profile/grade", {"grade": "5A"})
     check("未生产册(5A)选年级拒绝", r.get("__error__") == 400, r)
     r = call("GET", "/api/me")
-    check("me.grades_ready 四册", r.get("grades_ready") == ["1A", "1B", "2A", "2B"], r.get("grades_ready"))
+    check("me.grades_ready 八册", r.get("grades_ready") ==
+          ["1A", "1B", "2A", "2B", "3A", "3B", "4A", "4B"], r.get("grades_ready"))
     r = call("POST", "/api/plan/create", {"target_chars": 300, "days": 50})
     check("plan 创建", r.get("daily_new", 0) >= 1, r)
     r = call("GET", "/api/confirm/batches")
@@ -150,6 +151,96 @@ def api_tests():
             check(f"音频 {fn} 可达", False, str(e)[:60])
     r = call("GET", "/api/report/weekly")
     check("周报空态", "weekly" in r and "top_wrong" in r)
+    # 词步 ASR 校验（v38）：纯函数匹配 + 端点降级链（未配置 key 永远放行不卡孩子）
+    import asr as _asr
+    check("word_match 同音/前后缀宽容+乱喊拒绝",
+          _asr.word_match("夏双", "下霜") and _asr.word_match("我现在读下霜", "下霜")
+          and not _asr.word_match("啊啊啊啊", "下霜") and not _asr.word_match("我想喝水", "下霜"))
+    boundary = "----zilearnBoundary"
+    mp = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"char\"\r\n\r\n霜\r\n"
+          f"--{boundary}\r\nContent-Disposition: form-data; name=\"word\"\r\n\r\n下霜\r\n"
+          f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"rec.webm\"\r\n"
+          f"Content-Type: audio/webm\r\n\r\n").encode() + b"\x00\x01\x02fakeaudio" + \
+          f"\r\n--{boundary}--\r\n".encode()
+    req = urllib.request.Request(BASE + "/api/follow/verify", method="POST", data=mp)
+    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+    if COOKIE:
+        req.add_header("Cookie", COOKIE)
+    with urllib.request.urlopen(req) as resp:
+        v = json.loads(resp.read())
+    check("follow/verify 未配置 key → 降级放行", v.get("pass") is True and v.get("degraded") is True, v)
+
+
+def gate_question_tests():
+    """第四关 lsent（听句选字）+ 第五关 defi（听释义选字，v39）出题校验"""
+    print("== 四五关新题型 ==")
+    import database, scheduler
+    db = database.get_db()
+    # 1b 字（有 mean 素材）：lsent 运行时生成 + defi 题库题
+    h1 = db.execute("""SELECT h.id, h.char FROM hanzi h JOIN zi_content c ON c.hanzi_id=h.id
+                       WHERE h.book='1b' AND c.mean IS NOT NULL LIMIT 1""").fetchone()
+    for _ in range(3):
+        q = scheduler.gen_quiz(h1["id"], "lsent", book="1a")     # 故意跨册 book：干扰须锚定目标字册
+        others = [o for o in q["options"] if o != q["hanzi"]]
+        in_sentence = [o for o in others if o in q["sentence"]]
+        check("lsent 选项含目标字且句含目标字",
+              q["hanzi"] in q["options"] and q["hanzi"] in q["sentence"], q)
+        check("lsent 干扰不在句中（防双解）", not in_sentence, (q["sentence"], in_sentence))
+        tone_bad = db.execute(
+            f"""SELECT COUNT(*) n FROM hanzi WHERE char IN ({','.join('?' * len(others))})
+                AND (tone3 = (SELECT tone3 FROM hanzi WHERE char=?) OR book != '1b')""",
+            (*others, q["hanzi"])).fetchone()["n"]
+        check("lsent 干扰异音且锚定目标字册（无跨册污染）", tone_bad == 0,
+              (others, tone_bad))
+    q2 = scheduler.gen_quiz(h1["id"], "defi", book="1a")
+    check("defi 题库题返回（1b 已审）", q2 and q2.get("quiz_type") == "defi"
+          and q2["hanzi"] in q2["options"] and q2.get("mean"), q2.get("quiz_type"))
+    opts_others = [o for o in q2["options"] if o != q2["hanzi"]]
+    check("defi 释义不含任何选项字（无音节泄漏/困惑）",
+          not any(o in q2["mean"] for o in opts_others), q2["mean"])
+    # 1a 字无 mean：defi 退化 listen（不排哑巴题）
+    h2 = db.execute("SELECT id, char FROM hanzi WHERE book='1a' LIMIT 1").fetchone()
+    q3 = scheduler.gen_quiz(h2["id"], "defi", book="1a")
+    check("defi 无素材退化 listen", q3.get("quiz_type") == "listen", q3.get("quiz_type"))
+    db.close()
+
+
+def report_tests():
+    """学习日报聚合（v39）：mido 是 SMTP_SKIP 账号——照常聚合、不发信"""
+    print("== 学习日报 ==")
+    import database, report as _report
+    reset_user()
+    call("POST", "/api/login", {"username": "mido", "password": MIDO_PASS})
+    call("POST", "/api/profile/grade", {"grade": "1A"})
+    call("POST", "/api/plan/create", {"target_chars": 10, "days": 7})
+    batches = call("GET", "/api/confirm/batches")["batches"]
+    pool = [c for b in batches for c in b]
+    hid = pool[0]["id"]
+    db = database.get_db()
+    uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
+    from datetime import date as _d
+    t = _d.today().isoformat()          # 与 scheduler.today_str() 同源（本地时区；date('now') 是 UTC 会错位）
+    db.execute("INSERT INTO user_hanzi(user_id, hanzi_id, status, stage, next_date, first_date, last_date) "
+               "VALUES(?,?,'learning',0,?,?,?)", (uid, hid, t, t, t))
+    db.execute("INSERT INTO quiz_log(user_id, hanzi_id, phase, quiz_type, correct, ts) "
+               "VALUES(?,?,'learn','card',1,?)", (uid, hid, t))
+    db.execute("INSERT INTO quiz_log(user_id, hanzi_id, phase, quiz_type, correct, ts) "
+               "VALUES(?,?,'learn','listen',0,?)", (uid, hid, t))
+    db.execute("INSERT INTO follow_log(user_id, char, kind, heard, ts) "
+               "VALUES(?,(SELECT char FROM hanzi WHERE id=?),'char',1,?)", (uid, hid, t + " 12:00:00"))
+    db.commit(); db.close()
+    rep = _report.build_daily_report(uid)
+    check("日报聚合：新字/错字/跟读",
+          len(rep["new_chars"]) == 1 and len(rep["wrong"]) == 1
+          and rep["follow"] and rep["follow"]["heard"] == 1,
+          {"new": len(rep["new_chars"]), "wrong": len(rep["wrong"])})
+    html = _report.render_html(rep)
+    check("日报 HTML 渲染含关键段", "每日学习报告" in html and "错字清单" in html and "跟读开口率" in html)
+    r = call("POST", "/api/report/daily")
+    check("日报幂等+测试账号跳过发信", r.get("reason") in ("测试账号不发信", "今日已发送"), r)
+    r2 = call("POST", "/api/report/daily")
+    check("日报二次触发不重发", r2.get("sent") is False, r2)
+    reset_user()
 
 
 def state_machine_tests():
@@ -382,11 +473,11 @@ def content_gate_tests():
     reset_user()
     db = database.get_db()
     uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
-    # 模拟被污染的 3A 账号（3a 册有字无内容）：册计划 + 今日已"学"过无内容字 + 挂到期复习
+    # 模拟被污染的 5A 账号（5a 册有字无内容）：册计划 + 今日已"学"过无内容字 + 挂到期复习
     t0 = date.today().isoformat()
-    db.execute("UPDATE users SET grade='3A', target_chars=30, plan_days=7, plan_start=?, onboarded=1",
+    db.execute("UPDATE users SET grade='5A', target_chars=30, plan_days=7, plan_start=?, onboarded=1",
                (t0,))
-    b1 = db.execute("SELECT h.id, h.char FROM hanzi h WHERE h.book='3a' ORDER BY h.seq LIMIT 2").fetchall()
+    b1 = db.execute("SELECT h.id, h.char FROM hanzi h WHERE h.book='5a' ORDER BY h.seq LIMIT 2").fetchall()
     for r in b1:
         db.execute("INSERT INTO quiz_log(user_id, hanzi_id, phase, quiz_type, correct, ts) "
                    "VALUES(?,?,'learn','card',1,?)", (uid, r["id"], t0))
@@ -395,12 +486,12 @@ def content_gate_tests():
     db.commit(); db.close()
 
     r = call("GET", "/api/me")
-    check("3A 账号 stage 打回 onboard(重选年级)", r.get("stage") == "onboard", r.get("stage"))
+    check("5A 账号 stage 打回 onboard(重选年级)", r.get("stage") == "onboard", r.get("stage"))
     t = scheduler.build_today(uid)
     ids_bad = {x["id"] for x in b1}
     ids_all = ({x["id"] for x in t["new"]} | {x["id"] for x in t["review"]}
                | {x["id"] for x in t["audit"]} | {x["id"] for x in t["learned_today"]})
-    check("3a 无内容字不进新字/复习/抽检/已学", not (ids_all & ids_bad), sorted(ids_all & ids_bad))
+    check("5a 无内容字不进新字/复习/抽检/已学", not (ids_all & ids_bad), sorted(ids_all & ids_bad))
     db = database.get_db()
     n_bad = db.execute(
         f"""SELECT COUNT(*) n FROM hanzi h WHERE h.id IN ({','.join('?' * len(ids_all))})
@@ -419,6 +510,8 @@ if __name__ == "__main__":
     plan_renew_tests()
     confirm_more_tests()
     content_gate_tests()
+    gate_question_tests()
+    report_tests()
     reset_user()   # teardown：清 mido 测试状态，防污染线上库
     print(f"\n{PASS_N} pass / {FAIL_N} fail")
     sys.exit(1 if FAIL_N else 0)

@@ -1,0 +1,769 @@
+{
+ "坝": {
+  "words": [
+   "大坝",
+   "河坝"
+  ],
+  "sentences": [
+   "大坝拦住了河水。",
+   "工人修建河坝。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "土筑的挡水墙，坝。",
+  "emoji": "🌊"
+ },
+ "汉": {
+  "words": [
+   "汉字",
+   "汉语"
+  ],
+  "sentences": [
+   "我们天天写汉字。",
+   "汉语说起来真好听。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "大水（氵）边的汉子，汉。",
+  "emoji": "🈶"
+ },
+ "艳": {
+  "words": [
+   "艳丽",
+   "鲜艳"
+  ],
+  "sentences": [
+   "鲜花艳丽极了。",
+   "鲜艳的红旗升起来。"
+  ],
+  "etym_type": "component",
+  "etym": "色彩丰（丰）满（色），艳。",
+  "emoji": "🌹"
+ },
+ "扮": {
+  "words": [
+   "打扮",
+   "扮演"
+  ],
+  "sentences": [
+   "姐姐爱打扮。",
+   "他扮演大老虎。"
+  ],
+  "etym_type": "component",
+  "etym": "提手旁：动手装扮，扮。",
+  "emoji": "🎭"
+ },
+ "扬": {
+  "words": [
+   "飞扬",
+   "表扬"
+  ],
+  "sentences": [
+   "尘土飞扬。",
+   "老师表扬了我。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）把东西扬起来。",
+  "emoji": "🏅"
+ },
+ "摔": {
+  "words": [
+   "摔倒",
+   "摔跤"
+  ],
+  "sentences": [
+   "他摔倒又爬起来。",
+   "摔跤比赛开始啦。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）撑地也摔了。",
+  "emoji": "🤼"
+ },
+ "跤": {
+  "words": [
+   "摔跤"
+  ],
+  "sentences": [
+   "弟弟学摔跤。"
+  ],
+  "etym_type": "component",
+  "etym": "足旁：脚下一绊，跤。",
+  "emoji": ""
+ },
+ "凤": {
+  "words": [
+   "凤凰"
+  ],
+  "sentences": [
+   "凤凰是传说中的神鸟。"
+  ],
+  "etym_type": "picto",
+  "etym": "像长尾的神鸟，凤。",
+  "emoji": "🐦"
+ },
+ "洁": {
+  "words": [
+   "洁白",
+   "清洁"
+  ],
+  "sentences": [
+   "洁白的雪花飘下来。",
+   "教室打扫得真清洁。"
+  ],
+  "etym_type": "component",
+  "etym": "水（氵）洗干净，洁。",
+  "emoji": "❄️"
+ },
+ "荒": {
+  "words": [
+   "荒地",
+   "荒野"
+  ],
+  "sentences": [
+   "荒地上要种树。",
+   "荒野里长满了草。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "草长满了废地，荒。",
+  "emoji": "🌾"
+ },
+ "笛": {
+  "words": [
+   "笛声",
+   "竹笛"
+  ],
+  "sentences": [
+   "笛声真好听。",
+   "牧童吹竹笛。"
+  ],
+  "etym_type": "component",
+  "etym": "竹（竹）做的乐器，笛。",
+  "emoji": "🎼"
+ },
+ "罚": {
+  "words": [
+   "罚站",
+   "处罚"
+  ],
+  "sentences": [
+   "犯错要接受处罚。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "做错事要受罚。",
+  "emoji": ""
+ },
+ "裳": {
+  "words": [
+   "衣裳"
+  ],
+  "sentences": [
+   "新衣裳真好看。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "身上穿的衣服，裳。",
+  "emoji": "👗"
+ },
+ "诵": {
+  "words": [
+   "朗诵",
+   "诵读"
+  ],
+  "sentences": [
+   "我们一起朗诵课文。"
+  ],
+  "etym_type": "component",
+  "etym": "说出（讠）声音来，诵。",
+  "emoji": "📖"
+ },
+ "例": {
+  "words": [
+   "例句",
+   "例子"
+  ],
+  "sentences": [
+   "老师说了一个例子。",
+   "用例句学词语。"
+  ],
+  "etym_type": "component",
+  "etym": "人（亻）排成一列，举例。",
+  "emoji": ""
+ },
+ "段": {
+  "words": [
+   "一段",
+   "段落"
+  ],
+  "sentences": [
+   "读一段课文。",
+   "背会这个段落。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "切下来一截，一段。",
+  "emoji": "✂️"
+ },
+ "练": {
+  "words": [
+   "练习",
+   "训练"
+  ],
+  "sentences": [
+   "每天练习写字。",
+   "训练要不怕苦。"
+  ],
+  "etym_type": "component",
+  "etym": "丝（纟）反复搓，练习。",
+  "emoji": "✍️"
+ },
+ "糊": {
+  "words": [
+   "糊涂",
+   "迷糊"
+  ],
+  "sentences": [
+   "越急越糊涂。",
+   "他睡得迷迷糊糊。"
+  ],
+  "etym_type": "component",
+  "etym": "米（米）煮成糊，糊涂。",
+  "emoji": "🥣"
+ },
+ "涂": {
+  "words": [
+   "糊涂",
+   "涂色"
+  ],
+  "sentences": [
+   "给图画涂色。"
+  ],
+  "etym_type": "component",
+  "etym": "水（氵）抹开来，涂。",
+  "emoji": "🎨"
+ },
+ "呆": {
+  "words": [
+   "发呆",
+   "呆住"
+  ],
+  "sentences": [
+   "他望着窗外发呆。",
+   "他一下子呆住了。"
+  ],
+  "etym_type": "picto",
+  "etym": "口（口）张着不动，呆。",
+  "emoji": "😶"
+ },
+ "戒": {
+  "words": [
+   "戒心",
+   "警戒"
+  ],
+  "sentences": [
+   "过马路要有警戒心。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "两手持戈，提高警戒。",
+  "emoji": "⚠️"
+ },
+ "厉": {
+  "words": [
+   "厉害",
+   "严厉"
+  ],
+  "sentences": [
+   "师傅的功夫真厉害。",
+   "老师严厉地批评了他。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "石头（厂）一样硬，厉。",
+  "emoji": ""
+ },
+ "挨": {
+  "words": [
+   "挨着",
+   "挨近"
+  ],
+  "sentences": [
+   "我们挨着坐。",
+   "一点一点挨近目标。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）靠过来，挨着。",
+  "emoji": "👫"
+ },
+ "楚": {
+  "words": [
+   "清楚",
+   "苦楚"
+  ],
+  "sentences": [
+   "把话说清楚。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "树林（林）里看得分明，清楚。",
+  "emoji": ""
+ },
+ "径": {
+  "words": [
+   "小径",
+   "路径"
+  ],
+  "sentences": [
+   "小径通向花园。"
+  ],
+  "etym_type": "component",
+  "etym": "走（彳）出的小路，径。",
+  "emoji": "🛤️"
+ },
+ "斜": {
+  "words": [
+   "斜坡",
+   "斜线"
+  ],
+  "sentences": [
+   "斜坡上种满花。",
+   "画出一条斜线。"
+  ],
+  "etym_type": "component",
+  "etym": "东西歪过去，斜。",
+  "emoji": "📈"
+ },
+ "赠": {
+  "words": [
+   "赠予",
+   "赠送"
+  ],
+  "sentences": [
+   "赠送一份小礼物。"
+  ],
+  "etym_type": "component",
+  "etym": "贝（贝）送给人，赠。",
+  "emoji": "🎁"
+ },
+ "刘": {
+  "words": [
+   "姓刘"
+  ],
+  "sentences": [
+   "刘老师教我们语文。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一个姓氏，刘。",
+  "emoji": ""
+ },
+ "残": {
+  "words": [
+   "残疾",
+   "残缺"
+  ],
+  "sentences": [
+   "古书有点残缺。",
+   "他身残志不残。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "坏了一角，残缺。",
+  "emoji": ""
+ },
+ "犹": {
+  "words": [
+   "犹豫"
+  ],
+  "sentences": [
+   "他犹豫了一下。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "心里拿不定，犹豫。",
+  "emoji": "🤔"
+ },
+ "傲": {
+  "words": [
+   "骄傲",
+   "傲慢"
+  ],
+  "sentences": [
+   "骄傲使人落后。",
+   "不能傲慢无礼。"
+  ],
+  "etym_type": "component",
+  "etym": "人（亻）抬着头，傲。",
+  "emoji": "😤"
+ },
+ "君": {
+  "words": [
+   "君子"
+  ],
+  "sentences": [
+   "君子说话算数。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "手持笏板的人，君。",
+  "emoji": ""
+ },
+ "橙": {
+  "words": [
+   "橙子",
+   "橙红"
+  ],
+  "sentences": [
+   "橙子甜又香。",
+   "晚霞橙红橙红。"
+  ],
+  "etym_type": "component",
+  "etym": "木（木）上结的果，橙。",
+  "emoji": "🍊"
+ },
+ "橘": {
+  "words": [
+   "橘子",
+   "橘红"
+  ],
+  "sentences": [
+   "橘子瓣像月牙。"
+  ],
+  "etym_type": "component",
+  "etym": "木（木）上的果子，橘。",
+  "emoji": "🍊"
+ },
+ "洼": {
+  "words": [
+   "水洼",
+   "洼地"
+  ],
+  "sentences": [
+   "水洼里映着天。"
+  ],
+  "etym_type": "component",
+  "etym": "水（氵）积在低处，洼。",
+  "emoji": "💧"
+ },
+ "印": {
+  "words": [
+   "脚印",
+   "印象"
+  ],
+  "sentences": [
+   "沙滩上留下脚印。",
+   "给我留下很深的印象。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "手按下去留下痕，印。",
+  "emoji": "👣"
+ },
+ "凌": {
+  "words": [
+   "凌空",
+   "冰凌"
+  ],
+  "sentences": [
+   "燕子凌空飞过。",
+   "屋檐挂着冰凌。"
+  ],
+  "etym_type": "component",
+  "etym": "冰（冫）冒出来，凌。",
+  "emoji": "🧊"
+ },
+ "增": {
+  "words": [
+   "增加",
+   "增多"
+  ],
+  "sentences": [
+   "知识一天天增加。",
+   "雨天客人增多了。"
+  ],
+  "etym_type": "component",
+  "etym": "土（土）堆高，增。",
+  "emoji": "📈"
+ },
+ "棕": {
+  "words": [
+   "棕色",
+   "棕熊"
+  ],
+  "sentences": [
+   "棕熊力气大。",
+   "他穿棕色外衣。"
+  ],
+  "etym_type": "component",
+  "etym": "木（木）名的颜色，棕。",
+  "emoji": "🐻"
+ },
+ "靴": {
+  "words": [
+   "靴子",
+   "棉靴"
+  ],
+  "sentences": [
+   "冬天穿棉靴。"
+  ],
+  "etym_type": "component",
+  "etym": "革（革）做的高帮鞋，靴。",
+  "emoji": "🥾"
+ },
+ "钥": {
+  "words": [
+   "钥匙"
+  ],
+  "sentences": [
+   "钥匙插进锁里。"
+  ],
+  "etym_type": "component",
+  "etym": "金（钅）做的开锁物，钥。",
+  "emoji": "🔑"
+ },
+ "匙": {
+  "words": [
+   "钥匙"
+  ],
+  "sentences": [
+   "找一找钥匙。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "开锁的小东西，匙。",
+  "emoji": ""
+ },
+ "缤": {
+  "words": [
+   "缤纷"
+  ],
+  "sentences": [
+   "落英缤纷满地。"
+  ],
+  "etym_type": "component",
+  "etym": "丝（纟）彩交错，缤纷。",
+  "emoji": "🌸"
+ },
+ "枚": {
+  "words": [
+   "一枚",
+   "枚举"
+  ],
+  "sentences": [
+   "送你一枚邮票。"
+  ],
+  "etym_type": "component",
+  "etym": "木（木）做的记号，一枚。",
+  "emoji": "📮"
+ },
+ "争": {
+  "words": [
+   "争取",
+   "争论"
+  ],
+  "sentences": [
+   "争取更大的进步。",
+   "大家争论起来。"
+  ],
+  "etym_type": "picto",
+  "etym": "两只手抢东西，争。",
+  "emoji": "🙋"
+ },
+ "勾": {
+  "words": [
+   "勾画",
+   "勾住"
+  ],
+  "sentences": [
+   "用笔勾画重点。",
+   "衣架勾住了衣服。"
+  ],
+  "etym_type": "picto",
+  "etym": "弯钩的样子，勾。",
+  "emoji": "🪝"
+ },
+ "喇": {
+  "words": [
+   "喇叭"
+  ],
+  "sentences": [
+   "喇叭花开得艳。"
+  ],
+  "etym_type": "component",
+  "etym": "口（口）发声，喇。",
+  "emoji": "📢"
+ },
+ "厚": {
+  "words": [
+   "厚薄",
+   "厚厚"
+  ],
+  "sentences": [
+   "字典厚厚的。",
+   "冬天穿厚衣裳。"
+  ],
+  "etym_type": "picto",
+  "etym": "山崖下（厂）堆得高，厚。",
+  "emoji": "📕"
+ },
+ "曲": {
+  "words": [
+   "歌曲",
+   "弯曲"
+  ],
+  "sentences": [
+   "唱一首歌曲。",
+   "小路弯弯曲曲。"
+  ],
+  "etym_type": "picto",
+  "etym": "像弯弯的器皿，曲。",
+  "emoji": "🎵"
+ },
+ "丰": {
+  "words": [
+   "丰富",
+   "丰收"
+  ],
+  "sentences": [
+   "读物丰富了知识。",
+   "秋天一片丰收。"
+  ],
+  "etym_type": "picto",
+  "etym": "盛满谷物的容器，丰。",
+  "emoji": "🌾"
+ },
+ "抖": {
+  "words": [
+   "抖动",
+   "发抖"
+  ],
+  "sentences": [
+   "冷得浑身发抖。",
+   "树叶轻轻抖动。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）在颤，抖。",
+  "emoji": "🥶"
+ },
+ "蟋": {
+  "words": [
+   "蟋蟀"
+  ],
+  "sentences": [
+   "蟋蟀在唱歌。"
+  ],
+  "etym_type": "component",
+  "etym": "虫（虫）名，蟋。",
+  "emoji": "🦗"
+ },
+ "蟀": {
+  "words": [
+   "蟋蟀"
+  ],
+  "sentences": [
+   "草丛里跳出一只蟋蟀。"
+  ],
+  "etym_type": "component",
+  "etym": "虫（虫）名，蟀。",
+  "emoji": ""
+ },
+ "振": {
+  "words": [
+   "振作",
+   "振动"
+  ],
+  "sentences": [
+   "振作精神再出发。",
+   "琴弦振动有声。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）挥动起来，振。",
+  "emoji": "💪"
+ },
+ "韵": {
+  "words": [
+   "韵律",
+   "音韵"
+  ],
+  "sentences": [
+   "诗歌很有韵律。"
+  ],
+  "etym_type": "component",
+  "etym": "音（音）好听匀称，韵。",
+  "emoji": "🎼"
+ },
+ "掠": {
+  "words": [
+   "掠过",
+   "掠夺"
+  ],
+  "sentences": [
+   "燕子掠过湖面。"
+  ],
+  "etym_type": "component",
+  "etym": "手（扌）一把捞，掠。",
+  "emoji": "🐦"
+ },
+ "吟": {
+  "words": [
+   "吟唱",
+   "吟诵"
+  ],
+  "sentences": [
+   "吟诵一首古诗。"
+  ],
+  "etym_type": "component",
+  "etym": "口（口）里有音，吟。",
+  "emoji": "📖"
+ },
+ "辽": {
+  "words": [
+   "辽阔",
+   "辽远"
+  ],
+  "sentences": [
+   "草原辽阔无边。"
+  ],
+  "etym_type": "component",
+  "etym": "走（辶）得很远，辽。",
+  "emoji": "🏞️"
+ },
+ "阔": {
+  "words": [
+   "辽阔",
+   "宽阔"
+  ],
+  "sentences": [
+   "马路宽阔。",
+   "大海辽阔。"
+  ],
+  "etym_type": "component",
+  "etym": "门（门）里能走马，阔。",
+  "emoji": "🌊"
+ },
+ "旧": {
+  "words": [
+   "旧书",
+   "旧物"
+  ],
+  "sentences": [
+   "旧书也要爱惜。",
+   "整理旧物。"
+  ],
+  "etym_type": "picto",
+  "etym": "用久了的鸟（萑），旧。",
+  "emoji": "📚"
+ },
+ "饿": {
+  "words": [
+   "饥饿",
+   "饿了"
+  ],
+  "sentences": [
+   "小猫饿得喵喵叫。",
+   "肚子饿了吃饭香。"
+  ],
+  "etym_type": "component",
+  "etym": "食（饣）不够，饿。",
+  "emoji": "🍚"
+ },
+ "卷": {
+  "words": [
+   "卷起",
+   "卷发"
+  ],
+  "sentences": [
+   "风卷起落叶。",
+   "妹妹一头卷发。"
+  ],
+  "etym_type": "picto",
+  "etym": "膝盖（卺）弯起来，卷。",
+  "emoji": "🌀"
+ }
+}
