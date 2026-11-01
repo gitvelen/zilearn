@@ -17,7 +17,7 @@ from pathlib import Path
 from database import get_db, DB_PATH
 
 SMTP_CONF = DB_PATH.parent / "smtp.json"
-SMTP_SKIP_USERS = ("test", "mido")            # 测试账号：报表照常生成，不发信
+SMTP_SKIP_USERS = ("mido",)                   # 仅 e2e 账号不发信（test 是孩子真机账号，必须发！）
 QT_LABEL = {"listen": "听音题", "pin": "拼音题", "mean": "组词题", "sent": "句子题",
             "find": "找一找", "rev": "听词题", "lsent": "听句题", "defi": "字义题",
             "stroke": "写字", "card": "新字卡"}
