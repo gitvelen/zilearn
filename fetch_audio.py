@@ -74,13 +74,13 @@ def py_to_tone3(py: str) -> str:
     return "".join(out) + str(tone)
 
 
-def build_tasks(book="1a"):
-    """字表读音 + 内容朗读 → [(fname, text)]"""
+def build_tasks(books=("1a", "1b", "2a", "2b")):
+    """字表读音 + 内容朗读 → [(fname, text)]（books=内容覆盖册集，字表 CSV 同 book 列）"""
     content = json.loads(CONTENT.read_text())        # 组词式字音与内容朗读共用
     readings, order = set(), []
     with CSV.open() as f:
         for row in csv.DictReader(f):
-            if row["book"] != book:
+            if row["book"] not in books:
                 continue
             ch, t3, alts = row["char"], row["tone3"], row["alt_readings"]
             if (ch, t3) in readings:

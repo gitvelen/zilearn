@@ -2,7 +2,7 @@
 """内容门禁：合并 content_parts/*.json → 校验 → 写 zi_content.json
 
 硬校验（违反即 fail，不写目标文件）：
-- 覆盖：1a 全部 281 字，一字不缺
+- 覆盖：目标册集（默认一年级上+下、二年级上+下）全部字，一字不缺、不混集外字
 - words：1-6 个、无重复、每词 2-4 字、含目标字（AA 叠字词如"爸爸"允许，
   gen_quiz mean 出题时动态过滤 count≠1 的词，素材层只需 ≥1）
 - sentences：1-3 句、无重复、去标点 4-14 字、目标字 1-3 次
@@ -12,6 +12,10 @@
 
 用字白名单 = 10 册教材识字表 ∪ EXEMPT（口语高频但未入 zi.txt 识字表的字，
 显式列出可审计；例句目标是"孩子读得出"，不是"课本教过"）
+
+目标册集可用参数扩展（2026-11-02 三册扩容）：
+  python3 build_content.py 三年级上册 三年级下册 ...
+（册名以 data/parsed/zi_books.json 键为准；默认四册）
 """
 import json
 import re
@@ -22,16 +26,27 @@ ROOT = Path(__file__).parent
 PARTS_DIR = ROOT / "data/parsed/content_parts"
 BOOKS = ROOT / "data/parsed/zi_books.json"
 OUT = ROOT / "data/parsed/zi_content.json"
+DEFAULT_BOOKS = ["一年级上册", "一年级下册", "二年级上册", "二年级下册"]
 
 PUNCT = set("，。！？、；：—…“”‘’")
 TYPES = {"picto", "component", "mnemonic", "scene"}
-EXEMPT = set("走过亮玩笑快给边孩己以时听海什成活变爬灯衣挂远住猫丽苹膏娃呱喔咩很睡卡")
+EXEMPT = set("走过亮玩笑快给边孩己以时听海什成活变爬灯衣挂远住猫丽苹膏娃呱喔咩很睡卡那真同诗穿服近候全华台无洞")
 
 
 def main():
-    l1a = json.loads(BOOKS.read_text())["一年级上册"]
+    book_names = sys.argv[1:] or DEFAULT_BOOKS
+    all_books = json.loads(BOOKS.read_text())
+    unknown = [b for b in book_names if b not in all_books]
+    if unknown:
+        sys.exit(f"✗ 未知册名 {unknown}（可选：{list(all_books)}）")
+    target, order = set(), []
+    for b in book_names:                      # 册序即输出序（同字首现册归属，并集去重）
+        for ch in all_books[b]:
+            if ch not in target:
+                target.add(ch)
+                order.append(ch)
     valid = set()
-    for chars in json.loads(BOOKS.read_text()).values():
+    for chars in all_books.values():
         valid.update(chars)
     valid |= EXEMPT
 
@@ -43,12 +58,12 @@ def main():
             merged[ch] = c
 
     # 覆盖检查
-    for ch in l1a:
+    for ch in target:
         if ch not in merged:
-            errors.append(f"[{ch}] 1a 字缺少内容")
+            errors.append(f"[{ch}] 目标册字缺少内容")
     for ch in merged:
-        if ch not in l1a:
-            errors.append(f"[{ch}] 非 1a 字混入")
+        if ch not in target:
+            errors.append(f"[{ch}] 目标册集外字混入")
 
     def check_chars(text, label, ch):
         bad = [x for x in text if x not in valid and x not in PUNCT]
@@ -93,8 +108,9 @@ def main():
         sys.exit(1)
 
     # 写目标文件：sentence 恒取 sentences[0]
+    idx = {ch: i for i, ch in enumerate(order)}
     out = {ch: {**c, "sentence": c["sentences"][0]} for ch, c in
-           sorted(merged.items(), key=lambda kv: l1a.index(kv[0]))}
+           sorted(merged.items(), key=lambda kv: idx[kv[0]])}
     OUT.write_text(json.dumps(out, ensure_ascii=False, indent=1))
     n_w = sum(len(c["words"]) for c in out.values())
     n_s = sum(len(c["sentences"]) for c in out.values())

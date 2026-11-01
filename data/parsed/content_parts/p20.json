@@ -1,0 +1,764 @@
+{
+ "民": {
+  "words": [
+   "人民",
+   "民歌"
+  ],
+  "sentences": [
+   "解放军保护人民。",
+   "唱一唱民歌。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "大家一起生活的人，人民。",
+  "emoji": "👥"
+ },
+ "度": {
+  "words": [
+   "温度",
+   "长度"
+  ],
+  "sentences": [
+   "今天温度不高。",
+   "量一量桌子长度。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "量一量，就有度。",
+  "emoji": "🌡️"
+ },
+ "敲": {
+  "words": [
+   "敲门",
+   "敲打"
+  ],
+  "sentences": [
+   "轻轻敲门有礼貌。",
+   "敲打鼓面咚咚响。"
+  ],
+  "etym_type": "picto",
+  "etym": "手持棍子敲。",
+  "emoji": "🚪"
+ },
+ "龙": {
+  "words": [
+   "龙舟",
+   "龙灯"
+  ],
+  "sentences": [
+   "端午赛龙舟。",
+   "元宵节看龙灯。"
+  ],
+  "etym_type": "picto",
+  "etym": "像龙昂首的样子。",
+  "emoji": "🐉"
+ },
+ "驶": {
+  "words": [
+   "行驶",
+   "驶过"
+  ],
+  "sentences": [
+   "汽车在路上行驶。",
+   "小船驶向小岛。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "像马跑得快，驶。",
+  "emoji": "🚗"
+ },
+ "容": {
+  "words": [
+   "容易",
+   "笑容"
+  ],
+  "sentences": [
+   "这道题容易。",
+   "他脸上带着笑容。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "心里装得下，容易。",
+  "emoji": "😊"
+ },
+ "踩": {
+  "words": [
+   "踩水",
+   "踩到"
+  ],
+  "sentences": [
+   "下雨后爱踩水。",
+   "别踩到小草。"
+  ],
+  "etym_type": "component",
+  "etym": "脚踏上去，踩。",
+  "emoji": "💦"
+ },
+ "碗": {
+  "words": [
+   "饭碗",
+   "一碗"
+  ],
+  "sentences": [
+   "我吃完了一碗饭。",
+   "洗好了饭碗。"
+  ],
+  "etym_type": "component",
+  "etym": "陶瓷做的碗。",
+  "emoji": "🥣"
+ },
+ "祝": {
+  "words": [
+   "祝福",
+   "祝寿"
+  ],
+  "sentences": [
+   "祝福你生日快乐。",
+   "给爷爷祝寿。"
+  ],
+  "etym_type": "component",
+  "etym": "好话说给你，祝福。",
+  "emoji": "🎂"
+ },
+ "福": {
+  "words": [
+   "幸福",
+   "祝福"
+  ],
+  "sentences": [
+   "我们的生活幸福。",
+   "新年送祝福。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "有衣有饭，就是福。",
+  "emoji": "🧧"
+ },
+ "健": {
+  "words": [
+   "健康"
+  ],
+  "sentences": [
+   "锻炼身体更健康。"
+  ],
+  "etym_type": "component",
+  "etym": "身体结实，健康。",
+  "emoji": "💪"
+ },
+ "康": {
+  "words": [
+   "健康"
+  ],
+  "sentences": [
+   "祝爷爷身体健康。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "有饭吃有屋住，安康。",
+  "emoji": ""
+ },
+ "轿": {
+  "words": [
+   "轿车",
+   "花轿"
+  ],
+  "sentences": [
+   "轿车开得稳。",
+   "古时候新娘坐花轿。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "抬得高高的车，轿。",
+  "emoji": "🚗"
+ },
+ "救": {
+  "words": [
+   "救火",
+   "救人"
+  ],
+  "sentences": [
+   "消防员去救火。",
+   "医生救了很多人。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "伸手去帮助，救。",
+  "emoji": "🚒"
+ },
+ "摩": {
+  "words": [
+   "摩托车"
+  ],
+  "sentences": [
+   "摩托车跑得快。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "手来回磨动，摩。",
+  "emoji": "🏍️"
+ },
+ "托": {
+  "words": [
+   "托起"
+  ],
+  "sentences": [
+   "双手托起小球。"
+  ],
+  "etym_type": "component",
+  "etym": "手心向上，托。",
+  "emoji": "🤲"
+ },
+ "防": {
+  "words": [
+   "预防",
+   "防火"
+  ],
+  "sentences": [
+   "预防感冒要洗手。",
+   "注意防火。"
+  ],
+  "etym_type": "component",
+  "etym": "筑墙挡住，防。",
+  "emoji": "🛡️"
+ },
+ "渔": {
+  "words": [
+   "渔民",
+   "渔船"
+  ],
+  "sentences": [
+   "渔民出海打鱼。",
+   "渔船回来了。"
+  ],
+  "etym_type": "component",
+  "etym": "靠捕鱼生活，渔。",
+  "emoji": "🎣"
+ },
+ "货": {
+  "words": [
+   "年货",
+   "货物"
+  ],
+  "sentences": [
+   "过年买年货。",
+   "货物装满了车。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "能变成钱的东西，货。",
+  "emoji": "📦"
+ },
+ "油": {
+  "words": [
+   "加油",
+   "油灯"
+  ],
+  "sentences": [
+   "大家为我加油。",
+   "奶奶点过油灯。"
+  ],
+  "etym_type": "component",
+  "etym": "植物里榨出来的，油。",
+  "emoji": "⛽"
+ },
+ "轮": {
+  "words": [
+   "车轮",
+   "轮船"
+  ],
+  "sentences": [
+   "车轮转得快。",
+   "轮船开走了。"
+  ],
+  "etym_type": "component",
+  "etym": "圆圆的轮子。",
+  "emoji": "🚢"
+ },
+ "科": {
+  "words": [
+   "科学"
+  ],
+  "sentences": [
+   "我爱科学课。",
+   "科学改变生活。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一斗一斗分清楚，科。",
+  "emoji": "🔬"
+ },
+ "考": {
+  "words": [
+   "考试",
+   "思考"
+  ],
+  "sentences": [
+   "考试不紧张。",
+   "遇事要思考。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "老着问题想，考。",
+  "emoji": "📝"
+ },
+ "宿": {
+  "words": [
+   "宿舍"
+  ],
+  "sentences": [
+   "宿舍收拾干净了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "在屋里睡下，宿。",
+  "emoji": "🏠"
+ },
+ "寺": {
+  "words": [
+   "寺庙"
+  ],
+  "sentences": [
+   "山上有座寺庙。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "有一寸土的地方，寺。",
+  "emoji": "🛕"
+ },
+ "危": {
+  "words": [
+   "危险"
+  ],
+  "sentences": [
+   "别去危险的地方。"
+  ],
+  "etym_type": "picto",
+  "etym": "人站在高崖上，危险。",
+  "emoji": "⚠️"
+ },
+ "辰": {
+  "words": [
+   "时辰",
+   "星辰"
+  ],
+  "sentences": [
+   "夜晚星辰满天。",
+   "古人用时辰算时间。"
+  ],
+  "etym_type": "picto",
+  "etym": "像贝壳的星星，辰。",
+  "emoji": "⭐"
+ },
+ "恐": {
+  "words": [
+   "恐龙"
+  ],
+  "sentences": [
+   "恐龙巨大。",
+   "恐龙早就消失了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "心被抓住，害怕。",
+  "emoji": "🦖"
+ },
+ "惊": {
+  "words": [
+   "吃惊",
+   "惊动"
+  ],
+  "sentences": [
+   "大家大吃一惊。",
+   "别惊动小鸟。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "马受了惊吓，惊。",
+  "emoji": "😲"
+ },
+ "似": {
+  "words": [
+   "相似",
+   "似的"
+  ],
+  "sentences": [
+   "双胞胎长得相似。",
+   "白云似棉花。"
+  ],
+  "etym_type": "component",
+  "etym": "像那个样子，似。",
+  "emoji": "☁️"
+ },
+ "庐": {
+  "words": [
+   "庐山"
+  ],
+  "sentences": [
+   "庐山瀑布很有名。"
+  ],
+  "etym_type": "component",
+  "etym": "山间的小屋，庐。",
+  "emoji": "⛰️"
+ },
+ "笼": {
+  "words": [
+   "鸟笼",
+   "笼子"
+  ],
+  "sentences": [
+   "鸟笼里有一只小鸟。"
+  ],
+  "etym_type": "component",
+  "etym": "竹子编的笼子。",
+  "emoji": "🐦"
+ },
+ "盖": {
+  "words": [
+   "盖住",
+   "盖子"
+  ],
+  "sentences": [
+   "用盖子盖住杯子。",
+   "被子盖住脚。"
+  ],
+  "etym_type": "picto",
+  "etym": "盖在器皿上，盖。",
+  "emoji": "🫙"
+ },
+ "苍": {
+  "words": [
+   "苍茫",
+   "苍白"
+  ],
+  "sentences": [
+   "大海苍茫无边。",
+   "他吓得脸色苍白。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "深深的青色，苍。",
+  "emoji": "🌊"
+ },
+ "茫": {
+  "words": [
+   "苍茫",
+   "茫茫"
+  ],
+  "sentences": [
+   "大雾茫茫。",
+   "草原茫茫。"
+  ],
+  "etym_type": "component",
+  "etym": "水大看不清，茫。",
+  "emoji": "🌫️"
+ },
+ "雾": {
+  "words": [
+   "大雾",
+   "雾气"
+  ],
+  "sentences": [
+   "大雾里看不清路。",
+   "早晨雾气飘飘。"
+  ],
+  "etym_type": "picto",
+  "etym": "像烟像雨的雾。",
+  "emoji": ""
+ },
+ "淘": {
+  "words": [
+   "淘气",
+   "淘米"
+  ],
+  "sentences": [
+   "淘气的弟弟。",
+   "帮妈妈淘米。"
+  ],
+  "etym_type": "component",
+  "etym": "水里挑挑拣拣，淘。",
+  "emoji": "😝"
+ },
+ "于": {
+  "words": [
+   "于是",
+   "由于"
+  ],
+  "sentences": [
+   "下雨了，于是我打开伞。",
+   "由于生病，他没来。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "走一步停一停，于。",
+  "emoji": ""
+ },
+ "暗": {
+  "words": [
+   "黑暗"
+  ],
+  "sentences": [
+   "房间里一片黑暗。",
+   "天暗了，回家吧。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "光被挡住，暗。",
+  "emoji": "🌑"
+ },
+ "岸": {
+  "words": [
+   "河岸",
+   "上岸"
+  ],
+  "sentences": [
+   "小船靠岸了。",
+   "我们在河岸种树。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "水边的高地，岸。",
+  "emoji": "⛵"
+ },
+ "街": {
+  "words": [
+   "街道",
+   "大街"
+  ],
+  "sentences": [
+   "大街上真热闹。",
+   "跟妈妈上街买菜。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "路分成两边，街。",
+  "emoji": "🏙️"
+ },
+ "梁": {
+  "words": [
+   "桥梁"
+  ],
+  "sentences": [
+   "桥梁跨过大河。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "水上架的木头，梁。",
+  "emoji": "🌉"
+ },
+ "甚": {
+  "words": [
+   "甚至"
+  ],
+  "sentences": [
+   "他甚至忘了吃饭。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "更进一步，甚至。",
+  "emoji": ""
+ },
+ "切": {
+  "words": [
+   "一切",
+   "亲切"
+  ],
+  "sentences": [
+   "一切都会好的。",
+   "老师笑得亲切。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "刀切下去，一切两半。",
+  "emoji": "🔪"
+ },
+ "躲": {
+  "words": [
+   "躲开",
+   "躲避"
+  ],
+  "sentences": [
+   "躲开来往的车。",
+   "躲避大风。"
+  ],
+  "etym_type": "component",
+  "etym": "身子藏起来，躲。",
+  "emoji": "🙈"
+ },
+ "失": {
+  "words": [
+   "失去",
+   "丢失"
+  ],
+  "sentences": [
+   "玩具丢失了。",
+   "时间失去了不再回来。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一撒手，就失去了。",
+  "emoji": ""
+ },
+ "累": {
+  "words": [
+   "累了",
+   "劳累"
+  ],
+  "sentences": [
+   "跑累了歇一歇。",
+   "爸爸工作劳累。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "干活干到没力气，累。",
+  "emoji": "😮‍💨"
+ },
+ "添": {
+  "words": [
+   "添柴",
+   "添加"
+  ],
+  "sentences": [
+   "往火里添柴。",
+   "给画添加颜色。"
+  ],
+  "etym_type": "component",
+  "etym": "再加一点，添。",
+  "emoji": ""
+ },
+ "柴": {
+  "words": [
+   "柴火",
+   "木柴"
+  ],
+  "sentences": [
+   "柴火烧得旺。",
+   "抱柴火回家。"
+  ],
+  "etym_type": "component",
+  "etym": "这样的木头，柴。",
+  "emoji": "🪵"
+ },
+ "烧": {
+  "words": [
+   "烧火",
+   "烧水"
+  ],
+  "sentences": [
+   "帮妈妈烧水。",
+   "烧火做饭。"
+  ],
+  "etym_type": "component",
+  "etym": "火苗蹿起来，烧。",
+  "emoji": "🔥"
+ },
+ "旺": {
+  "words": [
+   "火旺",
+   "旺盛"
+  ],
+  "sentences": [
+   "炉火烧得旺。",
+   "花开得旺盛。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "太阳当空，旺。",
+  "emoji": ""
+ },
+ "渐": {
+  "words": [
+   "渐渐"
+  ],
+  "sentences": [
+   "雪渐渐停了。",
+   "天渐渐黑了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一点一点地，渐渐。",
+  "emoji": ""
+ },
+ "呀": {
+  "words": [
+   "好呀"
+  ],
+  "sentences": [
+   "好呀，一起去！",
+   "呀，下雨啦！"
+  ],
+  "etym_type": "component",
+  "etym": "口旁：惊讶的语气。",
+  "emoji": ""
+ },
+ "哎": {
+  "words": [
+   "哎呀"
+  ],
+  "sentences": [
+   "哎呀，迟到了！"
+  ],
+  "etym_type": "component",
+  "etym": "口旁：叹气的声音。",
+  "emoji": "😅"
+ },
+ "冒": {
+  "words": [
+   "感冒",
+   "冒烟"
+  ],
+  "sentences": [
+   "天冷别感冒。",
+   "锅里冒热气。"
+  ],
+  "etym_type": "picto",
+  "etym": "头上像戴了帽，冒出来。",
+  "emoji": "🤒"
+ },
+ "烫": {
+  "words": [
+   "烫手"
+  ],
+  "sentences": [
+   "开水烫，别碰。",
+   "汤很烫，吹一吹。"
+  ],
+  "etym_type": "component",
+  "etym": "火烤过的，烫。",
+  "emoji": "🔥"
+ },
+ "终": {
+  "words": [
+   "终于",
+   "终点"
+  ],
+  "sentences": [
+   "我终于学会了。",
+   "跑到终点了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "丝线到头，终点。",
+  "emoji": "🏁"
+ },
+ "浑": {
+  "words": [
+   "浑身"
+  ],
+  "sentences": [
+   "他跑得浑身是汗。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "水搅浑了，看不清。",
+  "emoji": ""
+ },
+ "淋": {
+  "words": [
+   "淋雨",
+   "淋湿"
+  ],
+  "sentences": [
+   "淋雨会感冒。",
+   "衣服淋湿了。"
+  ],
+  "etym_type": "component",
+  "etym": "雨淋在身上，淋。",
+  "emoji": "🌧️"
+ },
+ "灭": {
+  "words": [
+   "灭火",
+   "熄灭"
+  ],
+  "sentences": [
+   "消防员灭火。",
+   "火慢慢熄灭了。"
+  ],
+  "etym_type": "picto",
+  "etym": "火上加个盖，灭。",
+  "emoji": "🧯"
+ },
+ "激": {
+  "words": [
+   "激动",
+   "激烈"
+  ],
+  "sentences": [
+   "我激动得跳起来。",
+   "比赛很激烈。"
+  ],
+  "etym_type": "component",
+  "etym": "水击起浪花，激。",
+  "emoji": "💦"
+ }
+}

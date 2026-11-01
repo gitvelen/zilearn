@@ -461,6 +461,15 @@ _SUPPLEMENT_WORDS = frozenset({
     "好问",                                                 # 好 hào 问异读成词
     # 感叹句式"多X"：句中"多+形容词"任何形容代入皆通（731 多少/多小 双解教训）
     "多大", "多小", "多好", "多美", "多高", "多长", "多快", "多甜", "多香", "多远", "多新",
+    # 助词/趋向邻接题干的活搭配（2026-11-02 三册扩容逐题审查：代入成日常口语，
+    # 词表查不到但孩子选了不算错——干扰选项层直接排除）
+    "喊着", "都到", "唱过", "查下", "摘着", "捧在", "办了", "弄了",
+    "灭了", "烧了", "喘着", "垂着", "冲没", "爱过", "她到", "吵着", "炸没",
+    "刮了", "枯了", "缝了", "吼着", "切了", "踏着", "刻着",
+    "催了", "削了", "报了", "收着", "漏了", "扑着",
+    # 姓氏歌单元"姓X"题干：任何姓氏代入皆通（干扰只能是非姓氏字）
+    "姓李", "姓张", "姓吴", "姓赵", "姓钱", "姓孙", "姓周", "姓官",
+    "姓古", "姓王", "姓黄", "姓马",
 })
 _WORDS_CACHE = None
 
@@ -479,6 +488,17 @@ def _valid_words(db):
         ws |= _SUPPLEMENT_WORDS
         _WORDS_CACHE = frozenset(ws)
     return _WORDS_CACHE
+
+
+# mean 素材排除：目标字打头的二字"动词+助词/趋向"词（跟着/丢了/拿来/冲没…）。
+# 挖空后题干=＿+助词，任何动词代入皆成口语（喊着/办了/枯了…），词表永远查不全——
+# 结构性多解，不做出题素材（2026-11-02 三册逐题审查三轮打地鼠后的根治）。
+# 句子题有上下文锚定不受影响；mean 缺素材走退化链兜底。
+_MEAN_BAD_FINALS = set("着了过在到来去下上开出里外没走")
+
+
+def _mean_ok(w, ch):
+    return not (len(w) == 2 and w[0] == ch and w[1] in _MEAN_BAD_FINALS)
 
 
 def _sent_window_bad(sentence, char, d_char, valid):
@@ -609,7 +629,7 @@ def gen_quiz(hanzi_id, quiz_type, book=None):
 
         if quiz_type == "mean":
             valid = _valid_words(db)
-            cands = [w for w in words if w.count(h["char"]) == 1]
+            cands = [w for w in words if w.count(h["char"]) == 1 and _mean_ok(w, h["char"])]
             random.shuffle(cands)
             for w in cands:
                 dr = [d["char"] for d in ds if d["char"] not in w

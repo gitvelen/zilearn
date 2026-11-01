@@ -1,7 +1,8 @@
 """seed：导入字表 CSV + 内容 JSON + 创建 mido 用户（幂等）
 
 用法:
-  python seed.py hanzi    # 字表 + 内容
+  python seed.py hanzi    # 字表 + 内容（⚠ 破坏性：清 user_hanzi/quiz_log/confirm_pick，勿在线上跑）
+  python seed.py content  # 仅内容 upsert zi_content（无损：学习进度/摸底/流水不动）——扩册上线用
   python seed.py users    # mido（密码仅首次生成时打印）
 """
 import csv
@@ -50,28 +51,46 @@ def seed_hanzi():
                        (r["char"], r["pinyin"], r["tone3"], r["alt_readings"],
                         r["unit"], int(r["seq"]), r["book"]))
             n += 1
-        # 内容按字键 upsert（book=1a 范围内）。sentence 恒取 sentences[0]（单句引用兼容）
-        n_content = 0
-        for ch, c in content.items():
-            row = db.execute("SELECT id, book FROM hanzi WHERE char=?", (ch,)).fetchone()
-            if not row:
-                continue
-            sents = c.get("sentences") or ([c["sentence"]] if c.get("sentence") else [])
-            db.execute("""INSERT INTO zi_content(hanzi_id, words, sentence, sentences, etym_type, etym, emoji)
-                          VALUES(?,?,?,?,?,?,?)
-                          ON CONFLICT(hanzi_id) DO UPDATE SET
-                            words=excluded.words, sentence=excluded.sentence,
-                            sentences=excluded.sentences,
-                            etym_type=excluded.etym_type, etym=excluded.etym, emoji=excluded.emoji""",
-                       (row["id"], json.dumps(c["words"], ensure_ascii=False),
-                        sents[0] if sents else None, json.dumps(sents, ensure_ascii=False),
-                        c["etym_type"], c["etym"], c.get("emoji", "")))
-            n_content += 1
+        n_content = upsert_content(db, content)
         db.commit()
         books = db.execute("SELECT book, COUNT(*) n FROM hanzi GROUP BY book").fetchall()
         print(f"hanzi {n} 字 / 内容 {n_content} 字 / 册分布 {[(b['book'], b['n']) for b in books]}")
     finally:
         db.close()
+
+
+def seed_content():
+    """仅内容 upsert（无损）：扩册上线/内容修订用，不动 hanzi 与任何用户数据"""
+    db = database.get_db()
+    try:
+        n = upsert_content(db, json.loads(CONTENT.read_text()) if CONTENT.exists() else {})
+        db.commit()
+        by_book = db.execute("""SELECT h.book, COUNT(*) n FROM zi_content c
+                                JOIN hanzi h ON h.id=c.hanzi_id GROUP BY h.book""").fetchall()
+        print(f"内容 upsert {n} 字 / 册覆盖 {[(b['book'], b['n']) for b in by_book]}")
+    finally:
+        db.close()
+
+
+def upsert_content(db, content):
+    """内容按字键 upsert。sentence 恒取 sentences[0]（单句引用兼容）"""
+    n_content = 0
+    for ch, c in content.items():
+        row = db.execute("SELECT id, book FROM hanzi WHERE char=?", (ch,)).fetchone()
+        if not row:
+            continue
+        sents = c.get("sentences") or ([c["sentence"]] if c.get("sentence") else [])
+        db.execute("""INSERT INTO zi_content(hanzi_id, words, sentence, sentences, etym_type, etym, emoji)
+                      VALUES(?,?,?,?,?,?,?)
+                      ON CONFLICT(hanzi_id) DO UPDATE SET
+                        words=excluded.words, sentence=excluded.sentence,
+                        sentences=excluded.sentences,
+                        etym_type=excluded.etym_type, etym=excluded.etym, emoji=excluded.emoji""",
+                   (row["id"], json.dumps(c["words"], ensure_ascii=False),
+                    sents[0] if sents else None, json.dumps(sents, ensure_ascii=False),
+                    c["etym_type"], c["etym"], c.get("emoji", "")))
+        n_content += 1
+    return n_content
 
 
 def seed_users():
@@ -104,5 +123,7 @@ if __name__ == "__main__":
     what = sys.argv[1] if len(sys.argv) > 1 else "hanzi"
     if what == "hanzi":
         seed_hanzi()
+    elif what == "content":
+        seed_content()
     elif what == "users":
         seed_users()

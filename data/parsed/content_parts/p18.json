@@ -1,0 +1,764 @@
+{
+ "遥": {
+  "words": [
+   "遥远"
+  ],
+  "sentences": [
+   "遥远的地方有大海。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "走很远很远，就是遥。",
+  "emoji": ""
+ },
+ "闻": {
+  "words": [
+   "闻到",
+   "新闻"
+  ],
+  "sentences": [
+   "我闻到饭菜香。",
+   "爷爷看新闻。"
+  ],
+  "etym_type": "picto",
+  "etym": "门里有耳，听见了，闻。",
+  "emoji": "👃"
+ },
+ "景": {
+  "words": [
+   "风景",
+   "景色"
+  ],
+  "sentences": [
+   "山上风景真美。",
+   "秋天的景色像画。"
+  ],
+  "etym_type": "component",
+  "etym": "日光照的地方，景。",
+  "emoji": "🌄"
+ },
+ "区": {
+  "words": [
+   "山区",
+   "小区"
+  ],
+  "sentences": [
+   "我们小区有花园。",
+   "山区里通了公路。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "装东西的地方，区域。",
+  "emoji": ""
+ },
+ "省": {
+  "words": [
+   "省钱"
+  ],
+  "sentences": [
+   "妈妈说要省钱。",
+   "省下一元钱。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "少看一眼，省一省。",
+  "emoji": "💰"
+ },
+ "部": {
+  "words": [
+   "部首",
+   "全部"
+  ],
+  "sentences": [
+   "查部首认生字。",
+   "全部作业写完了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "整体里的一块，部。",
+  "emoji": ""
+ },
+ "秀": {
+  "words": [
+   "优秀"
+  ],
+  "sentences": [
+   "他是优秀的学生。"
+  ],
+  "etym_type": "component",
+  "etym": "庄稼吐穗，秀气出众。",
+  "emoji": "🌾"
+ },
+ "尤": {
+  "words": [
+   "尤其"
+  ],
+  "sentences": [
+   "我尤其爱画画。"
+  ],
+  "etym_type": "picto",
+  "etym": "特别突出的，尤其。",
+  "emoji": ""
+ },
+ "其": {
+  "words": [
+   "其实",
+   "其中"
+  ],
+  "sentences": [
+   "其实我也不懂。",
+   "其中一个是我。"
+  ],
+  "etym_type": "picto",
+  "etym": "像簸箕的样子，其。",
+  "emoji": ""
+ },
+ "仙": {
+  "words": [
+   "仙女",
+   "神仙"
+  ],
+  "sentences": [
+   "传说中的仙女会飞。"
+  ],
+  "etym_type": "component",
+  "etym": "山里的人，就是仙。",
+  "emoji": "🧚"
+ },
+ "巨": {
+  "words": [
+   "巨大",
+   "巨人"
+  ],
+  "sentences": [
+   "恐龙巨大。",
+   "巨人一步一步走。"
+  ],
+  "etym_type": "picto",
+  "etym": "手握大工具，巨大。",
+  "emoji": "🦕"
+ },
+ "位": {
+  "words": [
+   "座位",
+   "一位"
+  ],
+  "sentences": [
+   "给老人让座位。",
+   "一位老师走进来。"
+  ],
+  "etym_type": "component",
+  "etym": "人站的位置，位。",
+  "emoji": "🪑"
+ },
+ "著": {
+  "words": [
+   "著名"
+  ],
+  "sentences": [
+   "长城是世界著名的古迹。"
+  ],
+  "etym_type": "component",
+  "etym": "写得出了名，著名。",
+  "emoji": ""
+ },
+ "形": {
+  "words": [
+   "形状",
+   "圆形"
+  ],
+  "sentences": [
+   "积木有各种形状。",
+   "圆形的月亮。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "开出来的模样，形状。",
+  "emoji": "⭕"
+ },
+ "状": {
+  "words": [
+   "形状",
+   "奖状"
+  ],
+  "sentences": [
+   "云朵形状像小羊。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "什么样，就是什么状。",
+  "emoji": ""
+ },
+ "潭": {
+  "words": [
+   "水潭",
+   "日月潭"
+  ],
+  "sentences": [
+   "日月潭水清清。",
+   "山里有个小水潭。"
+  ],
+  "etym_type": "component",
+  "etym": "水深的地方，潭。",
+  "emoji": ""
+ },
+ "湾": {
+  "words": [
+   "海湾",
+   "河湾"
+  ],
+  "sentences": [
+   "小船停在河湾。"
+  ],
+  "etym_type": "component",
+  "etym": "水弯的地方，湾。",
+  "emoji": "⛵"
+ },
+ "湖": {
+  "words": [
+   "湖水",
+   "湖边"
+  ],
+  "sentences": [
+   "湖水清得像镜子。",
+   "湖边种着柳树。"
+  ],
+  "etym_type": "component",
+  "etym": "大片的水，湖。",
+  "emoji": "🏞️"
+ },
+ "绕": {
+  "words": [
+   "围绕",
+   "绕圈"
+  ],
+  "sentences": [
+   "地球绕着太阳转。",
+   "我们围绕大树做游戏。"
+  ],
+  "etym_type": "component",
+  "etym": "丝线缠着转，绕。",
+  "emoji": "🌍"
+ },
+ "茂": {
+  "words": [
+   "茂盛",
+   "茂密"
+  ],
+  "sentences": [
+   "树木茂盛。",
+   "森林茂密。"
+  ],
+  "etym_type": "component",
+  "etym": "草木长得旺，茂。",
+  "emoji": "🌿"
+ },
+ "盛": {
+  "words": [
+   "茂盛",
+   "盛开"
+  ],
+  "sentences": [
+   "花儿盛开。",
+   "草木茂盛。"
+  ],
+  "etym_type": "component",
+  "etym": "装得满满的，茂盛。",
+  "emoji": "🌸"
+ },
+ "围": {
+  "words": [
+   "周围",
+   "围住"
+  ],
+  "sentences": [
+   "房子周围种树。",
+   "大家围住看热闹。"
+  ],
+  "etym_type": "picto",
+  "etym": "口子圈起来，围。",
+  "emoji": ""
+ },
+ "胜": {
+  "words": [
+   "胜利"
+  ],
+  "sentences": [
+   "我们班取得了胜利。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "力气生出来，得胜。",
+  "emoji": "🏅"
+ },
+ "央": {
+  "words": [
+   "中央"
+  ],
+  "sentences": [
+   "湖中央有个小岛。"
+  ],
+  "etym_type": "picto",
+  "etym": "人站在正中间，中央。",
+  "emoji": ""
+ },
+ "岛": {
+  "words": [
+   "小岛",
+   "海岛"
+  ],
+  "sentences": [
+   "小岛上住着小鸟。",
+   "海边有个小岛。"
+  ],
+  "etym_type": "picto",
+  "etym": "鸟落在山上，岛。",
+  "emoji": "🏝️"
+ },
+ "纱": {
+  "words": [
+   "纱巾",
+   "白纱"
+  ],
+  "sentences": [
+   "妈妈围着纱巾。"
+  ],
+  "etym_type": "component",
+  "etym": "薄薄的丝织物，纱。",
+  "emoji": ""
+ },
+ "童": {
+  "words": [
+   "儿童",
+   "童年",
+   "童话"
+  ],
+  "sentences": [
+   "我爱听童话。",
+   "童年真快乐。"
+  ],
+  "etym_type": "component",
+  "etym": "立着的小孩，儿童。",
+  "emoji": "🧒"
+ },
+ "境": {
+  "words": [
+   "环境"
+  ],
+  "sentences": [
+   "我们要爱护环境。"
+  ],
+  "etym_type": "component",
+  "etym": "土地的尽头，境地。",
+  "emoji": "🌏"
+ },
+ "引": {
+  "words": [
+   "吸引",
+   "引路"
+  ],
+  "sentences": [
+   "花香吸引了蜜蜂。",
+   "小狗给我们引路。"
+  ],
+  "etym_type": "picto",
+  "etym": "弓拉开，引导。",
+  "emoji": "🐕"
+ },
+ "客": {
+  "words": [
+   "客人",
+   "做客"
+  ],
+  "sentences": [
+   "家里来了客人。",
+   "我们去做客。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "屋里来的别人，客。",
+  "emoji": "🧳"
+ },
+ "沟": {
+  "words": [
+   "水沟"
+  ],
+  "sentences": [
+   "水沟里流着水。",
+   "田边有条小水沟。"
+  ],
+  "etym_type": "component",
+  "etym": "流水的小槽，沟。",
+  "emoji": "💧"
+ },
+ "产": {
+  "words": [
+   "特产",
+   "生产"
+  ],
+  "sentences": [
+   "家乡的特产是苹果。",
+   "工厂生产汽车。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "生出来的东西，产。",
+  "emoji": "🏭"
+ },
+ "梨": {
+  "words": [
+   "梨树",
+   "梨子"
+  ],
+  "sentences": [
+   "秋天摘梨子。",
+   "梨花白白的一片。"
+  ],
+  "etym_type": "component",
+  "etym": "果子利口的树，梨。",
+  "emoji": "🍐"
+ },
+ "份": {
+  "words": [
+   "一份",
+   "月份"
+  ],
+  "sentences": [
+   "我准备了一份礼物。"
+  ],
+  "etym_type": "component",
+  "etym": "分到的一份，份。",
+  "emoji": "🎁"
+ },
+ "枝": {
+  "words": [
+   "树枝",
+   "枝头"
+  ],
+  "sentences": [
+   "小鸟站在枝头。",
+   "大风吹断了树枝。"
+  ],
+  "etym_type": "component",
+  "etym": "树伸出的杈，枝。",
+  "emoji": "🌳"
+ },
+ "搭": {
+  "words": [
+   "搭起",
+   "搭积木"
+  ],
+  "sentences": [
+   "我们搭积木。",
+   "大家搭起一座桥。"
+  ],
+  "etym_type": "component",
+  "etym": "手把手架起来，搭。",
+  "emoji": "🧱"
+ },
+ "淡": {
+  "words": [
+   "淡淡",
+   "淡水"
+  ],
+  "sentences": [
+   "花儿散发着淡淡的香。",
+   "淡水湖里有鱼。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "水冲淡了火气，淡。",
+  "emoji": ""
+ },
+ "够": {
+  "words": [
+   "够了",
+   "足够"
+  ],
+  "sentences": [
+   "我吃饱了，够了。",
+   "书架太高，够不着。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "多到满足，就够了。",
+  "emoji": ""
+ },
+ "收": {
+  "words": [
+   "收下",
+   "收获"
+  ],
+  "sentences": [
+   "请收下我的礼物。",
+   "秋天是收获的季节。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "拿到手里，收。",
+  "emoji": "🧺"
+ },
+ "市": {
+  "words": [
+   "城市",
+   "市场"
+  ],
+  "sentences": [
+   "城市真热闹。",
+   "早上市场很热闹。"
+  ],
+  "etym_type": "picto",
+  "etym": "买卖东西的地方，市。",
+  "emoji": "🏙️"
+ },
+ "留": {
+  "words": [
+   "留下",
+   "留住"
+  ],
+  "sentences": [
+   "脚印留在雪地上。",
+   "留住美好的时光。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "停在原地，留下。",
+  "emoji": "🐾"
+ },
+ "钉": {
+  "words": [
+   "钉子"
+  ],
+  "sentences": [
+   "木板上有个钉子。",
+   "小心别碰钉子。"
+  ],
+  "etym_type": "component",
+  "etym": "尖尖的金属，钉。",
+  "emoji": "🔨"
+ },
+ "利": {
+  "words": [
+   "顺利",
+   "锋利"
+  ],
+  "sentences": [
+   "小刀很锋利。",
+   "一路顺利到了家。"
+  ],
+  "etym_type": "component",
+  "etym": "禾割得快，锋利。",
+  "emoji": ""
+ },
+ "味": {
+  "words": [
+   "味道",
+   "甜味"
+  ],
+  "sentences": [
+   "味道好极了。",
+   "糖有甜味。"
+  ],
+  "etym_type": "component",
+  "etym": "口尝出来的，味。",
+  "emoji": "😋"
+ },
+ "昌": {
+  "words": [
+   "昌盛"
+  ],
+  "sentences": [
+   "国家昌盛，人人开心。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "太阳当头，日子昌盛。",
+  "emoji": ""
+ },
+ "铺": {
+  "words": [
+   "店铺",
+   "铺子"
+  ],
+  "sentences": [
+   "街上开了新店铺。",
+   "铺子里卖糖。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "门板搭的店，铺。",
+  "emoji": "🏪"
+ },
+ "调": {
+  "words": [
+   "声调",
+   "曲调"
+  ],
+  "sentences": [
+   "普通话有四个声调。",
+   "这首曲调真好听。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "说得周全，调子。",
+  "emoji": "🎵"
+ },
+ "硬": {
+  "words": [
+   "坚硬"
+  ],
+  "sentences": [
+   "石头坚硬。",
+   "饼干放久了硬硬的。"
+  ],
+  "etym_type": "component",
+  "etym": "石头很硬，硬。",
+  "emoji": "🪨"
+ },
+ "卧": {
+  "words": [
+   "卧室"
+  ],
+  "sentences": [
+   "卧室收拾干净了。"
+  ],
+  "etym_type": "picto",
+  "etym": "人躺下休息，卧。",
+  "emoji": "🛏️"
+ },
+ "限": {
+  "words": [
+   "有限"
+  ],
+  "sentences": [
+   "时间有限，要抓紧。"
+  ],
+  "etym_type": "component",
+  "etym": "被挡住了，有限。",
+  "emoji": "⏳"
+ },
+ "乘": {
+  "words": [
+   "乘车",
+   "乘法"
+  ],
+  "sentences": [
+   "我们乘车去公园。",
+   "学乘法算得快。"
+  ],
+  "etym_type": "picto",
+  "etym": "人登上车，乘。",
+  "emoji": "🚌"
+ },
+ "售": {
+  "words": [
+   "售票",
+   "出售"
+  ],
+  "sentences": [
+   "阿姨在出售车票。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "说出价钱，出售。",
+  "emoji": "🎫"
+ },
+ "沿": {
+  "words": [
+   "沿着"
+  ],
+  "sentences": [
+   "我们沿着小路走。",
+   "沿着河边种柳树。"
+  ],
+  "etym_type": "component",
+  "etym": "顺着水边走，沿。",
+  "emoji": ""
+ },
+ "渴": {
+  "words": [
+   "口渴",
+   "渴了"
+  ],
+  "sentences": [
+   "跑完步口渴了。",
+   "渴了要多喝水。"
+  ],
+  "etym_type": "component",
+  "etym": "缺了水，就渴。",
+  "emoji": "💧"
+ },
+ "话": {
+  "words": [
+   "说话",
+   "听话"
+  ],
+  "sentences": [
+   "大家安静，听老师说话。",
+   "她说话声音甜甜的。"
+  ],
+  "etym_type": "component",
+  "etym": "说出来的，话。",
+  "emoji": "💬"
+ },
+ "弄": {
+  "words": [
+   "弄错",
+   "弄好"
+  ],
+  "sentences": [
+   "作业弄错了，改一改。",
+   "把玩具弄好。"
+  ],
+  "etym_type": "picto",
+  "etym": "双手摆弄东西，弄。",
+  "emoji": ""
+ },
+ "错": {
+  "words": [
+   "错了",
+   "错字"
+  ],
+  "sentences": [
+   "写错字要改正。",
+   "他发现自己错了。"
+  ],
+  "etym_type": "component",
+  "etym": "金属错开，交错。",
+  "emoji": "❌"
+ },
+ "际": {
+  "words": [
+   "一望无际",
+   "国际"
+  ],
+  "sentences": [
+   "大草原一望无际。"
+  ],
+  "etym_type": "component",
+  "etym": "墙的边上，边际。",
+  "emoji": "🌾"
+ },
+ "抬": {
+  "words": [
+   "抬头",
+   "抬起"
+  ],
+  "sentences": [
+   "抬头看月亮。",
+   "大家一起抬桌子。"
+  ],
+  "etym_type": "component",
+  "etym": "两人用手抬。",
+  "emoji": "🙆"
+ },
+ "缝": {
+  "words": [
+   "门缝",
+   "裂缝"
+  ],
+  "sentences": [
+   "门缝里漏出光。",
+   "墙上有条裂缝。"
+  ],
+  "etym_type": "component",
+  "etym": "线结合的地方，缝。",
+  "emoji": ""
+ },
+ "当": {
+  "words": [
+   "当心",
+   "当时"
+  ],
+  "sentences": [
+   "过马路要当心。",
+   "下雨天路滑，当心。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "对着正合适，相当。",
+  "emoji": "⚠️"
+ }
+}

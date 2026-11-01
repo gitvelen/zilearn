@@ -1,0 +1,778 @@
+{
+ "宇": {
+  "words": [
+   "宇宙",
+   "宇宙飞船"
+  ],
+  "sentences": [
+   "宇宙大得没有边。",
+   "我坐上宇宙飞船。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "大大的屋顶，宇。",
+  "emoji": "🌌"
+ },
+ "宙": {
+  "words": [
+   "宇宙"
+  ],
+  "sentences": [
+   "宇宙里有很多星星。",
+   "宇航员飞向宇宙。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "时间和空间，宙。",
+  "emoji": ""
+ },
+ "稳": {
+  "words": [
+   "平稳",
+   "稳稳"
+  ],
+  "sentences": [
+   "船开得平稳。",
+   "他稳稳地接住球。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "像禾苗扎根不动，稳。",
+  "emoji": ""
+ },
+ "杯": {
+  "words": [
+   "水杯",
+   "奖杯"
+  ],
+  "sentences": [
+   "奖杯亮闪闪。",
+   "用水杯喝水。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "盛水的器皿，杯。",
+  "emoji": "🏆"
+ },
+ "饮": {
+  "words": [
+   "饮料",
+   "饮水"
+  ],
+  "sentences": [
+   "少喝饮料。",
+   "多饮水身体好。"
+  ],
+  "etym_type": "component",
+  "etym": "张口喝，饮。",
+  "emoji": "🥤"
+ },
+ "稍": {
+  "words": [
+   "稍等"
+  ],
+  "sentences": [
+   "请稍等一下。"
+  ],
+  "etym_type": "component",
+  "etym": "一点点，稍。",
+  "emoji": ""
+ },
+ "舱": {
+  "words": [
+   "船舱",
+   "机舱"
+  ],
+  "sentences": [
+   "船舱里装满货。",
+   "飞机机舱关门了。"
+  ],
+  "etym_type": "component",
+  "etym": "船里的小房间，舱。",
+  "emoji": "🚢"
+ },
+ "板": {
+  "words": [
+   "黑板",
+   "木板"
+  ],
+  "sentences": [
+   "黑板上写着字。",
+   "木板搭成小桥。"
+  ],
+  "etym_type": "component",
+  "etym": "片状的木头，板。",
+  "emoji": "⬛"
+ },
+ "题": {
+  "words": [
+   "题目",
+   "问题"
+  ],
+  "sentences": [
+   "题目读两遍再答。",
+   "解决问题我最棒。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "写在头前的字，题。",
+  "emoji": "❓"
+ },
+ "浴": {
+  "words": [
+   "浴室",
+   "浴巾"
+  ],
+  "sentences": [
+   "浴室里洗澡。",
+   "浴巾挂在架上。"
+  ],
+  "etym_type": "component",
+  "etym": "在水里洗，浴。",
+  "emoji": "🛁"
+ },
+ "室": {
+  "words": [
+   "教室",
+   "室外"
+  ],
+  "sentences": [
+   "教室干净又明亮。",
+   "室外空气好。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "到的屋子，室。",
+  "emoji": "🏫"
+ },
+ "密": {
+  "words": [
+   "秘密",
+   "密码"
+  ],
+  "sentences": [
+   "这是我们的秘密。",
+   "手机有密码。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "藏得严严实实，密。",
+  "emoji": "🤫"
+ },
+ "固": {
+  "words": [
+   "牢固",
+   "坚固"
+  ],
+  "sentences": [
+   "城墙坚固。",
+   "桥建得牢固。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "围起来不动摇，固。",
+  "emoji": "🧱"
+ },
+ "博": {
+  "words": [
+   "博物馆",
+   "博士"
+  ],
+  "sentences": [
+   "我们参观博物馆。",
+   "博士懂得多。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "知道得又多又广，博。",
+  "emoji": "🏛️"
+ },
+ "馆": {
+  "words": [
+   "图书馆",
+   "饭馆"
+  ],
+  "sentences": [
+   "图书馆里安安静静。",
+   "饭馆里人真多。"
+  ],
+  "etym_type": "component",
+  "etym": "招待客人的屋子，馆。",
+  "emoji": "🍜"
+ },
+ "览": {
+  "words": [
+   "游览",
+   "展览"
+  ],
+  "sentences": [
+   "游览长城。",
+   "美术展览开幕了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "仔细看，览。",
+  "emoji": "🖼️"
+ },
+ "育": {
+  "words": [
+   "体育",
+   "教育"
+  ],
+  "sentences": [
+   "爸妈养育我们。",
+   "上好体育课。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "生下来养大，育。",
+  "emoji": "🏃"
+ },
+ "研": {
+  "words": [
+   "研究"
+  ],
+  "sentences": [
+   "科学家研究星星。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "磨细了弄清楚，研。",
+  "emoji": "🔬"
+ },
+ "究": {
+  "words": [
+   "研究"
+  ],
+  "sentences": [
+   "我研究蚂蚁搬家。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "探究到底，究。",
+  "emoji": "🔍"
+ },
+ "哨": {
+  "words": [
+   "口哨",
+   "哨声"
+  ],
+  "sentences": [
+   "吹起口哨。",
+   "哨声一响就集合。"
+  ],
+  "etym_type": "component",
+  "etym": "尖细的声音，哨。",
+  "emoji": "🎵"
+ },
+ "诊": {
+  "words": [
+   "门诊",
+   "诊断"
+  ],
+  "sentences": [
+   "医院里门诊人多。"
+  ],
+  "etym_type": "component",
+  "etym": "看病问一问，诊。",
+  "emoji": "🏥"
+ },
+ "耷": {
+  "words": [
+   "耷拉"
+  ],
+  "sentences": [
+   "小狗耷拉着耳朵。"
+  ],
+  "etym_type": "component",
+  "etym": "耳朵垂下来，耷。",
+  "emoji": "🐶"
+ },
+ "咦": {
+  "words": [
+   "咦咦"
+  ],
+  "sentences": [
+   "咦，这是什么呀？"
+  ],
+  "etym_type": "component",
+  "etym": "口旁：奇怪的声音，咦。",
+  "emoji": "🤨"
+ },
+ "竖": {
+  "words": [
+   "竖起"
+  ],
+  "sentences": [
+   "小兔竖起长耳朵。",
+   "他竖起大拇指。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "立起来，竖。",
+  "emoji": "👍"
+ },
+ "竿": {
+  "words": [
+   "竹竿",
+   "鱼竿"
+  ],
+  "sentences": [
+   "用鱼竿钓鱼。",
+   "竹竿晾衣服。"
+  ],
+  "etym_type": "component",
+  "etym": "竹子的长杆，竿。",
+  "emoji": "🎣"
+ },
+ "舞": {
+  "words": [
+   "跳舞",
+   "舞蹈"
+  ],
+  "sentences": [
+   "大家一起跳舞。",
+   "学习民族舞蹈。"
+  ],
+  "etym_type": "picto",
+  "etym": "手拿花枝跳舞的样子。",
+  "emoji": "💃"
+ },
+ "痛": {
+  "words": [
+   "头痛",
+   "疼痛"
+  ],
+  "sentences": [
+   "感冒了头有点痛。",
+   "伤口疼痛忍一忍。"
+  ],
+  "etym_type": "component",
+  "etym": "病了难受，痛。",
+  "emoji": "🤕"
+ },
+ "烦": {
+  "words": [
+   "烦恼",
+   "麻烦"
+  ],
+  "sentences": [
+   "小小的烦恼说出来。",
+   "麻烦你帮个忙。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "心急火燎，烦。",
+  "emoji": "😅"
+ },
+ "店": {
+  "words": [
+   "商店",
+   "店员"
+  ],
+  "sentences": [
+   "商店就在街口。",
+   "店员阿姨真热情。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "做买卖的屋子，店。",
+  "emoji": "🏪"
+ },
+ "蹲": {
+  "words": [
+   "蹲下",
+   "蹲着"
+  ],
+  "sentences": [
+   "蹲下看蚂蚁。",
+   "青蛙蹲在荷叶上。"
+  ],
+  "etym_type": "component",
+  "etym": "腿弯着坐下，蹲。",
+  "emoji": "🐸"
+ },
+ "寂": {
+  "words": [
+   "寂静",
+   "寂寞"
+  ],
+  "sentences": [
+   "夜晚的山村寂静。",
+   "一个人在家真寂寞。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "静悄悄没有人声，寂。",
+  "emoji": "🌙"
+ },
+ "寞": {
+  "words": [
+   "寂寞"
+  ],
+  "sentences": [
+   "有了朋友不寂寞。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "屋里冷冷清清，寞。",
+  "emoji": ""
+ },
+ "罩": {
+  "words": [
+   "灯罩",
+   "罩住"
+  ],
+  "sentences": [
+   "灯罩让光变得柔和。",
+   "用网罩住小虫。"
+  ],
+  "etym_type": "component",
+  "etym": "扣在上面，罩。",
+  "emoji": "🔦"
+ },
+ "编": {
+  "words": [
+   "编织",
+   "编故事"
+  ],
+  "sentences": [
+   "蜘蛛编织大网。",
+   "我们一起编故事。"
+  ],
+  "etym_type": "component",
+  "etym": "丝线交叉着做，编。",
+  "emoji": "🕸️"
+ },
+ "顾": {
+  "words": [
+   "照顾",
+   "顾客"
+  ],
+  "sentences": [
+   "妈妈照顾生病的我。",
+   "商店来了顾客。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "回过头看，顾。",
+  "emoji": "💗"
+ },
+ "付": {
+  "words": [
+   "付钱",
+   "支付"
+  ],
+  "sentences": [
+   "自己付钱买东西。",
+   "付出了努力。"
+  ],
+  "etym_type": "component",
+  "etym": "交出去，付。",
+  "emoji": "💰"
+ },
+ "夫": {
+  "words": [
+   "农夫",
+   "大夫"
+  ],
+  "sentences": [
+   "农夫在田里干活。",
+   "大夫给我看病。"
+  ],
+  "etym_type": "picto",
+  "etym": "头上插簪的大人，夫。",
+  "emoji": "👨‍🌾"
+ },
+ "换": {
+  "words": [
+   "换牙",
+   "交换"
+  ],
+  "sentences": [
+   "我开始换牙了。",
+   "我们交换图书。"
+  ],
+  "etym_type": "component",
+  "etym": "你给我我给你，换。",
+  "emoji": "🦷"
+ },
+ "颈": {
+  "words": [
+   "长颈鹿"
+  ],
+  "sentences": [
+   "长颈鹿的脖子长。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "头连着身体的地方，颈。",
+  "emoji": "🦒"
+ },
+ "袜": {
+  "words": [
+   "袜子"
+  ],
+  "sentences": [
+   "洗好自己的袜子。",
+   "冬天穿棉袜。"
+  ],
+  "etym_type": "component",
+  "etym": "脚上穿的衣服，袜。",
+  "emoji": "🧦"
+ },
+ "匆": {
+  "words": [
+   "匆忙",
+   "匆匆"
+  ],
+  "sentences": [
+   "他匆匆忙忙出门。",
+   "时间匆匆过。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "心里急走得快，匆。",
+  "emoji": "🏃"
+ },
+ "蜈": {
+  "words": [
+   "蜈蚣"
+  ],
+  "sentences": [
+   "蜈蚣有很多脚。"
+  ],
+  "etym_type": "component",
+  "etym": "多脚的小虫，蜈。",
+  "emoji": "🐛"
+ },
+ "蚣": {
+  "words": [
+   "蜈蚣"
+  ],
+  "sentences": [
+   "蜈蚣爬得快。"
+  ],
+  "etym_type": "component",
+  "etym": "蜈蚣的蚣。",
+  "emoji": ""
+ },
+ "卖": {
+  "words": [
+   "卖花"
+  ],
+  "sentences": [
+   "街上有人卖花。",
+   "他干活真卖力。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "拿出去换钱，卖。",
+  "emoji": "💐"
+ },
+ "烂": {
+  "words": [
+   "烂泥",
+   "破烂"
+  ],
+  "sentences": [
+   "小猪在烂泥里打滚。",
+   "破烂的书修一修。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "软烂破旧，烂。",
+  "emoji": "🐷"
+ },
+ "牌": {
+  "words": [
+   "门牌",
+   "招牌"
+  ],
+  "sentences": [
+   "找到门牌就到家。",
+   "店的招牌真大。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "做标记的板，牌。",
+  "emoji": "🪧"
+ },
+ "坑": {
+  "words": [
+   "水坑",
+   "土坑"
+  ],
+  "sentences": [
+   "雨后路上有水坑。",
+   "树下有个土坑。"
+  ],
+  "etym_type": "component",
+  "etym": "地上挖的洞，坑。",
+  "emoji": "🕳️"
+ },
+ "挺": {
+  "words": [
+   "挺直",
+   "挺立"
+  ],
+  "sentences": [
+   "把腰挺直。",
+   "小树挺立在风中。"
+  ],
+  "etym_type": "component",
+  "etym": "撑得直直的，挺。",
+  "emoji": "🌳"
+ },
+ "舒": {
+  "words": [
+   "舒服"
+  ],
+  "sentences": [
+   "躺在草地上真舒服。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "伸展放松，舒。",
+  "emoji": "😌"
+ },
+ "集": {
+  "words": [
+   "集合",
+   "赶集"
+  ],
+  "sentences": [
+   "操场集合做操。",
+   "爷爷去赶集。"
+  ],
+  "etym_type": "picto",
+  "etym": "鸟落在树上聚一起，集。",
+  "emoji": "🐦"
+ },
+ "播": {
+  "words": [
+   "广播",
+   "播种"
+  ],
+  "sentences": [
+   "广播响了。",
+   "春天播种。"
+  ],
+  "etym_type": "component",
+  "etym": "撒出去，播。",
+  "emoji": "📻"
+ },
+ "撒": {
+  "words": [
+   "撒种",
+   "撒网"
+  ],
+  "sentences": [
+   "在田里撒种。",
+   "渔民撒网捕鱼。"
+  ],
+  "etym_type": "component",
+  "etym": "扬手撒出去，撒。",
+  "emoji": "🌱"
+ },
+ "茵": {
+  "words": [
+   "绿茵茵"
+  ],
+  "sentences": [
+   "草地绿茵茵的。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "像垫子一样的绿草，茵。",
+  "emoji": ""
+ },
+ "灌": {
+  "words": [
+   "灌溉",
+   "灌水"
+  ],
+  "sentences": [
+   "水渠灌溉稻田。",
+   "给瓶子灌水。"
+  ],
+  "etym_type": "component",
+  "etym": "倒水进去，灌。",
+  "emoji": "💧"
+ },
+ "缺": {
+  "words": [
+   "缺水",
+   "缺少"
+  ],
+  "sentences": [
+   "植物缺水会枯。",
+   "缺少睡眠没精神。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "少了一块，缺。",
+  "emoji": ""
+ },
+ "泳": {
+  "words": [
+   "游泳",
+   "蛙泳"
+  ],
+  "sentences": [
+   "我学会了游泳。",
+   "蛙泳像小青蛙。"
+  ],
+  "etym_type": "component",
+  "etym": "在水里游，泳。",
+  "emoji": "🏊"
+ },
+ "愣": {
+  "words": [
+   "发愣",
+   "愣住"
+  ],
+  "sentences": [
+   "他愣住了。",
+   "看着天空发愣。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "心停了一下，愣。",
+  "emoji": ""
+ },
+ "昆": {
+  "words": [
+   "昆虫"
+  ],
+  "sentences": [
+   "昆虫世界真奇妙。",
+   "观察小昆虫。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "许许多多聚在一起，昆。",
+  "emoji": "🐛"
+ },
+ "怜": {
+  "words": [
+   "可怜"
+  ],
+  "sentences": [
+   "小猫淋了雨真可怜。",
+   "大家怜爱小动物。"
+  ],
+  "etym_type": "component",
+  "etym": "心里疼惜，怜。",
+  "emoji": "🐱"
+ },
+ "挪": {
+  "words": [
+   "挪开",
+   "挪动"
+  ],
+  "sentences": [
+   "把石头挪开。",
+   "他慢慢挪动脚步。"
+  ],
+  "etym_type": "component",
+  "etym": "移过去，挪。",
+  "emoji": ""
+ },
+ "仿": {
+  "words": [
+   "模仿",
+   "仿佛"
+  ],
+  "sentences": [
+   "小猴爱模仿人。",
+   "他仿佛听见了。"
+  ],
+  "etym_type": "component",
+  "etym": "照着样子做，仿。",
+  "emoji": "🐒"
+ },
+ "佛": {
+  "words": [
+   "仿佛"
+  ],
+  "sentences": [
+   "白云仿佛棉花糖。",
+   "他仿佛看见了大山。"
+  ],
+  "etym_type": "component",
+  "etym": "好像一样，仿佛。",
+  "emoji": "☁️"
+ }
+}

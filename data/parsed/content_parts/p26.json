@@ -1,0 +1,762 @@
+{
+ "筋": {
+  "words": [
+   "脑筋",
+   "筋疲力尽"
+  ],
+  "sentences": [
+   "动动脑筋想办法。",
+   "大家玩得筋疲力尽。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "竹子一样有韧性的细条，筋。",
+  "emoji": "🧠"
+ },
+ "疲": {
+  "words": [
+   "疲劳",
+   "筋疲力尽"
+  ],
+  "sentences": [
+   "走了一天，很疲劳。",
+   "跑完步筋疲力尽。"
+  ],
+  "etym_type": "component",
+  "etym": "皮都乏了，疲。",
+  "emoji": "😮‍💨"
+ },
+ "喘": {
+  "words": [
+   "喘气"
+  ],
+  "sentences": [
+   "跑完步直喘气。"
+  ],
+  "etym_type": "component",
+  "etym": "急促地出气，喘。",
+  "emoji": ""
+ },
+ "截": {
+  "words": [
+   "一截",
+   "半截"
+  ],
+  "sentences": [
+   "铅笔只剩半截了。",
+   "树枝断了一截。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "用刀割断，截。",
+  "emoji": "✂️"
+ },
+ "靠": {
+  "words": [
+   "靠近",
+   "靠着"
+  ],
+  "sentences": [
+   "小船靠着岸边。",
+   "椅子靠着墙。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "贴上去，靠。",
+  "emoji": "🪑"
+ },
+ "而": {
+  "words": [
+   "而且",
+   "而已"
+  ],
+  "sentences": [
+   "他会跑而且会跳。"
+  ],
+  "etym_type": "picto",
+  "etym": "像胡须下垂的样子，而。",
+  "emoji": ""
+ },
+ "哈": {
+  "words": [
+   "哈哈",
+   "哈气"
+  ],
+  "sentences": [
+   "听了哈哈大笑。",
+   "冬天哈气成白雾。"
+  ],
+  "etym_type": "component",
+  "etym": "张口哈气，哈。",
+  "emoji": "😄"
+ },
+ "审": {
+  "words": [
+   "审视"
+  ],
+  "sentences": [
+   "老师审视我的画。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "在屋里仔细看，审。",
+  "emoji": "👀"
+ },
+ "视": {
+  "words": [
+   "电视",
+   "视力"
+  ],
+  "sentences": [
+   "别离电视太近。",
+   "保护视力。"
+  ],
+  "etym_type": "component",
+  "etym": "睁眼看，视。",
+  "emoji": "📺"
+ },
+ "页": {
+  "words": [
+   "一页",
+   "书页"
+  ],
+  "sentences": [
+   "翻到下一页。"
+  ],
+  "etym_type": "picto",
+  "etym": "像人头的一张，页。",
+  "emoji": "📄"
+ },
+ "肃": {
+  "words": [
+   "严肃"
+  ],
+  "sentences": [
+   "爸爸表情严肃。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "恭敬地站着，肃。",
+  "emoji": "😐"
+ },
+ "晌": {
+  "words": [
+   "晌午"
+  ],
+  "sentences": [
+   "到了晌午，太阳高照。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "朝着太阳的时候，晌。",
+  "emoji": "☀️"
+ },
+ "抢": {
+  "words": [
+   "抢答",
+   "抢先"
+  ],
+  "sentences": [
+   "课堂上抢答问题。",
+   "他抢先跑出去。"
+  ],
+  "etym_type": "component",
+  "etym": "争着去拿，抢。",
+  "emoji": "🙋"
+ },
+ "嘻": {
+  "words": [
+   "嘻嘻",
+   "嘻嘻哈哈"
+  ],
+  "sentences": [
+   "她嘻嘻地笑。",
+   "大家嘻嘻哈哈真开心。"
+  ],
+  "etym_type": "component",
+  "etym": "喜笑的声音，嘻。",
+  "emoji": "😁"
+ },
+ "悦": {
+  "words": [
+   "悦耳",
+   "喜悦"
+  ],
+  "sentences": [
+   "悦耳的歌声。",
+   "心里充满喜悦。"
+  ],
+  "etym_type": "component",
+  "etym": "心里高兴，悦。",
+  "emoji": "🎵"
+ },
+ "诲": {
+  "words": [
+   "教诲"
+  ],
+  "sentences": [
+   "记住老师的教诲。"
+  ],
+  "etym_type": "component",
+  "etym": "一次次叮嘱，诲。",
+  "emoji": ""
+ },
+ "棚": {
+  "words": [
+   "棚子",
+   "瓜棚"
+  ],
+  "sentences": [
+   "院子里搭了棚子。",
+   "瓜棚下乘凉。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "竹木搭起的棚，棚。",
+  "emoji": ""
+ },
+ "驮": {
+  "words": [
+   "驮着"
+  ],
+  "sentences": [
+   "老马驮着麦子。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "马背背着东西，驮。",
+  "emoji": "🐴"
+ },
+ "磨": {
+  "words": [
+   "磨面",
+   "磨刀"
+  ],
+  "sentences": [
+   "石磨磨面。",
+   "磨刀不误砍柴工。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "两块石头转着磨，磨。",
+  "emoji": ""
+ },
+ "挡": {
+  "words": [
+   "挡住",
+   "挡风"
+  ],
+  "sentences": [
+   "大树挡住了风。",
+   "伞挡住了雨。"
+  ],
+  "etym_type": "component",
+  "etym": "拦下来，挡。",
+  "emoji": "☂️"
+ },
+ "伯": {
+  "words": [
+   "伯伯",
+   "大伯"
+  ],
+  "sentences": [
+   "伯伯种了很多树。",
+   "大伯家有小狗。"
+  ],
+  "etym_type": "component",
+  "etym": "爸爸的哥哥，伯。",
+  "emoji": "👨"
+ },
+ "浅": {
+  "words": [
+   "浅水",
+   "深浅"
+  ],
+  "sentences": [
+   "小河的水很浅。",
+   "水的深浅要知道。"
+  ],
+  "etym_type": "component",
+  "etym": "水少了就浅。",
+  "emoji": "💧"
+ },
+ "刻": {
+  "words": [
+   "立刻",
+   "时刻"
+  ],
+  "sentences": [
+   "听到铃声立刻站起来。",
+   "时刻记住安全。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "刀刻下记号，刻。",
+  "emoji": "⏱️"
+ },
+ "突": {
+  "words": [
+   "突然",
+   "突出"
+  ],
+  "sentences": [
+   "突然下起了雨。",
+   "石头突出一块。"
+  ],
+  "etym_type": "picto",
+  "etym": "狗从洞里猛冲出，突。",
+  "emoji": "🐕"
+ },
+ "哩": {
+  "words": [
+   "好哩"
+  ],
+  "sentences": [
+   "好哩，马上来。"
+  ],
+  "etym_type": "component",
+  "etym": "口旁：应答的声音，哩。",
+  "emoji": ""
+ },
+ "唉": {
+  "words": [
+   "唉唉"
+  ],
+  "sentences": [
+   "唉，又下雨了。",
+   "唉，我怎么忘了呢。"
+  ],
+  "etym_type": "component",
+  "etym": "口旁：叹气的声音，唉。",
+  "emoji": "😮‍💨"
+ },
+ "试": {
+  "words": [
+   "试试",
+   "试着"
+  ],
+  "sentences": [
+   "自己试试才知道。",
+   "小马试着过了河。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "先问一问再动手，试。",
+  "emoji": "🐴"
+ },
+ "蹄": {
+  "words": [
+   "马蹄",
+   "蹄子"
+  ],
+  "sentences": [
+   "马蹄踏过小河。"
+  ],
+  "etym_type": "component",
+  "etym": "脚上硬硬的壳，蹄。",
+  "emoji": ""
+ },
+ "既": {
+  "words": [
+   "既然"
+  ],
+  "sentences": [
+   "既然答应了就要做到。"
+  ],
+  "etym_type": "picto",
+  "etym": "吃完了转身走，已经，既。",
+  "emoji": ""
+ },
+ "厕": {
+  "words": [
+   "厕所"
+  ],
+  "sentences": [
+   "上完厕所要洗手。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "旁边的屋子，厕。",
+  "emoji": "🚻"
+ },
+ "窟": {
+  "words": [
+   "窟窿"
+  ],
+  "sentences": [
+   "墙角有个窟窿。",
+   "裤子破了个窟窿。"
+  ],
+  "etym_type": "component",
+  "etym": "地上挖的洞，窟。",
+  "emoji": "🕳️"
+ },
+ "窿": {
+  "words": [
+   "窟窿"
+  ],
+  "sentences": [
+   "地上有个大窟窿。"
+  ],
+  "etym_type": "component",
+  "etym": "深深的洞，窿。",
+  "emoji": ""
+ },
+ "窄": {
+  "words": [
+   "宽窄"
+  ],
+  "sentences": [
+   "山路又窄又陡。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "地方小，窄。",
+  "emoji": ""
+ },
+ "晓": {
+  "words": [
+   "春晓",
+   "破晓"
+  ],
+  "sentences": [
+   "春眠不觉晓，处处闻啼鸟。",
+   "天破晓，太阳升起来。"
+  ],
+  "etym_type": "scene",
+  "etym": "天刚亮的时候，晓。",
+  "emoji": "🌅"
+ },
+ "慈": {
+  "words": [
+   "慈祥",
+   "慈爱"
+  ],
+  "sentences": [
+   "奶奶慈祥地笑。",
+   "妈妈的目光很慈爱。"
+  ],
+  "etym_type": "component",
+  "etym": "软软的爱，慈。",
+  "emoji": "👵"
+ },
+ "毕": {
+  "words": [
+   "毕业"
+  ],
+  "sentences": [
+   "哥哥快小学毕业了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "庄稼收完了，完毕，毕。",
+  "emoji": "🎓"
+ },
+ "竟": {
+  "words": [
+   "竟然",
+   "毕竟"
+  ],
+  "sentences": [
+   "他竟然赢了。",
+   "毕竟还小，别怪他。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "乐曲到终了，竟然。",
+  "emoji": "😲"
+ },
+ "映": {
+  "words": [
+   "放映",
+   "倒映"
+  ],
+  "sentences": [
+   "湖面倒映着青山。",
+   "广场放映电影。"
+  ],
+  "etym_type": "component",
+  "etym": "光照出影子，映。",
+  "emoji": "🎬"
+ },
+ "绝": {
+  "words": [
+   "绝对",
+   "绝招"
+  ],
+  "sentences": [
+   "抄作业绝对不行。",
+   "他有一手绝招。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "丝剪断了，绝。",
+  "emoji": ""
+ },
+ "鹂": {
+  "words": [
+   "黄鹂"
+  ],
+  "sentences": [
+   "黄鹂唱歌真好听。",
+   "两个黄鹂鸣翠柳。"
+  ],
+  "etym_type": "component",
+  "etym": "美丽的鸟，鹂。",
+  "emoji": "🐦"
+ },
+ "鸣": {
+  "words": [
+   "鸣叫",
+   "鸟鸣"
+  ],
+  "sentences": [
+   "蝉在树上鸣叫。",
+   "两个黄鹂鸣翠柳。"
+  ],
+  "etym_type": "component",
+  "etym": "张口叫，鸣。",
+  "emoji": ""
+ },
+ "含": {
+  "words": [
+   "含着"
+  ],
+  "sentences": [
+   "糖含在嘴里慢慢化。"
+  ],
+  "etym_type": "picto",
+  "etym": "东西放在口里，含。",
+  "emoji": "🍬"
+ },
+ "岭": {
+  "words": [
+   "山岭"
+  ],
+  "sentences": [
+   "山岭连着山岭。",
+   "翻过山岭到家。"
+  ],
+  "etym_type": "component",
+  "etym": "相连的山，岭。",
+  "emoji": "⛰️"
+ },
+ "泊": {
+  "words": [
+   "湖泊"
+  ],
+  "sentences": [
+   "高山上有湖泊。",
+   "湖泊像一面镜子。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "船停靠的水面，泊。",
+  "emoji": ""
+ },
+ "压": {
+  "words": [
+   "压住"
+  ],
+  "sentences": [
+   "石头压住了纸。",
+   "乌云压下来。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "从上往下按，压。",
+  "emoji": "⬇️"
+ },
+ "蝉": {
+  "words": [
+   "蝉鸣"
+  ],
+  "sentences": [
+   "夏夜蝉鸣像唱歌。"
+  ],
+  "etym_type": "component",
+  "etym": "夏天叫的虫，蝉。",
+  "emoji": "🦗"
+ },
+ "垂": {
+  "words": [
+   "垂下",
+   "垂柳"
+  ],
+  "sentences": [
+   "柳条垂下来。",
+   "花儿垂下了头。"
+  ],
+  "etym_type": "picto",
+  "etym": "枝条下弯的样子，垂。",
+  "emoji": "🌿"
+ },
+ "户": {
+  "words": [
+   "窗户",
+   "家家户户"
+  ],
+  "sentences": [
+   "打开窗户透气。",
+   "过年家家户户贴福字。"
+  ],
+  "etym_type": "picto",
+  "etym": "一扇门的样子，户。",
+  "emoji": "🚪"
+ },
+ "扑": {
+  "words": [
+   "扑来"
+  ],
+  "sentences": [
+   "小狗扑来欢迎我。",
+   "饭香扑面。"
+  ],
+  "etym_type": "component",
+  "etym": "猛地冲上去，扑。",
+  "emoji": "🐶"
+ },
+ "慌": {
+  "words": [
+   "慌张",
+   "慌忙"
+  ],
+  "sentences": [
+   "别慌张，慢慢来。",
+   "他慌忙跑出去。"
+  ],
+  "etym_type": "component",
+  "etym": "心乱了，慌。",
+  "emoji": ""
+ },
+ "辨": {
+  "words": [
+   "辨别"
+  ],
+  "sentences": [
+   "学会辨别方向。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "中间切开看清楚，辨。",
+  "emoji": "🧭"
+ },
+ "忠": {
+  "words": [
+   "忠实"
+  ],
+  "sentences": [
+   "狗是忠实的伙伴。"
+  ],
+  "etym_type": "component",
+  "etym": "心放正中间，忠。",
+  "emoji": "🐕"
+ },
+ "实": {
+  "words": [
+   "果实",
+   "忠实"
+  ],
+  "sentences": [
+   "果实挂满枝头。",
+   "他说话很实在。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "屋里满满的，实。",
+  "emoji": "🌰"
+ },
+ "导": {
+  "words": [
+   "向导",
+   "导游"
+  ],
+  "sentences": [
+   "小狗成了我们的向导。",
+   "导游介绍风景。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "牵着走，导。",
+  "emoji": "🧭"
+ },
+ "盏": {
+  "words": [
+   "一盏"
+  ],
+  "sentences": [
+   "一盏灯亮了。",
+   "门前挂着一盏灯笼。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "浅浅的小器皿，盏。",
+  "emoji": "🏮"
+ },
+ "永": {
+  "words": [
+   "永远"
+  ],
+  "sentences": [
+   "我永远爱妈妈。",
+   "友谊永远不变。"
+  ],
+  "etym_type": "picto",
+  "etym": "水流长不断，永。",
+  "emoji": "💕"
+ },
+ "闯": {
+  "words": [
+   "闯关",
+   "闯进"
+  ],
+  "sentences": [
+   "游戏闯关成功。",
+   "小猫闯进了屋。"
+  ],
+  "etym_type": "picto",
+  "etym": "马冲进门，闯。",
+  "emoji": "🐎"
+ },
+ "碰": {
+  "words": [
+   "碰到",
+   "碰见"
+  ],
+  "sentences": [
+   "碰到困难不后退。",
+   "我碰见了同学。"
+  ],
+  "etym_type": "component",
+  "etym": "两个东西相撞，碰。",
+  "emoji": ""
+ },
+ "稠": {
+  "words": [
+   "浓稠",
+   "稠密"
+  ],
+  "sentences": [
+   "粥熬得浓稠。",
+   "枝叶稠密。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "多而密，稠。",
+  "emoji": "🥣"
+ },
+ "稀": {
+  "words": [
+   "稀饭",
+   "稀少"
+  ],
+  "sentences": [
+   "早餐喝稀饭。",
+   "沙漠里树稀少。"
+  ],
+  "etym_type": "component",
+  "etym": "少而薄，稀。",
+  "emoji": ""
+ },
+ "渠": {
+  "words": [
+   "水渠"
+  ],
+  "sentences": [
+   "水渠流进田里。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "挖出来的水沟，渠。",
+  "emoji": "💧"
+ },
+ "航": {
+  "words": [
+   "航天",
+   "航行"
+  ],
+  "sentences": [
+   "航天员飞上太空。",
+   "轮船在海上航行。"
+  ],
+  "etym_type": "component",
+  "etym": "船在水上走，航。",
+  "emoji": "🚀"
+ }
+}

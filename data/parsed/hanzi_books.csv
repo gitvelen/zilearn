@@ -312,7 +312,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 1b,30,请,qǐng,qing3,,字组2
 1b,31,让,ràng,rang4,,字组2
 1b,32,病,bìng,bing4,,字组2
-1b,33,相,xiāng,xiang1,,字组2
+1b,33,相,xiāng,xiang1,"[[""xiàng"", ""xiang4"", ""相片""]]",字组2
 1b,34,遇,yù,yu4,,字组2
 1b,35,喜,xǐ,xi3,,字组2
 1b,36,欢,huān,huan1,,字组2
@@ -357,11 +357,11 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 1b,75,壮,zhuàng,zhuang4,,字组4
 1b,76,观,guān,guan1,,字组4
 1b,77,接,jiē,jie1,,字组4
-1b,78,觉,jué,jue2,,字组4
+1b,78,觉,jué,jue2,"[[""jiào"", ""jiao4"", ""睡觉""]]",字组4
 1b,79,再,zài,zai4,,字组4
 1b,80,做,zuò,zuo4,,字组4
 1b,81,各,gè,ge4,,字组5
-1b,82,种,zhǒng,zhong3,,字组5
+1b,82,种,zhǒng,zhong3,"[[""zhòng"", ""zhong4"", ""种树""]]",字组5
 1b,83,样,yàng,yang4,,字组5
 1b,84,梦,mèng,meng4,,字组5
 1b,85,伙,huǒ,huo3,,字组5
@@ -405,13 +405,13 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 1b,123,窝,wō,wo1,,字组7
 1b,124,孤,gū,gu1,,字组7
 1b,125,单,dān,dan1,,字组7
-1b,126,都,dōu,dou1,,字组7
+1b,126,都,dōu,dou1,"[[""dū"", ""du1"", ""首都""]]",字组7
 1b,127,邻,lín,lin2,,字组7
 1b,128,居,jū,ju1,,字组7
 1b,129,招,zhāo,zhao1,,字组7
 1b,130,呼,hū,hu1,,字组7
 1b,131,静,jìng,jing4,,字组7
-1b,132,乐,lè,le4,,字组7
+1b,132,乐,lè,le4,"[[""yuè"", ""yue4"", ""音乐""]]",字组7
 1b,133,怎,zěn,zen3,,字组7
 1b,134,独,dú,du2,,字组7
 1b,135,跳,tiào,tiao4,,字组7
@@ -464,8 +464,8 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 1b,182,提,tí,ti2,,字组10
 1b,183,浇,jiāo,jiao1,,字组10
 1b,184,洒,sǎ,sa3,,字组10
-1b,185,挑,tiāo,tiao1,,字组10
-1b,186,兴,xīng,xing1,,字组10
+1b,185,挑,tiāo,tiao1,"[[""tiǎo"", ""tiao3"", ""挑食""]]",字组10
+1b,186,兴,xīng,xing1,"[[""xìng"", ""xing4"", ""高兴""]]",字组10
 1b,187,拿,ná,na2,,字组10
 1b,188,镜,jìng,jing4,,字组10
 1b,189,照,zhào,zhao4,,字组10
@@ -482,7 +482,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 1b,200,蜻,qīng,qing1,,字组10
 1b,201,蜓,tíng,ting2,,字组11
 1b,202,迷,mí,mi2,,字组11
-1b,203,藏,cáng,cang2,,字组11
+1b,203,藏,cáng,cang2,"[[""zàng"", ""zang4"", ""宝藏""]]",字组11
 1b,204,造,zào,zao4,,字组11
 1b,205,蚂,mǎ,ma3,,字组11
 1b,206,蚁,yǐ,yi3,,字组11
@@ -499,7 +499,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 1b,217,凉,liáng,liang2,,字组11
 1b,218,晨,chén,chen2,,字组11
 1b,219,细,xì,xi4,,字组11
-1b,220,朝,cháo,chao2,,字组11
+1b,220,朝,cháo,chao2,"[[""zhāo"", ""zhao1"", ""朝霞""]]",字组11
 1b,221,霞,xiá,xia2,,字组12
 1b,222,夕,xī,xi1,,字组12
 1b,223,杨,yáng,yang2,,字组12
@@ -580,7 +580,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 1b,298,萤,yíng,ying2,,字组15
 1b,299,牵,qiān,qian1,,字组15
 1b,300,织,zhī,zhi1,,字组15
-1b,301,斗,dòu,dou4,,字组16
+1b,301,斗,dòu,dou4,"[[""dǒu"", ""dou3"", ""北斗""]]",字组16
 1b,302,具,jù,ju4,,字组16
 1b,303,次,cì,ci4,,字组16
 1b,304,丢,diū,diu1,,字组16
@@ -645,7 +645,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 1b,363,治,zhì,zhi4,,字组19
 1b,364,燕,yàn,yan4,,字组19
 1b,365,别,bié,bie2,,字组19
-1b,366,干,gàn,gan4,,字组19
+1b,366,干,gàn,gan4,"[[""gān"", ""gan1"", ""干净""]]",字组19
 1b,367,然,rán,ran2,,字组19
 1b,368,奇,qí,qi2,,字组19
 1b,369,颗,kē,ke1,,字组19
@@ -677,7 +677,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 1b,395,赶,gǎn,gan3,,字组20
 1b,396,房,fáng,fang2,,字组20
 1b,397,傻,shǎ,sha3,,字组20
-1b,398,转,zhuǎn,zhuan3,,字组20
+1b,398,转,zhuǎn,zhuan3,"[[""zhuàn"", ""zhuan4"", ""转圈""]]",字组20
 1b,399,卫,wèi,wei4,,字组20
 1b,400,巾,jīn,jin1,,字组20
 1b,401,擦,cā,ca1,,字组21
@@ -718,7 +718,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,30,猜,cāi,cai1,,字组2
 2a,31,植,zhí,zhi2,,字组2
 2a,32,如,rú,ru2,,字组2
-2a,33,为,wèi,wei4,,字组2
+2a,33,为,wèi,wei4,"[[""wéi"", ""wei2"", ""成为""]]",字组2
 2a,34,旅,lǚ,lv3,,字组2
 2a,35,备,bèi,bei4,,字组2
 2a,36,纷,fēn,fen1,,字组2
@@ -814,13 +814,13 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,126,柱,zhù,zhu4,,字组7
 2a,127,议,yì,yi4,,字组7
 2a,128,论,lùn,lun4,,字组7
-2a,129,重,zhòng,zhong4,,字组7
+2a,129,重,zhòng,zhong4,"[[""chóng"", ""chong2"", ""重复""]]",字组7
 2a,130,杆,gān,gan1,,字组7
 2a,131,秤,chèng,cheng4,,字组7
 2a,132,砍,kǎn,kan3,,字组7
 2a,133,线,xiàn,xian4,,字组7
 2a,134,止,zhǐ,zhi3,,字组7
-2a,135,量,liàng,liang4,,字组7
+2a,135,量,liàng,liang4,"[[""liáng"", ""liang2"", ""量身高""]]",字组7
 2a,136,玲,líng,ling2,,字组7
 2a,137,详,xiáng,xiang2,,字组7
 2a,138,幅,fú,fu2,,字组7
@@ -828,7 +828,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,140,奖,jiǎng,jiang3,,字组7
 2a,141,催,cuī,cui1,,字组8
 2a,142,啪,pā,pa1,,字组8
-2a,143,脏,zàng,zang4,,字组8
+2a,143,脏,zāng,zang1,"[[""zàng"", ""zang4"", ""心脏""]]",字组8
 2a,144,报,bào,bao4,,字组8
 2a,145,另,lìng,ling4,,字组8
 2a,146,及,jí,ji2,,字组8
@@ -839,7 +839,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,151,封,fēng,feng1,,字组8
 2a,152,削,xuē,xue1,,字组8
 2a,153,锅,guō,guo1,,字组8
-2a,154,朝,cháo,chao2,,字组8
+2a,154,朝,cháo,chao2,"[[""zhāo"", ""zhao1"", ""朝霞""]]",字组8
 2a,155,刮,guā,gua1,,字组8
 2a,156,胡,hú,hu2,,字组8
 2a,157,修,xiū,xiu1,,字组8
@@ -865,7 +865,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,177,额,é,e2,,字组9
 2a,178,沙,shā,sha1,,字组9
 2a,179,之,zhī,zhi1,,字组9
-2a,180,弹,dàn,dan4,,字组9
+2a,180,弹,dàn,dan4,"[[""tán"", ""tan2"", ""弹琴""]]",字组9
 2a,181,钢,gāng,gang1,,字组10
 2a,182,琴,qín,qin2,,字组10
 2a,183,捏,niē,nie1,,字组10
@@ -878,7 +878,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,190,梯,tī,ti1,,字组10
 2a,191,楼,lóu,lou2,,字组10
 2a,192,依,yī,yi1,,字组10
-2a,193,尽,jǐn,jin3,,字组10
+2a,193,尽,jǐn,jin3,"[[""jìn"", ""jin4"", ""尽情""]]",字组10
 2a,194,欲,yù,yu4,,字组10
 2a,195,穷,qióng,qiong2,,字组10
 2a,196,层,céng,ceng2,,字组10
@@ -900,7 +900,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,212,仙,xiān,xian1,,字组11
 2a,213,巨,jù,ju4,,字组11
 2a,214,位,wèi,wei4,,字组11
-2a,215,都,dōu,dou1,,字组11
+2a,215,都,dōu,dou1,"[[""dū"", ""du1"", ""首都""]]",字组11
 2a,216,著,zhù,zhu4,,字组11
 2a,217,形,xíng,xing2,,字组11
 2a,218,状,zhuàng,zhuang4,,字组11
@@ -909,7 +909,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,221,湖,hú,hu2,,字组12
 2a,222,绕,rào,rao4,,字组12
 2a,223,茂,mào,mao4,,字组12
-2a,224,盛,shèng,sheng4,,字组12
+2a,224,盛,shèng,sheng4,"[[""chéng"", ""cheng2"", ""盛饭""]]",字组12
 2a,225,围,wéi,wei2,,字组12
 2a,226,胜,shèng,sheng4,,字组12
 2a,227,央,yāng,yang1,,字组12
@@ -931,15 +931,15 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,243,收,shōu,shou1,,字组13
 2a,244,城,chéng,cheng2,,字组13
 2a,245,市,shì,shi4,,字组13
-2a,246,干,gàn,gan4,,字组13
+2a,246,干,gàn,gan4,"[[""gān"", ""gan1"", ""干净""]]",字组13
 2a,247,留,liú,liu2,,字组13
 2a,248,钉,dīng,ding1,,字组13
 2a,249,利,lì,li4,,字组13
 2a,250,分,fēn,fen1,,字组13
 2a,251,味,wèi,wei4,,字组13
 2a,252,昌,chāng,chang1,,字组13
-2a,253,铺,pù,pu4,,字组13
-2a,254,调,diào,diao4,,字组13
+2a,253,铺,pù,pu4,"[[""pū"", ""pu1"", ""铺床""]]",字组13
+2a,254,调,diào,diao4,"[[""tiáo"", ""tiao2"", ""调皮""]]",字组13
 2a,255,硬,yìng,ying4,,字组13
 2a,256,卧,wò,wo4,,字组13
 2a,257,限,xiàn,xian4,,字组13
@@ -956,7 +956,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,268,哪,nǎ,na3,,字组14
 2a,269,抬,tái,tai2,,字组14
 2a,270,堵,dǔ,du3,,字组14
-2a,271,缝,fèng,feng4,,字组14
+2a,271,缝,fèng,feng4,"[[""féng"", ""feng2"", ""缝衣服""]]",字组14
 2a,272,当,dāng,dang1,,字组14
 2a,273,鹊,què,que4,,字组14
 2a,274,朗,lǎng,lang3,,字组14
@@ -964,7 +964,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,276,枯,kū,ku1,,字组14
 2a,277,劝,quàn,quan4,,字组14
 2a,278,趁,chèn,chen4,,字组14
-2a,279,将,jiāng,jiang1,,字组14
+2a,279,将,jiāng,jiang1,"[[""jiàng"", ""jiang4"", ""将军""]]",字组14
 2a,280,且,qiě,qie3,,字组14
 2a,281,腊,là,la4,,字组15
 2a,282,狂,kuáng,kuang2,,字组15
@@ -997,7 +997,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,309,兽,shòu,shou4,,字组16
 2a,310,伤,shāng,shang1,,字组16
 2a,311,灾,zāi,zai1,,字组16
-2a,312,难,nán,nan2,,字组16
+2a,312,难,nán,nan2,"[[""nàn"", ""nan4"", ""灾难""]]",字组16
 2a,313,仍,réng,reng2,,字组16
 2a,314,退,tuì,tui4,,字组16
 2a,315,继,jì,ji4,,字组16
@@ -1009,7 +1009,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,321,朱,zhū,zhu1,,字组17
 2a,322,德,dé,de2,,字组17
 2a,323,扁,biǎn,bian3,,字组17
-2a,324,担,dān,dan1,,字组17
+2a,324,担,dān,dan1,"[[""dàn"", ""dan4"", ""扁担""]]",字组17
 2a,325,志,zhì,zhi4,,字组17
 2a,326,伍,wǔ,wu3,,字组17
 2a,327,泽,zé,ze2,,字组17
@@ -1066,10 +1066,10 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,378,梁,liáng,liang2,,字组19
 2a,379,甚,shèn,shen4,,字组19
 2a,380,至,zhì,zhi4,,字组19
-2a,381,切,qiè,qie4,,字组20
+2a,381,切,qiè,qie4,"[[""qiē"", ""qie1"", ""切菜""]]",字组20
 2a,382,躲,duǒ,duo3,,字组20
 2a,383,失,shī,shi1,,字组20
-2a,384,累,lèi,lei4,,字组20
+2a,384,累,lèi,lei4,"[[""lěi"", ""lei3"", ""积累""]]",字组20
 2a,385,添,tiān,tian1,,字组20
 2a,386,柴,chái,chai2,,字组20
 2a,387,烧,shāo,shao1,,字组20
@@ -1092,9 +1092,9 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,404,骏,jùn,jun4,,字组21
 2a,405,悬,xuán,xuan2,,字组21
 2a,406,崖,yá,ya2,,字组21
-2a,407,假,jiǎ,jia3,,字组21
+2a,407,假,jiǎ,jia3,"[[""jià"", ""jia4"", ""放假""]]",字组21
 2a,408,威,wēi,wei1,,字组21
-2a,409,转,zhuǎn,zhuan3,,字组21
+2a,409,转,zhuǎn,zhuan3,"[[""zhuàn"", ""zhuan4"", ""转圈""]]",字组21
 2a,410,扯,chě,che3,,字组21
 2a,411,嗓,sǎng,sang3,,字组21
 2a,412,派,pài,pai4,,字组21
@@ -1118,13 +1118,13 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2a,430,匀,yún,yun2,,字组22
 2a,431,嚷,rǎng,rang3,,字组22
 2a,432,瞧,qiáo,qiao2,,字组22
-2a,433,便,biàn,bian4,,字组22
+2a,433,便,biàn,bian4,"[[""pián"", ""pian2"", ""便宜""]]",字组22
 2a,434,剩,shèng,sheng4,,字组22
 2a,435,整,zhěng,zheng3,,字组22
 2a,436,筝,zhēng,zheng1,,字组22
 2a,437,鼠,shǔ,shu3,,字组22
 2a,438,折,zhé,zhe2,,字组22
-2a,439,漂,piāo,piao1,,字组22
+2a,439,漂,piāo,piao1,"[[""piào"", ""piao4"", ""漂亮""]]",字组22
 2a,440,扎,zhā,zha1,,字组22
 2a,441,抓,zhuā,zhua1,,字组23
 2a,442,幸,xìng,xing4,,字组23
@@ -1244,7 +1244,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2b,90,劳,láo,lao2,,字组5
 2b,91,的,de,de5,,字组5
 2b,92,确,què,que4,,字组5
-2b,93,应,yīng,ying1,,字组5
+2b,93,应,yīng,ying1,"[[""yìng"", ""ying4"", ""答应""]]",字组5
 2b,94,郊,jiāo,jiao1,,字组5
 2b,95,泛,fàn,fan4,,字组5
 2b,96,波,bō,bo1,,字组5
@@ -1304,7 +1304,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2b,150,甲,jiǎ,jia3,,字组8
 2b,151,骨,gǔ,gu3,,字组8
 2b,152,类,lèi,lei4,,字组8
-2b,153,漂,piāo,piao1,,字组8
+2b,153,漂,piāo,piao1,"[[""piào"", ""piao4"", ""漂亮""]]",字组8
 2b,154,珍,zhēn,zhen1,,字组8
 2b,155,饰,shì,shi4,,字组8
 2b,156,品,pǐn,pin3,,字组8
@@ -1368,7 +1368,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2b,214,充,chōng,chong1,,字组11
 2b,215,攻,gōng,gong1,,字组11
 2b,216,商,shāng,shang1,,字组11
-2b,217,量,liàng,liang4,,字组11
+2b,217,量,liàng,liang4,"[[""liáng"", ""liang2"", ""量身高""]]",字组11
 2b,218,驾,jià,jia4,,字组11
 2b,219,轰,hōng,hong1,,字组11
 2b,220,驳,bó,bo2,,字组11
@@ -1383,7 +1383,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2b,229,尿,niào,niao4,,字组12
 2b,230,茸,rōng,rong1,,字组12
 2b,231,醒,xǐng,xing3,,字组12
-2b,232,晃,huǎng,huang3,,字组12
+2b,232,晃,huǎng,huang3,"[[""huàng"", ""huang4"", ""晃动""]]",字组12
 2b,233,免,miǎn,mian3,,字组12
 2b,234,费,fèi,fei4,,字组12
 2b,235,列,liè,lie4,,字组12
@@ -1395,7 +1395,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2b,241,陀,tuó,tuo2,,字组13
 2b,242,螺,luó,luo2,,字组13
 2b,243,毽,jiàn,jian4,,字组13
-2b,244,倒,dào,dao4,,字组13
+2b,244,倒,dào,dao4,"[[""dǎo"", ""dao3"", ""摔倒""]]",字组13
 2b,245,翁,wēng,weng1,,字组13
 2b,246,枪,qiāng,qiang1,,字组13
 2b,247,橡,xiàng,xiang4,,字组13
@@ -1406,8 +1406,8 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2b,252,则,zé,ze2,,字组13
 2b,253,亡,wáng,wang2,,字组13
 2b,254,牢,láo,lao2,,字组13
-2b,255,圈,quān,quan1,,字组13
-2b,256,钻,zuān,zuan1,,字组13
+2b,255,圈,quān,quan1,"[[""juàn"", ""juan4"", ""羊圈""]]",字组13
+2b,256,钻,zuān,zuan1,"[[""zuàn"", ""zuan4"", ""钻石""]]",字组13
 2b,257,叼,diāo,diao1,,字组13
 2b,258,坊,fāng,fang1,,字组13
 2b,259,悔,huǐ,hui3,,字组13
@@ -1550,7 +1550,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 2b,396,挪,nuó,nuo2,,字组20
 2b,397,仿,fǎng,fang3,,字组20
 2b,398,佛,fú,fu2,,字组20
-2b,399,尽,jǐn,jin3,,字组20
+2b,399,尽,jǐn,jin3,"[[""jìn"", ""jin4"", ""尽情""]]",字组20
 2b,400,任,rèn,ren4,,字组20
 2b,401,何,hé,he2,,字组21
 2b,402,纺,fǎng,fang3,,字组21
@@ -1628,12 +1628,12 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 3a,11,荒,huāng,huang1,,字组1
 3a,12,笛,dí,di2,,字组1
 3a,13,罚,fá,fa2,,字组1
-3a,14,假,jiǎ,jia3,,字组1
+3a,14,假,jiǎ,jia3,"[[""jià"", ""jia4"", ""放假""]]",字组1
 3a,15,裳,shang,shang5,,字组1
 3a,16,背,bèi,bei4,,字组1
 3a,17,诵,sòng,song4,,字组1
 3a,18,例,lì,li4,,字组1
-3a,19,圈,quān,quan1,,字组1
+3a,19,圈,quān,quan1,"[[""juàn"", ""juan4"", ""羊圈""]]",字组1
 3a,20,段,duàn,duan4,,字组1
 3a,21,练,liàn,lian4,,字组2
 3a,22,糊,hú,hu2,,字组2
@@ -1653,7 +1653,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 3a,36,君,jūn,jun1,,字组2
 3a,37,橙,chéng,cheng2,,字组2
 3a,38,橘,jú,ju2,,字组2
-3a,39,挑,tiāo,tiao1,,字组2
+3a,39,挑,tiāo,tiao1,"[[""tiǎo"", ""tiao3"", ""挑食""]]",字组2
 3a,40,洼,wā,wa1,,字组2
 3a,41,印,yìn,yin4,,字组3
 3a,42,凌,líng,ling2,,字组3
@@ -1689,7 +1689,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 3a,72,蜡,là,la4,,字组4
 3a,73,烛,zhú,zhu2,,字组4
 3a,74,富,fù,fu4,,字组4
-3a,75,晃,huǎng,huang3,,字组4
+3a,75,晃,huǎng,huang3,"[[""huàng"", ""huang4"", ""晃动""]]",字组4
 3a,76,划,huà,hua4,,字组4
 3a,77,喷,pēn,pen1,,字组4
 3a,78,缩,suō,suo1,,字组4
@@ -1703,7 +1703,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 3a,86,咱,zán,zan2,,字组5
 3a,87,偷,tōu,tou1,,字组5
 3a,88,答,dá,da2,,字组5
-3a,89,应,yīng,ying1,,字组5
+3a,89,应,yīng,ying1,"[[""yìng"", ""ying4"", ""答应""]]",字组5
 3a,90,骨,gǔ,gu3,,字组5
 3a,91,齿,chǐ,chi3,,字组5
 3a,92,嚼,jué,jue2,,字组5
@@ -1750,13 +1750,13 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 3a,133,怒,nù,nu4,,字组7
 3a,134,批,pī,pi1,,字组7
 3a,135,访,fǎng,fang3,,字组7
-3a,136,担,dān,dan1,,字组7
+3a,136,担,dān,dan1,"[[""dàn"", ""dan4"", ""扁担""]]",字组7
 3a,137,压,yā,ya1,,字组7
 3a,138,差,chà,cha4,,字组7
 3a,139,忍,rěn,ren3,,字组7
 3a,140,模,mó,mo2,,字组7
 3a,141,中,zhōng,zhong1,,字组8
-3a,142,弹,dàn,dan4,,字组8
+3a,142,弹,dàn,dan4,"[[""tán"", ""tan2"", ""弹琴""]]",字组8
 3a,143,疯,fēng,feng1,,字组8
 3a,144,汪,wāng,wang1,,字组8
 3a,145,搞,gǎo,gao3,,字组8
@@ -1807,7 +1807,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 3a,190,凳,dèng,deng4,,字组10
 3a,191,逢,féng,feng2,,字组10
 3a,192,除,chú,chu2,,字组10
-3a,193,兴,xīng,xing1,,字组10
+3a,193,兴,xīng,xing1,"[[""xìng"", ""xing4"", ""高兴""]]",字组10
 3a,194,融,róng,rong2,,字组10
 3a,195,侧,cè,ce4,,字组10
 3a,196,欣,xīn,xin1,,字组10
@@ -1860,7 +1860,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 3a,243,姿,zī,zi1,,字组13
 3a,244,势,shì,shi4,,字组13
 3a,245,投,tóu,tou2,,字组13
-3a,246,调,diào,diao4,,字组13
+3a,246,调,diào,diao4,"[[""tiáo"", ""tiao2"", ""调皮""]]",字组13
 3a,247,况,kuàng,kuang4,,字组13
 3a,248,烈,liè,lie4,,字组13
 3a,249,镇,zhèn,zhen4,,字组13
@@ -1878,7 +1878,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 3a,261,者,zhě,zhe3,,字组14
 3a,262,惜,xī,xi1,,字组14
 3a,263,诚,chéng,cheng2,,字组14
-3a,264,斗,dòu,dou4,,字组14
+3a,264,斗,dòu,dou4,"[[""dǒu"", ""dou3"", ""北斗""]]",字组14
 3a,265,棒,bàng,bang4,,字组14
 3a,266,恩,ēn,en1,,字组14
 3a,267,大,dà,da4,,字组14
@@ -1981,7 +1981,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 3b,83,制,zhì,zhi4,,字组5
 3b,84,蔡,cài,cai4,,字组5
 3b,85,伦,lún,lun2,,字组5
-3b,86,累,lèi,lei4,,字组5
+3b,86,累,lèi,lei4,"[[""lěi"", ""lei3"", ""积累""]]",字组5
 3b,87,鲜,xiān,xian1,,字组5
 3b,88,欧,ōu,ou1,,字组5
 3b,89,洲,zhōu,zhou1,,字组5
@@ -1998,7 +1998,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 3b,100,慧,huì,hui4,,字组5
 3b,101,历,lì,li4,,字组6
 3b,102,择,zé,ze2,,字组6
-3b,103,都,dōu,dou1,,字组6
+3b,103,都,dōu,dou1,"[[""dū"", ""du1"", ""首都""]]",字组6
 3b,104,宫,gōng,gong1,,字组6
 3b,105,摊,tān,tan1,,字组6
 3b,106,贩,fàn,fan4,,字组6
@@ -2120,7 +2120,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 3b,222,彤,tóng,tong2,,字组12
 3b,223,跪,guì,gui4,,字组12
 3b,224,庙,miào,miao4,,字组12
-3b,225,缝,fèng,feng4,,字组12
+3b,225,缝,fèng,feng4,"[[""féng"", ""feng2"", ""缝衣服""]]",字组12
 3b,226,箱,xiāng,xiang1,,字组12
 3b,227,夸,kuā,kua1,,字组12
 3b,228,歪,wāi,wai1,,字组12
@@ -2318,7 +2318,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 4a,148,级,jí,ji2,,字组8
 4a,149,链,liàn,lian4,,字组8
 4a,150,攀,pān,pan1,,字组8
-4a,151,相,xiāng,xiang1,,字组8
+4a,151,相,xiāng,xiang1,"[[""xiàng"", ""xiang4"", ""相片""]]",字组8
 4a,152,辫,biàn,bian4,,字组8
 4a,153,呵,hē,he1,,字组8
 4a,154,谓,wèi,wei4,,字组8
@@ -2712,7 +2712,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 5a,7,亩,mǔ,mu3,,字组1
 5a,8,吩,fēn,fen1,,字组1
 5a,9,榨,zhà,zha4,,字组1
-5a,10,便,biàn,bian4,,字组1
+5a,10,便,biàn,bian4,"[[""pián"", ""pian2"", ""便宜""]]",字组1
 5a,11,榴,liú,liu2,,字组1
 5a,12,矮,ǎi,ai3,,字组1
 5a,13,箩,luó,luo2,,字组1
@@ -2880,7 +2880,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 5a,175,桩,zhuāng,zhuang1,,字组9
 5a,176,暇,xiá,xia2,,字组9
 5a,177,悄,qiāo,qiao1,,字组9
-5a,178,累,lèi,lei4,,字组9
+5a,178,累,lèi,lei4,"[[""lěi"", ""lei3"", ""积累""]]",字组9
 5a,179,袅,niǎo,niao3,,字组9
 5a,180,嫦,cháng,chang2,,字组9
 5a,181,娥,é,e2,,字组10
@@ -2929,7 +2929,7 @@ book,seq,char,pinyin,tone3,alt_readings,unit
 5b,4,稚,zhì,zhi4,,字组1
 5b,5,漪,yī,yi1,,字组1
 5b,6,蚱,zhà,zha4,,字组1
-5b,7,晃,huǎng,huang3,,字组1
+5b,7,晃,huǎng,huang3,"[[""huàng"", ""huang4"", ""晃动""]]",字组1
 5b,8,啃,kěn,ken3,,字组1
 5b,9,樱,yīng,ying1,,字组1
 5b,10,蚌,bàng,bang4,,字组1

@@ -1,0 +1,764 @@
+{
+ "繁": {
+  "words": [
+   "繁忙",
+   "繁星"
+  ],
+  "sentences": [
+   "妈妈工作繁忙。",
+   "满天繁星亮晶晶。"
+  ],
+  "etym_type": "component",
+  "etym": "丝头多又密，繁。",
+  "emoji": "✨"
+ },
+ "荣": {
+  "words": [
+   "光荣",
+   "繁荣"
+  ],
+  "sentences": [
+   "劳动最光荣。",
+   "城市一片繁荣。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "草木开花，欣欣向荣。",
+  "emoji": "🌸"
+ },
+ "传": {
+  "words": [
+   "传统",
+   "传说"
+  ],
+  "sentences": [
+   "元宵节是传统节日。",
+   "这是流传下来的故事。"
+  ],
+  "etym_type": "component",
+  "etym": "一人传给一人，传。",
+  "emoji": "🏮"
+ },
+ "统": {
+  "words": [
+   "传统"
+  ],
+  "sentences": [
+   "舞龙是传统表演。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "丝的头绪理好，统。",
+  "emoji": ""
+ },
+ "贴": {
+  "words": [
+   "贴纸",
+   "贴上"
+  ],
+  "sentences": [
+   "奖励一张贴纸。",
+   "把福字贴在门上。"
+  ],
+  "etym_type": "component",
+  "etym": "牢牢粘上去，贴。",
+  "emoji": "🏷️"
+ },
+ "宵": {
+  "words": [
+   "元宵",
+   "夜宵"
+  ],
+  "sentences": [
+   "元宵节吃汤圆。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "夜里的时光，宵。",
+  "emoji": "🏮"
+ },
+ "巷": {
+  "words": [
+   "小巷",
+   "巷子"
+  ],
+  "sentences": [
+   "巷子里飘着饭香。",
+   "走过深深的小巷。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "大家共走的小道，巷。",
+  "emoji": "🏘️"
+ },
+ "祭": {
+  "words": [
+   "祭扫",
+   "祭拜"
+  ],
+  "sentences": [
+   "清明节去祭扫。"
+  ],
+  "etym_type": "picto",
+  "etym": "捧着心意敬献，祭。",
+  "emoji": ""
+ },
+ "舟": {
+  "words": [
+   "龙舟",
+   "小舟"
+  ],
+  "sentences": [
+   "龙舟划得快。",
+   "一叶小舟水上漂。"
+  ],
+  "etym_type": "picto",
+  "etym": "像小船的样子，舟。",
+  "emoji": "🛶"
+ },
+ "艾": {
+  "words": [
+   "艾草",
+   "艾叶"
+  ],
+  "sentences": [
+   "端午挂艾草。"
+  ],
+  "etym_type": "component",
+  "etym": "香香的草，艾。",
+  "emoji": "🌿"
+ },
+ "堂": {
+  "words": [
+   "课堂",
+   "食堂"
+  ],
+  "sentences": [
+   "课堂上学知识。",
+   "中午去食堂吃饭。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "高大的屋子，堂。",
+  "emoji": "🏫"
+ },
+ "乞": {
+  "words": [
+   "乞求",
+   "乞巧"
+  ],
+  "sentences": [
+   "古人七夕乞巧。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "向人开口求，乞。",
+  "emoji": ""
+ },
+ "巧": {
+  "words": [
+   "巧妙",
+   "心灵手巧"
+  ],
+  "sentences": [
+   "答案想得巧妙。",
+   "她心灵手巧。"
+  ],
+  "etym_type": "component",
+  "etym": "手艺好，巧妙。",
+  "emoji": "🧵"
+ },
+ "郎": {
+  "words": [
+   "牛郎",
+   "新郎"
+  ],
+  "sentences": [
+   "牛郎织女的传说。"
+  ],
+  "etym_type": "component",
+  "etym": "年轻的男子，郎。",
+  "emoji": "💑"
+ },
+ "饼": {
+  "words": [
+   "月饼",
+   "饼干"
+  ],
+  "sentences": [
+   "中秋吃月饼。",
+   "饼干香香脆脆。"
+  ],
+  "etym_type": "component",
+  "etym": "面粉做成的饼。",
+  "emoji": "🥮"
+ },
+ "赏": {
+  "words": [
+   "赏月",
+   "赏花"
+  ],
+  "sentences": [
+   "中秋赏月。",
+   "我们去公园赏花。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "觉得好，值得看，赏。",
+  "emoji": "🌕"
+ },
+ "菊": {
+  "words": [
+   "菊花"
+  ],
+  "sentences": [
+   "菊花秋天开。",
+   "重阳节赏菊花。"
+  ],
+  "etym_type": "component",
+  "etym": "秋天开的花，菊。",
+  "emoji": "🌼"
+ },
+ "甲": {
+  "words": [
+   "指甲",
+   "甲骨文"
+  ],
+  "sentences": [
+   "指甲要剪短。",
+   "甲骨文是古时候的字。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "排第一的、最硬的，甲。",
+  "emoji": ""
+ },
+ "骨": {
+  "words": [
+   "骨头"
+  ],
+  "sentences": [
+   "小狗爱啃骨头。"
+  ],
+  "etym_type": "picto",
+  "etym": "像骨头有棱有角。",
+  "emoji": "🦴"
+ },
+ "类": {
+  "words": [
+   "分类",
+   "同类"
+  ],
+  "sentences": [
+   "把垃圾分类。",
+   "同类物品放一起。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一样的归成一样，类。",
+  "emoji": "♻️"
+ },
+ "珍": {
+  "words": [
+   "珍贵",
+   "珍宝"
+  ],
+  "sentences": [
+   "时间珍贵。",
+   "博物馆里有珍宝。"
+  ],
+  "etym_type": "component",
+  "etym": "宝贝难得，珍。",
+  "emoji": "💎"
+ },
+ "饰": {
+  "words": [
+   "装饰",
+   "饰品"
+  ],
+  "sentences": [
+   "彩带装饰教室。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "打扮得漂亮，饰。",
+  "emoji": "🎀"
+ },
+ "品": {
+  "words": [
+   "作品",
+   "礼品"
+  ],
+  "sentences": [
+   "展出我的作品。",
+   "把礼品包得好看。"
+  ],
+  "etym_type": "picto",
+  "etym": "三个口，一口一口尝，品。",
+  "emoji": "🖼️"
+ },
+ "随": {
+  "words": [
+   "随时",
+   "随便"
+  ],
+  "sentences": [
+   "随时欢迎你来。",
+   "别随便扔东西。"
+  ],
+  "etym_type": "component",
+  "etym": "跟在后面走，随。",
+  "emoji": ""
+ },
+ "易": {
+  "words": [
+   "容易",
+   "轻易"
+  ],
+  "sentences": [
+   "这道题很容易。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "像变色龙一样变，易。",
+  "emoji": ""
+ },
+ "损": {
+  "words": [
+   "损失",
+   "破损"
+  ],
+  "sentences": [
+   "台风带来了损失。",
+   "图书破损了要补。"
+  ],
+  "etym_type": "component",
+  "etym": "少了、坏了，损。",
+  "emoji": ""
+ },
+ "币": {
+  "words": [
+   "钱币",
+   "硬币"
+  ],
+  "sentences": [
+   "硬币圆圆的。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "能买东西的，币。",
+  "emoji": "🪙"
+ },
+ "财": {
+  "words": [
+   "财富"
+  ],
+  "sentences": [
+   "知识是财富。"
+  ],
+  "etym_type": "component",
+  "etym": "宝贝就是财。",
+  "emoji": "💰"
+ },
+ "赚": {
+  "words": [
+   "赚钱"
+  ],
+  "sentences": [
+   "爸爸辛苦赚钱。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "钱变多了，赚。",
+  "emoji": "💵"
+ },
+ "赔": {
+  "words": [
+   "赔礼"
+  ],
+  "sentences": [
+   "给他赔礼道歉。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "钱变少了，赔。",
+  "emoji": ""
+ },
+ "购": {
+  "words": [
+   "购物",
+   "购买"
+  ],
+  "sentences": [
+   "和妈妈去购物。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "用钱换东西，购。",
+  "emoji": "🛍️"
+ },
+ "贫": {
+  "words": [
+   "贫穷",
+   "贫困"
+  ],
+  "sentences": [
+   "山区不再贫穷。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "钱被分光了，贫。",
+  "emoji": ""
+ },
+ "菠": {
+  "words": [
+   "菠菜",
+   "菠萝"
+  ],
+  "sentences": [
+   "菠菜绿绿的。",
+   "菠萝酸甜。"
+  ],
+  "etym_type": "component",
+  "etym": "绿叶像波浪，菠。",
+  "emoji": "🍍"
+ },
+ "煎": {
+  "words": [
+   "煎蛋",
+   "煎鱼"
+  ],
+  "sentences": [
+   "妈妈会煎蛋。"
+  ],
+  "etym_type": "component",
+  "etym": "少油慢慢煎。",
+  "emoji": "🍳"
+ },
+ "腐": {
+  "words": [
+   "豆腐"
+  ],
+  "sentences": [
+   "豆腐白白软软。",
+   "白菜炖豆腐。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "豆子做成的“肉”，腐。",
+  "emoji": "🥡"
+ },
+ "茄": {
+  "words": [
+   "茄子",
+   "番茄"
+  ],
+  "sentences": [
+   "茄子紫紫的。",
+   "番茄炒蛋真好吃。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "菜园里的果，茄。",
+  "emoji": "🍆"
+ },
+ "烤": {
+  "words": [
+   "烤肉",
+   "烤鸭"
+  ],
+  "sentences": [
+   "北京烤鸭有名。",
+   "冬天烤火暖和。"
+  ],
+  "etym_type": "component",
+  "etym": "靠近火烤，烤。",
+  "emoji": "🔥"
+ },
+ "煮": {
+  "words": [
+   "煮饭",
+   "煮开"
+  ],
+  "sentences": [
+   "学着自己煮面。",
+   "水煮开了。"
+  ],
+  "etym_type": "component",
+  "etym": "放在火里煮。",
+  "emoji": "🍜"
+ },
+ "爆": {
+  "words": [
+   "爆米花",
+   "爆开"
+  ],
+  "sentences": [
+   "爆米花香香甜甜。"
+  ],
+  "etym_type": "component",
+  "etym": "猛地裂开，爆。",
+  "emoji": "🍿"
+ },
+ "炖": {
+  "words": [
+   "炖肉",
+   "炖汤"
+  ],
+  "sentences": [
+   "奶奶炖的汤真香。",
+   "冬天炖肉吃。"
+  ],
+  "etym_type": "component",
+  "etym": "小火慢慢炖。",
+  "emoji": "🍲"
+ },
+ "蘑": {
+  "words": [
+   "蘑菇"
+  ],
+  "sentences": [
+   "雨后采蘑菇。",
+   "小蘑菇打着伞。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "像小伞的菌，蘑。",
+  "emoji": "🍄"
+ },
+ "菇": {
+  "words": [
+   "蘑菇",
+   "香菇"
+  ],
+  "sentences": [
+   "香菇炒青菜真香。"
+  ],
+  "etym_type": "component",
+  "etym": "草里的菌，菇。",
+  "emoji": ""
+ },
+ "蒸": {
+  "words": [
+   "蒸饺",
+   "蒸鱼"
+  ],
+  "sentences": [
+   "妈妈蒸了一锅饺子。"
+  ],
+  "etym_type": "component",
+  "etym": "用蒸汽蒸，蒸。",
+  "emoji": "🥟"
+ },
+ "饺": {
+  "words": [
+   "饺子",
+   "水饺"
+  ],
+  "sentences": [
+   "冬至吃饺子。",
+   "包饺子真开心。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "皮包馅的面食，饺。",
+  "emoji": ""
+ },
+ "酱": {
+  "words": [
+   "酱油",
+   "果酱"
+  ],
+  "sentences": [
+   "面包抹果酱。"
+  ],
+  "etym_type": "component",
+  "etym": "发酵的调料，酱。",
+  "emoji": "🍯"
+ },
+ "粥": {
+  "words": [
+   "白粥",
+   "小米粥"
+  ],
+  "sentences": [
+   "早餐喝白粥。",
+   "小米粥香香的。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "米粒煮开花，粥。",
+  "emoji": "🥣"
+ },
+ "蛋": {
+  "words": [
+   "鸡蛋",
+   "蛋壳"
+  ],
+  "sentences": [
+   "早餐吃一个鸡蛋。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "圆圆的卵，蛋。",
+  "emoji": "🥚"
+ },
+ "津": {
+  "words": [
+   "天津",
+   "津津有味"
+  ],
+  "sentences": [
+   "听得津津有味。"
+  ],
+  "etym_type": "component",
+  "etym": "渡口的水，津。",
+  "emoji": "😋"
+ },
+ "溜": {
+  "words": [
+   "溜冰",
+   "溜走"
+  ],
+  "sentences": [
+   "我去溜冰。",
+   "小鱼溜走了。"
+  ],
+  "etym_type": "component",
+  "etym": "滑滑地走，溜。",
+  "emoji": "⛸️"
+ },
+ "辣": {
+  "words": [
+   "辣椒"
+  ],
+  "sentences": [
+   "辣椒红红的。",
+   "这道菜太辣了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "辣味辣舌头，辣。",
+  "emoji": "🌶️"
+ },
+ "乎": {
+  "words": [
+   "热乎乎",
+   "在乎"
+  ],
+  "sentences": [
+   "汤热乎乎的。",
+   "妈妈最在乎我。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "口气词，乎。",
+  "emoji": "🥣"
+ },
+ "喷": {
+  "words": [
+   "喷水",
+   "喷香"
+  ],
+  "sentences": [
+   "洒水车在喷水。",
+   "饭菜喷香。"
+  ],
+  "etym_type": "component",
+  "etym": "用力吐出来，喷。",
+  "emoji": "💦"
+ },
+ "腻": {
+  "words": [
+   "油腻"
+  ],
+  "sentences": [
+   "少吃油腻的东西。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "油多吃多了，腻。",
+  "emoji": ""
+ },
+ "绵": {
+  "words": [
+   "绵羊",
+   "软绵绵"
+  ],
+  "sentences": [
+   "绵羊毛软绵绵。"
+  ],
+  "etym_type": "component",
+  "etym": "软软的丝，绵。",
+  "emoji": "🐑"
+ },
+ "脆": {
+  "words": [
+   "香脆",
+   "脆脆"
+  ],
+  "sentences": [
+   "饼干脆脆的。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一咬就断，脆。",
+  "emoji": "🍪"
+ },
+ "邦": {
+  "words": [
+   "邻邦"
+  ],
+  "sentences": [
+   "邻邦要友好相处。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "封地建国，邦。",
+  "emoji": ""
+ },
+ "盒": {
+  "words": [
+   "盒子",
+   "铅笔盒"
+  ],
+  "sentences": [
+   "铅笔盒里放铅笔。",
+   "礼物装进盒子。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "合起来的器皿，盒。",
+  "emoji": "🎁"
+ },
+ "聊": {
+  "words": [
+   "聊天"
+  ],
+  "sentences": [
+   "和好朋友聊天真开心。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "耳边说话，聊。",
+  "emoji": "💬"
+ },
+ "坪": {
+  "words": [
+   "草坪"
+  ],
+  "sentences": [
+   "草坪软软的。",
+   "别踩草坪。"
+  ],
+  "etym_type": "component",
+  "etym": "平整的空地，坪。",
+  "emoji": "🌱"
+ },
+ "郁": {
+  "words": [
+   "葱郁",
+   "浓郁"
+  ],
+  "sentences": [
+   "树木葱郁。",
+   "花香浓郁。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "厚厚的、密密的，郁。",
+  "emoji": "🌳"
+ },
+ "囱": {
+  "words": [
+   "烟囱"
+  ],
+  "sentences": [
+   "烟囱冒烟了。"
+  ],
+  "etym_type": "picto",
+  "etym": "像烟囱冒烟的样子。",
+  "emoji": "🏭"
+ },
+ "般": {
+  "words": [
+   "一般"
+  ],
+  "sentences": [
+   "我一般都是先做作业。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "这一类的，般。",
+  "emoji": ""
+ }
+}

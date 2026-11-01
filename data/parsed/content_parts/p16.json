@@ -1,0 +1,777 @@
+{
+ "梧": {
+  "words": [
+   "梧桐"
+  ],
+  "sentences": [
+   "梧桐叶像大手。"
+  ],
+  "etym_type": "component",
+  "etym": "木旁加吾：我家门口的树。",
+  "emoji": ""
+ },
+ "桐": {
+  "words": [
+   "梧桐"
+  ],
+  "sentences": [
+   "梧桐树落叶了。",
+   "马路旁种着梧桐。"
+  ],
+  "etym_type": "component",
+  "etym": "木旁加同：高高的桐树。",
+  "emoji": ""
+ },
+ "掌": {
+  "words": [
+   "手掌",
+   "掌心",
+   "鼓掌"
+  ],
+  "sentences": [
+   "拍拍手掌，欢迎欢迎。",
+   "把糖放进掌心。"
+  ],
+  "etym_type": "component",
+  "etym": "手里托着东西，掌。",
+  "emoji": "👏"
+ },
+ "枫": {
+  "words": [
+   "枫叶",
+   "枫树"
+  ],
+  "sentences": [
+   "秋天枫叶红红。",
+   "枫树站在山坡。"
+  ],
+  "etym_type": "component",
+  "etym": "木旁加风：风吹叶红的树。",
+  "emoji": "🍁"
+ },
+ "松": {
+  "words": [
+   "松树",
+   "松果"
+  ],
+  "sentences": [
+   "松树四季都绿。",
+   "小松鼠捡松果。"
+  ],
+  "etym_type": "component",
+  "etym": "枝条松松散散，松。",
+  "emoji": "🌲"
+ },
+ "柏": {
+  "words": [
+   "柏树"
+  ],
+  "sentences": [
+   "柏树又高又直。"
+  ],
+  "etym_type": "component",
+  "etym": "木旁加白：叶像白鳞的树。",
+  "emoji": ""
+ },
+ "装": {
+  "words": [
+   "装扮",
+   "服装",
+   "装满"
+  ],
+  "sentences": [
+   "服装穿整齐。",
+   "筐装满了果子。"
+  ],
+  "etym_type": "component",
+  "etym": "衣旁加壮：穿在身上。",
+  "emoji": "👕"
+ },
+ "桦": {
+  "words": [
+   "白桦"
+  ],
+  "sentences": [
+   "白桦树皮白白的。"
+  ],
+  "etym_type": "component",
+  "etym": "木旁加华：披白纱的树。",
+  "emoji": ""
+ },
+ "耐": {
+  "words": [
+   "耐心"
+  ],
+  "sentences": [
+   "老师耐心地教我们。"
+  ],
+  "etym_type": "component",
+  "etym": "等着不着急，耐心。",
+  "emoji": "⏳"
+ },
+ "守": {
+  "words": [
+   "守护",
+   "看守"
+  ],
+  "sentences": [
+   "小狗看守家门。"
+  ],
+  "etym_type": "component",
+  "etym": "屋里有人，守着家。",
+  "emoji": "🐕"
+ },
+ "疆": {
+  "words": [
+   "边疆"
+  ],
+  "sentences": [
+   "叔叔在边疆工作。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "用弓守着的土地，疆。",
+  "emoji": ""
+ },
+ "银": {
+  "words": [
+   "银色",
+   "白银"
+  ],
+  "sentences": [
+   "银色的月亮弯弯。",
+   "湖水泛着银光。"
+  ],
+  "etym_type": "component",
+  "etym": "白色的金属，银。",
+  "emoji": "🥈"
+ },
+ "杉": {
+  "words": [
+   "杉树",
+   "水杉"
+  ],
+  "sentences": [
+   "水杉直直的。"
+  ],
+  "etym_type": "component",
+  "etym": "叶像细毛的树，杉。",
+  "emoji": "🌲"
+ },
+ "化": {
+  "words": [
+   "变化",
+   "化石"
+  ],
+  "sentences": [
+   "天气变化多。",
+   "大恐龙变成了化石。"
+  ],
+  "etym_type": "component",
+  "etym": "人变了样，就是化。",
+  "emoji": "🦕"
+ },
+ "桂": {
+  "words": [
+   "桂花"
+  ],
+  "sentences": [
+   "桂花香，飘满院子。",
+   "八月桂花开了。"
+  ],
+  "etym_type": "component",
+  "etym": "香香的树，桂花。",
+  "emoji": "🌼"
+ },
+ "世": {
+  "words": [
+   "世界"
+  ],
+  "sentences": [
+   "世界真大呀。",
+   "我想环游世界。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "三十年为一世，一代人。",
+  "emoji": "🌍"
+ },
+ "界": {
+  "words": [
+   "世界",
+   "眼界"
+  ],
+  "sentences": [
+   "读书开眼界。",
+   "世界很奇妙。"
+  ],
+  "etym_type": "component",
+  "etym": "田和田的分界，界。",
+  "emoji": ""
+ },
+ "孔": {
+  "words": [
+   "孔雀"
+  ],
+  "sentences": [
+   "孔雀开屏真美。"
+  ],
+  "etym_type": "picto",
+  "etym": "小小的洞洞，就是孔。",
+  "emoji": "🦚"
+ },
+ "雀": {
+  "words": [
+   "孔雀",
+   "麻雀"
+  ],
+  "sentences": [
+   "麻雀在树上跳。"
+  ],
+  "etym_type": "component",
+  "etym": "小小的短尾鸟，雀。",
+  "emoji": "🐦"
+ },
+ "锦": {
+  "words": [
+   "锦鸡",
+   "锦鲤"
+  ],
+  "sentences": [
+   "锦鸡尾巴长长。",
+   "池里游着锦鲤。"
+  ],
+  "etym_type": "component",
+  "etym": "像金子般花纹的丝布，锦。",
+  "emoji": "🐟"
+ },
+ "雄": {
+  "words": [
+   "雄鹰",
+   "雄伟",
+   "英雄"
+  ],
+  "sentences": [
+   "城墙雄伟高大。",
+   "英雄受人尊敬。"
+  ],
+  "etym_type": "component",
+  "etym": "公鸟高高大大的，雄。",
+  "emoji": "🦅"
+ },
+ "鹰": {
+  "words": [
+   "老鹰",
+   "雄鹰"
+  ],
+  "sentences": [
+   "老鹰飞得高。",
+   "雄鹰展开翅膀。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "翅膀大大的鸟，鹰。",
+  "emoji": ""
+ },
+ "翔": {
+  "words": [
+   "飞翔"
+  ],
+  "sentences": [
+   "小鸟自由飞翔。",
+   "我梦想在蓝天飞翔。"
+  ],
+  "etym_type": "component",
+  "etym": "带着羽毛飞，翔。",
+  "emoji": ""
+ },
+ "雁": {
+  "words": [
+   "大雁"
+  ],
+  "sentences": [
+   "大雁排队往南飞。"
+  ],
+  "etym_type": "picto",
+  "etym": "排成人字飞的鸟，雁。",
+  "emoji": ""
+ },
+ "丛": {
+  "words": [
+   "草丛",
+   "花丛"
+  ],
+  "sentences": [
+   "草丛里藏着小虫。",
+   "花丛中蝴蝶飞。"
+  ],
+  "etym_type": "picto",
+  "etym": "一棵挨一棵长，丛。",
+  "emoji": "🌿"
+ },
+ "深": {
+  "words": [
+   "深浅",
+   "深夜"
+  ],
+  "sentences": [
+   "这口井深不深？",
+   "深夜安静下来了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "探不到底，就是深。",
+  "emoji": ""
+ },
+ "猛": {
+  "words": [
+   "凶猛",
+   "猛地"
+  ],
+  "sentences": [
+   "老虎凶猛。",
+   "他猛地站起来。"
+  ],
+  "etym_type": "component",
+  "etym": "兽性大发的样子，猛。",
+  "emoji": "🐅"
+ },
+ "灵": {
+  "words": [
+   "机灵",
+   "灵活"
+  ],
+  "sentences": [
+   "小猴子机灵。",
+   "手指灵活能动。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "心里有小火苗，灵气。",
+  "emoji": "✨"
+ },
+ "休": {
+  "words": [
+   "休息"
+  ],
+  "sentences": [
+   "走累了，在树下休息。"
+  ],
+  "etym_type": "picto",
+  "etym": "人靠着树，休息。",
+  "emoji": "🌳"
+ },
+ "季": {
+  "words": [
+   "季节",
+   "四季",
+   "秋季"
+  ],
+  "sentences": [
+   "四季景色不同。",
+   "秋季果子多。"
+  ],
+  "etym_type": "component",
+  "etym": "稻子熟了一茬，一季。",
+  "emoji": "🍂"
+ },
+ "蝴": {
+  "words": [
+   "蝴蝶"
+  ],
+  "sentences": [
+   "蝴蝶飞过花丛。"
+  ],
+  "etym_type": "component",
+  "etym": "花间飞的小虫，蝴。",
+  "emoji": "🦋"
+ },
+ "蝶": {
+  "words": [
+   "蝴蝶"
+  ],
+  "sentences": [
+   "蝴蝶落在花上。",
+   "两只蝴蝶飞来飞去。"
+  ],
+  "etym_type": "component",
+  "etym": "翅膀像叶片的虫，蝶。",
+  "emoji": ""
+ },
+ "麦": {
+  "words": [
+   "麦子",
+   "小麦",
+   "麦苗"
+  ],
+  "sentences": [
+   "小麦磨成面粉。",
+   "麦苗绿油油。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "秋种夏收的庄稼，麦。",
+  "emoji": "🌾"
+ },
+ "苗": {
+  "words": [
+   "麦苗",
+   "禾苗",
+   "树苗"
+  ],
+  "sentences": [
+   "禾苗节节高。",
+   "春天栽树苗。"
+  ],
+  "etym_type": "picto",
+  "etym": "田里长的嫩草，苗。",
+  "emoji": "🌱"
+ },
+ "嫩": {
+  "words": [
+   "嫩绿"
+  ],
+  "sentences": [
+   "春雨后，草嫩绿嫩绿。",
+   "嫩绿的柳条随风摆。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "软软的、新新的，嫩。",
+  "emoji": ""
+ },
+ "桑": {
+  "words": [
+   "桑树",
+   "桑果"
+  ],
+  "sentences": [
+   "爷爷种了桑树。",
+   "桑果紫紫的、甜甜的。"
+  ],
+  "etym_type": "picto",
+  "etym": "树上结满果子的桑。",
+  "emoji": ""
+ },
+ "肥": {
+  "words": [
+   "肥胖",
+   "肥肥"
+  ],
+  "sentences": [
+   "小猪长得肥肥的。"
+  ],
+  "etym_type": "component",
+  "etym": "肉多多的，就是肥。",
+  "emoji": "🐖"
+ },
+ "农": {
+  "words": [
+   "农民",
+   "农田"
+  ],
+  "sentences": [
+   "农民在田里插秧。",
+   "农田一望无边。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "在田里出力的人，农民。",
+  "emoji": "👨‍🌾"
+ },
+ "勤": {
+  "words": [
+   "勤劳",
+   "勤快"
+  ],
+  "sentences": [
+   "小蜜蜂最勤劳。",
+   "他手脚勤快。"
+  ],
+  "etym_type": "component",
+  "etym": "坚持出力干活，勤。",
+  "emoji": "🐝"
+ },
+ "归": {
+  "words": [
+   "归来",
+   "归还"
+  ],
+  "sentences": [
+   "大雁南归。",
+   "把书归还图书馆。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "玩够了要回家，归来。",
+  "emoji": ""
+ },
+ "戴": {
+  "words": [
+   "戴上",
+   "穿戴"
+  ],
+  "sentences": [
+   "戴上红领巾。",
+   "穿戴整齐上学去。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "东西顶在头上，戴。",
+  "emoji": "🧢"
+ },
+ "谷": {
+  "words": [
+   "山谷",
+   "稻谷",
+   "谷粒"
+  ],
+  "sentences": [
+   "山谷里有回声。",
+   "打谷场上晒稻谷。"
+  ],
+  "etym_type": "picto",
+  "etym": "山间流水的口子，谷。",
+  "emoji": ""
+ },
+ "粒": {
+  "words": [
+   "谷粒",
+   "米粒"
+  ],
+  "sentences": [
+   "小鸡啄米粒。",
+   "一粒米也不浪费。"
+  ],
+  "etym_type": "component",
+  "etym": "一粒粒立着的米。",
+  "emoji": "🌾"
+ },
+ "虽": {
+  "words": [
+   "虽然"
+  ],
+  "sentences": [
+   "虽然下雨，他还是来了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "小虫张口说虽然。",
+  "emoji": ""
+ },
+ "辛": {
+  "words": [
+   "辛苦"
+  ],
+  "sentences": [
+   "爸爸工作辛苦。",
+   "农民种田辛苦。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "干活流的汗，辛苦。",
+  "emoji": ""
+ },
+ "苦": {
+  "words": [
+   "辛苦",
+   "苦瓜"
+  ],
+  "sentences": [
+   "辛苦一天，睡得香。",
+   "苦瓜有点苦。"
+  ],
+  "etym_type": "component",
+  "etym": "老草的苦味，苦。",
+  "emoji": "🥒"
+ },
+ "葡": {
+  "words": [
+   "葡萄"
+  ],
+  "sentences": [
+   "架上的葡萄成熟了。"
+  ],
+  "etym_type": "component",
+  "etym": "藤上结的果子，葡。",
+  "emoji": "🍇"
+ },
+ "萄": {
+  "words": [
+   "葡萄"
+  ],
+  "sentences": [
+   "葡萄甜甜真好吃。"
+  ],
+  "etym_type": "component",
+  "etym": "包着皮的果子，萄。",
+  "emoji": ""
+ },
+ "紫": {
+  "words": [
+   "紫色"
+  ],
+  "sentences": [
+   "茄子紫紫的。",
+   "天边紫色晚霞。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "这丝这样的颜色，紫。",
+  "emoji": "💜"
+ },
+ "狐": {
+  "words": [
+   "狐狸"
+  ],
+  "sentences": [
+   "狐狸尾巴大。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "犬旁加瓜：狡猾的家伙。",
+  "emoji": ""
+ },
+ "狸": {
+  "words": [
+   "狐狸"
+  ],
+  "sentences": [
+   "狐狸住在树林里。"
+  ],
+  "etym_type": "component",
+  "etym": "林里的小兽，狸。",
+  "emoji": "🦊"
+ },
+ "笨": {
+  "words": [
+   "笨重"
+  ],
+  "sentences": [
+   "大象步子笨重。"
+  ],
+  "etym_type": "component",
+  "etym": "像木头不灵巧，笨。",
+  "emoji": ""
+ },
+ "酸": {
+  "words": [
+   "酸甜",
+   "酸奶"
+  ],
+  "sentences": [
+   "酸奶酸酸甜甜。",
+   "梅子酸得流口水。"
+  ],
+  "etym_type": "component",
+  "etym": "酒放久了会发酸。",
+  "emoji": "🍋"
+ },
+ "曹": {
+  "words": [
+   "曹冲"
+  ],
+  "sentences": [
+   "曹冲小时候爱动脑。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "古时候的姓，曹。",
+  "emoji": ""
+ },
+ "称": {
+  "words": [
+   "称象",
+   "称赞"
+  ],
+  "sentences": [
+   "曹冲称象。",
+   "老师称赞了我。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "称一称有多重。",
+  "emoji": "⚖️"
+ },
+ "员": {
+  "words": [
+   "队员",
+   "官员"
+  ],
+  "sentences": [
+   "官员们看曹冲称象。",
+   "我是小小队员。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "戴贝壳帽的人，员。",
+  "emoji": ""
+ },
+ "根": {
+  "words": [
+   "树根",
+   "扎根"
+  ],
+  "sentences": [
+   "大树根扎得深。",
+   "小草的根在土里。"
+  ],
+  "etym_type": "component",
+  "etym": "跟在土里的部分，根。",
+  "emoji": "🌳"
+ },
+ "柱": {
+  "words": [
+   "柱子"
+  ],
+  "sentences": [
+   "大厅有红柱子。"
+  ],
+  "etym_type": "component",
+  "etym": "主要的木头，柱。",
+  "emoji": ""
+ },
+ "议": {
+  "words": [
+   "议论"
+  ],
+  "sentences": [
+   "大家议论纷纷。"
+  ],
+  "etym_type": "component",
+  "etym": "说出主意，议论。",
+  "emoji": "💬"
+ },
+ "论": {
+  "words": [
+   "议论",
+   "讨论"
+  ],
+  "sentences": [
+   "我们讨论问题。"
+  ],
+  "etym_type": "component",
+  "etym": "说得有条理，讨论。",
+  "emoji": ""
+ },
+ "重": {
+  "words": [
+   "重量",
+   "重要"
+  ],
+  "sentences": [
+   "大象重量是多少？",
+   "吃早饭很重要。"
+  ],
+  "etym_type": "picto",
+  "etym": "人背着东西，重。",
+  "emoji": "🏋️"
+ },
+ "杆": {
+  "words": [
+   "旗杆",
+   "一杆秤"
+  ],
+  "sentences": [
+   "旗杆升起了红旗。"
+  ],
+  "etym_type": "component",
+  "etym": "细长的木棍，杆。",
+  "emoji": "🚩"
+ },
+ "秤": {
+  "words": [
+   "秤杆",
+   "大秤"
+  ],
+  "sentences": [
+   "一杆大秤称大象。"
+  ],
+  "etym_type": "component",
+  "etym": "称轻重的器具，秤。",
+  "emoji": "⚖️"
+ }
+}

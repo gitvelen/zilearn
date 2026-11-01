@@ -1,0 +1,806 @@
+{
+ "展": {
+  "words": [
+   "展开",
+   "展翅"
+  ],
+  "sentences": [
+   "小鹰展翅飞上天。",
+   "画慢慢展开。"
+  ],
+  "etym_type": "component",
+  "etym": "身体舒展开来，就是展。",
+  "emoji": "🦅"
+ },
+ "透": {
+  "words": [
+   "透过",
+   "透明",
+   "湿透"
+  ],
+  "sentences": [
+   "阳光透过窗户。",
+   "雨把他淋得湿透。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "走到里面去，就是透。",
+  "emoji": ""
+ },
+ "翅": {
+  "words": [
+   "翅膀",
+   "鸡翅"
+  ],
+  "sentences": [
+   "小鸟张开翅膀。",
+   "我爱吃鸡翅。"
+  ],
+  "etym_type": "component",
+  "etym": "羽字旁：翅膀上的羽毛。",
+  "emoji": "🪽"
+ },
+ "膀": {
+  "words": [
+   "翅膀"
+  ],
+  "sentences": [
+   "大雁的翅膀有力。"
+  ],
+  "etym_type": "component",
+  "etym": "月旁：身体的膀子。",
+  "emoji": ""
+ },
+ "唱": {
+  "words": [
+   "唱歌",
+   "合唱"
+  ],
+  "sentences": [
+   "我们快乐地唱歌。",
+   "小鸟在枝头唱。"
+  ],
+  "etym_type": "component",
+  "etym": "口字旁：张开口唱。",
+  "emoji": "🎤"
+ },
+ "朵": {
+  "words": [
+   "云朵",
+   "一朵"
+  ],
+  "sentences": [
+   "天上飘着云朵。",
+   "一朵红花开了。"
+  ],
+  "etym_type": "picto",
+  "etym": "像花朵下垂的样子。",
+  "emoji": "🌸"
+ },
+ "腰": {
+  "words": [
+   "弯腰",
+   "山腰"
+  ],
+  "sentences": [
+   "他弯腰捡起纸片。",
+   "汽车开到山腰。"
+  ],
+  "etym_type": "component",
+  "etym": "身体中间要紧处，就是腰。",
+  "emoji": ""
+ },
+ "坡": {
+  "words": [
+   "山坡",
+   "上坡"
+  ],
+  "sentences": [
+   "小羊爬上山坡。",
+   "骑车上坡要用力。"
+  ],
+  "etym_type": "component",
+  "etym": "土地斜下来，就是坡。",
+  "emoji": "⛰️"
+ },
+ "沉": {
+  "words": [
+   "沉下",
+   "沉甸甸"
+  ],
+  "sentences": [
+   "石头沉到水底。",
+   "果子沉甸甸挂满枝头。"
+  ],
+  "etym_type": "component",
+  "etym": "水里的东西落下去，沉。",
+  "emoji": "🪨"
+ },
+ "伸": {
+  "words": [
+   "伸手",
+   "伸出"
+  ],
+  "sentences": [
+   "他伸手拿下书。",
+   "小草伸出头来。"
+  ],
+  "etym_type": "component",
+  "etym": "人把手拉长，就是伸。",
+  "emoji": "🤚"
+ },
+ "潮": {
+  "words": [
+   "潮湿",
+   "潮水"
+  ],
+  "sentences": [
+   "下雨天空气潮湿。",
+   "潮水涌上沙滩。"
+  ],
+  "etym_type": "component",
+  "etym": "水一浪一浪，就是潮。",
+  "emoji": "🌊"
+ },
+ "湿": {
+  "words": [
+   "淋湿",
+   "潮湿"
+  ],
+  "sentences": [
+   "雨把我淋湿了。",
+   "毛巾湿了，晾一晾。"
+  ],
+  "etym_type": "component",
+  "etym": "沾了水，就是湿。",
+  "emoji": "💦"
+ },
+ "呢": {
+  "words": [
+   "呢子",
+   "呢喃"
+  ],
+  "sentences": [
+   "你去哪里呢？",
+   "他在想什么呢？"
+  ],
+  "etym_type": "component",
+  "etym": "口旁加尼：轻轻的语气。",
+  "emoji": ""
+ },
+ "闷": {
+  "words": [
+   "闷热"
+  ],
+  "sentences": [
+   "夏天闷热，开窗透透气。"
+  ],
+  "etym_type": "picto",
+  "etym": "心关在门里，闷得慌。",
+  "emoji": "🥵"
+ },
+ "消": {
+  "words": [
+   "消息",
+   "消失"
+  ],
+  "sentences": [
+   "小船消失在雾里。",
+   "好消息传开了。"
+  ],
+  "etym_type": "component",
+  "etym": "水渐渐少下去，消失。",
+  "emoji": ""
+ },
+ "息": {
+  "words": [
+   "休息",
+   "消息"
+  ],
+  "sentences": [
+   "走累了，休息一下。",
+   "远方带来了消息。"
+  ],
+  "etym_type": "component",
+  "etym": "鼻子出气，歇一歇。",
+  "emoji": "😴"
+ },
+ "搬": {
+  "words": [
+   "搬家",
+   "搬走"
+  ],
+  "sentences": [
+   "我们搬家了。",
+   "蚂蚁搬走豆子。"
+  ],
+  "etym_type": "component",
+  "etym": "手把东西移走，就是搬。",
+  "emoji": "📦"
+ },
+ "响": {
+  "words": [
+   "声响",
+   "响亮"
+  ],
+  "sentences": [
+   "雷声响亮。",
+   "教室里没有一点响声。"
+  ],
+  "etym_type": "component",
+  "etym": "声音传得远，就是响。",
+  "emoji": "🔊"
+ },
+ "棍": {
+  "words": [
+   "木棍",
+   "棍子"
+  ],
+  "sentences": [
+   "小狗叼着木棍。",
+   "他用棍子挑起篮子。"
+  ],
+  "etym_type": "component",
+  "etym": "木字旁：木头做的棍。",
+  "emoji": ""
+ },
+ "汤": {
+  "words": [
+   "热汤",
+   "喝汤"
+  ],
+  "sentences": [
+   "冬天喝热汤真暖。"
+  ],
+  "etym_type": "component",
+  "etym": "水烧开了，就是汤。",
+  "emoji": "🍲"
+ },
+ "扇": {
+  "words": [
+   "扇子",
+   "一扇"
+  ],
+  "sentences": [
+   "奶奶摇着扇子。",
+   "推开一扇门。"
+  ],
+  "etym_type": "picto",
+  "etym": "门一开一合，像扇子。",
+  "emoji": "🪭"
+ },
+ "椅": {
+  "words": [
+   "椅子",
+   "桌椅"
+  ],
+  "sentences": [
+   "请坐这把椅子。"
+  ],
+  "etym_type": "component",
+  "etym": "木字旁：木头做的椅。",
+  "emoji": "🪑"
+ },
+ "萤": {
+  "words": [
+   "萤火虫"
+  ],
+  "sentences": [
+   "萤火虫提着小灯笼。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "草里发亮的小虫，就是萤。",
+  "emoji": "✨"
+ },
+ "牵": {
+  "words": [
+   "牵手",
+   "牵牛"
+  ],
+  "sentences": [
+   "过马路要牵大人的手。",
+   "我牵着小狗散步。"
+  ],
+  "etym_type": "picto",
+  "etym": "牛被绳子拉着走，牵。",
+  "emoji": "🐕"
+ },
+ "织": {
+  "words": [
+   "织网",
+   "织布"
+  ],
+  "sentences": [
+   "蜘蛛忙着织网。",
+   "奶奶会织毛衣。"
+  ],
+  "etym_type": "component",
+  "etym": "丝线来回穿，就是织。",
+  "emoji": "🕸️"
+ },
+ "斗": {
+  "words": [
+   "战斗",
+   "奋斗"
+  ],
+  "sentences": [
+   "两只小公鸡在战斗。",
+   "我们为梦想奋斗。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "两把武器交叉，战斗。",
+  "emoji": ""
+ },
+ "具": {
+  "words": [
+   "工具",
+   "文具",
+   "玩具"
+  ],
+  "sentences": [
+   "玩具摆了一地。",
+   "文具盒里有铅笔。"
+  ],
+  "etym_type": "picto",
+  "etym": "手捧着器皿，器具。",
+  "emoji": "🧰"
+ },
+ "次": {
+  "words": [
+   "一次",
+   "次数"
+  ],
+  "sentences": [
+   "我一次就做对了。",
+   "这是我第二次来。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "数数用的，一次两次。",
+  "emoji": ""
+ },
+ "丢": {
+  "words": [
+   "丢下",
+   "丢掉"
+  ],
+  "sentences": [
+   "别丢下我。",
+   "他丢掉了坏习惯。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一撒手东西去了，丢了。",
+  "emoji": ""
+ },
+ "哪": {
+  "words": [
+   "哪里",
+   "哪个"
+  ],
+  "sentences": [
+   "你去哪里？",
+   "哪个书包是你的？"
+  ],
+  "etym_type": "component",
+  "etym": "口旁加那：问地方，哪。",
+  "emoji": "❓"
+ },
+ "新": {
+  "words": [
+   "新年",
+   "新书",
+   "新鲜"
+  ],
+  "sentences": [
+   "新年到了真开心。",
+   "我背上了新书包。"
+  ],
+  "etym_type": "component",
+  "etym": "斧子砍下的新柴，新。",
+  "emoji": "🆕"
+ },
+ "每": {
+  "words": [
+   "每天",
+   "每次",
+   "每年"
+  ],
+  "sentences": [
+   "我每天读一个故事。"
+  ],
+  "etym_type": "picto",
+  "etym": "头上有簪子的妈妈，每天忙。",
+  "emoji": ""
+ },
+ "平": {
+  "words": [
+   "平安",
+   "平地"
+  ],
+  "sentences": [
+   "桌子放平了。",
+   "平平安安长大。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "天平两端一样平。",
+  "emoji": "⚖️"
+ },
+ "她": {
+  "words": [
+   "她们",
+   "她的"
+  ],
+  "sentences": [
+   "她在画画。",
+   "她们跳绳去了。"
+  ],
+  "etym_type": "component",
+  "etym": "女字旁：女生用她。",
+  "emoji": "👧"
+ },
+ "些": {
+  "words": [
+   "一些",
+   "这些",
+   "哪些"
+  ],
+  "sentences": [
+   "桌上有一些水果。",
+   "这些花真香。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "数量一点点，就叫些。",
+  "emoji": ""
+ },
+ "仔": {
+  "words": [
+   "仔细"
+  ],
+  "sentences": [
+   "做题要仔细。",
+   "他仔细看每一页。"
+  ],
+  "etym_type": "component",
+  "etym": "人小了心更细，仔细。",
+  "emoji": "🔍"
+ },
+ "检": {
+  "words": [
+   "检查"
+  ],
+  "sentences": [
+   "睡前检查书包。",
+   "医生给我检查牙齿。"
+  ],
+  "etym_type": "component",
+  "etym": "一件一件看，检查。",
+  "emoji": ""
+ },
+ "查": {
+  "words": [
+   "检查",
+   "查看"
+  ],
+  "sentences": [
+   "我查出了错字。",
+   "老师检查作业。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一天一天数，查一查。",
+  "emoji": ""
+ },
+ "所": {
+  "words": [
+   "所以"
+  ],
+  "sentences": [
+   "下雨了，所以我带了伞。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一扇门一间房，处所。",
+  "emoji": ""
+ },
+ "钟": {
+  "words": [
+   "时钟",
+   "闹钟"
+  ],
+  "sentences": [
+   "闹钟叫我起床。",
+   "墙上的时钟走了。"
+  ],
+  "etym_type": "component",
+  "etym": "金属旁：滴答走的时间。",
+  "emoji": "⏰"
+ },
+ "丁": {
+  "words": [
+   "园丁"
+  ],
+  "sentences": [
+   "园丁在给花浇水。"
+  ],
+  "etym_type": "picto",
+  "etym": "像钉子，一钉一个样。",
+  "emoji": ""
+ },
+ "元": {
+  "words": [
+   "元旦",
+   "一元"
+  ],
+  "sentences": [
+   "元旦是新年第一天。",
+   "口袋里有一元钱。"
+  ],
+  "etym_type": "picto",
+  "etym": "人站在上面，头一个。",
+  "emoji": ""
+ },
+ "迟": {
+  "words": [
+   "迟到"
+  ],
+  "sentences": [
+   "早睡早起不迟到。",
+   "他迟到了，脸红了。"
+  ],
+  "etym_type": "component",
+  "etym": "走得慢，就迟到了。",
+  "emoji": "🐢"
+ },
+ "洗": {
+  "words": [
+   "洗手",
+   "洗脸"
+  ],
+  "sentences": [
+   "饭前要洗手。",
+   "早晨洗脸真舒服。"
+  ],
+  "etym_type": "component",
+  "etym": "水先用在脸上，洗。",
+  "emoji": "🧼"
+ },
+ "背": {
+  "words": [
+   "背包",
+   "背后"
+  ],
+  "sentences": [
+   "我背上小书包。",
+   "他的背后有一棵树。"
+  ],
+  "etym_type": "component",
+  "etym": "两人背靠背，后背。",
+  "emoji": "🎒"
+ },
+ "刚": {
+  "words": [
+   "刚才",
+   "刚好"
+  ],
+  "sentences": [
+   "他刚才还在这里。",
+   "我刚好赶上车。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "刀刚磨过，正锋利。",
+  "emoji": ""
+ },
+ "共": {
+  "words": [
+   "一共",
+   "公共"
+  ],
+  "sentences": [
+   "我们一共去了五个人。",
+   "公共汽车开来了。"
+  ],
+  "etym_type": "picto",
+  "etym": "两只手合在一起，共同。",
+  "emoji": "🤝"
+ },
+ "汽": {
+  "words": [
+   "汽车",
+   "汽水"
+  ],
+  "sentences": [
+   "汽车在马路上跑。",
+   "打开汽水冒泡泡。"
+  ],
+  "etym_type": "component",
+  "etym": "水变成气跑出来。",
+  "emoji": "🚗"
+ },
+ "决": {
+  "words": [
+   "决定",
+   "决心"
+  ],
+  "sentences": [
+   "我下定决心学好字。",
+   "大家决定明天去公园。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "心里冲出一个主意，决定。",
+  "emoji": ""
+ },
+ "已": {
+  "words": [
+   "已经"
+  ],
+  "sentences": [
+   "我已经写完作业。",
+   "天已经黑了。"
+  ],
+  "etym_type": "picto",
+  "etym": "蛇弯了一半，已经过半。",
+  "emoji": ""
+ },
+ "经": {
+  "words": [
+   "已经",
+   "经过"
+  ],
+  "sentences": [
+   "经过学校，我看见老师。",
+   "我已经吃过饭了。"
+  ],
+  "etym_type": "component",
+  "etym": "丝线的长路，经过。",
+  "emoji": ""
+ },
+ "物": {
+  "words": [
+   "动物",
+   "植物",
+   "物体"
+  ],
+  "sentences": [
+   "动物是我们的朋友。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "牛什么都驮，万物。",
+  "emoji": "🐾"
+ },
+ "虎": {
+  "words": [
+   "老虎",
+   "虎牙"
+  ],
+  "sentences": [
+   "老虎在山林里跑。"
+  ],
+  "etym_type": "picto",
+  "etym": "身上有花纹的大猫。",
+  "emoji": "🐯"
+ },
+ "熊": {
+  "words": [
+   "熊猫",
+   "小熊"
+  ],
+  "sentences": [
+   "熊猫爱吃竹子。",
+   "小熊抱着蜂蜜罐。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "能干的大兽，就是熊。",
+  "emoji": "🐼"
+ },
+ "通": {
+  "words": [
+   "通过",
+   "交通"
+  ],
+  "sentences": [
+   "小路通向河边。",
+   "过马路注意交通安全。"
+  ],
+  "etym_type": "component",
+  "etym": "走得顺畅，就是通。",
+  "emoji": "🚦"
+ },
+ "注": {
+  "words": [
+   "注意"
+  ],
+  "sentences": [
+   "上课注意听讲。",
+   "注意安全。"
+  ],
+  "etym_type": "component",
+  "etym": "水一滴一滴，注入。",
+  "emoji": "⚠️"
+ },
+ "意": {
+  "words": [
+   "意思",
+   "心意"
+  ],
+  "sentences": [
+   "这个词什么意思？",
+   "礼物虽小，心意满满。"
+  ],
+  "etym_type": "component",
+  "etym": "心里的声音，意思。",
+  "emoji": "💡"
+ },
+ "遍": {
+  "words": [
+   "一遍",
+   "走遍"
+  ],
+  "sentences": [
+   "把课文读一遍。",
+   "我走遍了公园。"
+  ],
+  "etym_type": "component",
+  "etym": "走了一圈，一遍。",
+  "emoji": "🔁"
+ },
+ "百": {
+  "words": [
+   "一百",
+   "百分"
+  ],
+  "sentences": [
+   "一百比十大。",
+   "我得了一百分。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一白，数到一百。",
+  "emoji": "💯"
+ },
+ "舌": {
+  "words": [
+   "舌头",
+   "舌尖"
+  ],
+  "sentences": [
+   "舌头尝出甜味。",
+   "小狗吐舌头。"
+  ],
+  "etym_type": "picto",
+  "etym": "口里吐出的舌头。",
+  "emoji": "👅"
+ },
+ "鬼": {
+  "words": [
+   "鬼脸",
+   "机灵鬼"
+  ],
+  "sentences": [
+   "他做鬼脸逗我笑。"
+  ],
+  "etym_type": "picto",
+  "etym": "像戴着大头面具的人。",
+  "emoji": "👻"
+ },
+ "脸": {
+  "words": [
+   "脸红",
+   "笑脸"
+  ],
+  "sentences": [
+   "她的脸红红的。",
+   "大家笑脸相迎。"
+  ],
+  "etym_type": "component",
+  "etym": "头前面的，就是脸。",
+  "emoji": "😊"
+ },
+ "准": {
+  "words": [
+   "准备",
+   "准时"
+  ],
+  "sentences": [
+   "准备好学习用品。",
+   "他准时到校。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "瞄得平，射得准。",
+  "emoji": "🎯"
+ }
+}

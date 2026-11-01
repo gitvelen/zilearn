@@ -1,0 +1,834 @@
+{
+ "蜘": {
+  "words": [
+   "蜘蛛"
+  ],
+  "sentences": [
+   "蜘蛛网上粘着小虫。",
+   "墙角有只蜘蛛。"
+  ],
+  "etym_type": "component",
+  "etym": "虫旁加知：聪明的织网小虫。",
+  "emoji": "🕷️"
+ },
+ "蛛": {
+  "words": [
+   "蜘蛛",
+   "蛛网"
+  ],
+  "sentences": [
+   "小虫粘在蛛网上。"
+  ],
+  "etym_type": "component",
+  "etym": "虫旁加朱：红红的小虫。",
+  "emoji": ""
+ },
+ "网": {
+  "words": [
+   "蜘蛛网",
+   "鱼网",
+   "网住"
+  ],
+  "sentences": [
+   "蜘蛛用网捉虫。",
+   "渔民撒下鱼网。"
+  ],
+  "etym_type": "picto",
+  "etym": "像线交错结成的网。",
+  "emoji": "🕸️"
+ },
+ "圆": {
+  "words": [
+   "圆圆",
+   "圆形",
+   "团圆"
+  ],
+  "sentences": [
+   "中秋月儿圆又圆。",
+   "全家团圆真开心。"
+  ],
+  "etym_type": "component",
+  "etym": "员在围栏里，团团圆圆。",
+  "emoji": "⚪"
+ },
+ "严": {
+  "words": [
+   "严格",
+   "严重"
+  ],
+  "sentences": [
+   "爸爸对我要求严格。",
+   "感冒严重了要看医生。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "说话认真，一点不马虎。",
+  "emoji": ""
+ },
+ "寒": {
+  "words": [
+   "寒冷",
+   "寒风",
+   "寒号鸟"
+  ],
+  "sentences": [
+   "寒风吹得脸疼。",
+   "寒号鸟冻死了。"
+  ],
+  "etym_type": "picto",
+  "etym": "人踩着草躲在屋里，还是冷。",
+  "emoji": "❄️"
+ },
+ "酷": {
+  "words": [
+   "酷暑",
+   "酷热"
+  ],
+  "sentences": [
+   "严寒酷暑都要锻炼。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "热气扑过来，酷热难挡。",
+  "emoji": "🥵"
+ },
+ "暑": {
+  "words": [
+   "酷暑",
+   "暑假"
+  ],
+  "sentences": [
+   "暑假我去学游泳。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "太阳当头，热得像蒸笼。",
+  "emoji": "☀️"
+ },
+ "凉": {
+  "words": [
+   "凉快",
+   "凉水"
+  ],
+  "sentences": [
+   "树下乘凉真凉快。"
+  ],
+  "etym_type": "component",
+  "etym": "两点水：水边吹风，凉凉的。",
+  "emoji": "🍃"
+ },
+ "晨": {
+  "words": [
+   "清晨",
+   "早晨",
+   "晨光"
+  ],
+  "sentences": [
+   "早晨的空气真新鲜。",
+   "晨光照进窗户。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "太阳升上地平线，早晨到了。",
+  "emoji": "🌅"
+ },
+ "细": {
+  "words": [
+   "细心",
+   "细小",
+   "细雨"
+  ],
+  "sentences": [
+   "做题要细心。",
+   "细雨沙沙下。"
+  ],
+  "etym_type": "component",
+  "etym": "丝旁：丝线一样细。",
+  "emoji": ""
+ },
+ "朝": {
+  "words": [
+   "朝前",
+   "朝向"
+  ],
+  "sentences": [
+   "朝前看，别回头。",
+   "房子朝向南边。"
+  ],
+  "etym_type": "picto",
+  "etym": "太阳升在月亮前，朝着天亮的方向。",
+  "emoji": ""
+ },
+ "霞": {
+  "words": [
+   "朝霞",
+   "晚霞",
+   "彩霞"
+  ],
+  "sentences": [
+   "晚霞染红了天空。",
+   "朝霞出来了，天要晴。"
+  ],
+  "etym_type": "component",
+  "etym": "雨字头：云彩染上了颜色。",
+  "emoji": "🌄"
+ },
+ "夕": {
+  "words": [
+   "夕阳",
+   "除夕"
+  ],
+  "sentences": [
+   "夕阳落在山后。",
+   "除夕晚上放鞭炮。"
+  ],
+  "etym_type": "picto",
+  "etym": "月牙儿弯弯，就是夕。",
+  "emoji": "🌇"
+ },
+ "杨": {
+  "words": [
+   "杨树",
+   "白杨"
+  ],
+  "sentences": [
+   "白杨树高高的。",
+   "杨树排在路两边。"
+  ],
+  "etym_type": "component",
+  "etym": "木旁加昜：杨树长得快又高。",
+  "emoji": "🌳"
+ },
+ "操": {
+  "words": [
+   "早操",
+   "操场",
+   "体操"
+  ],
+  "sentences": [
+   "我们在操场做早操。"
+  ],
+  "etym_type": "component",
+  "etym": "伸手又抬腿，做操身体好。",
+  "emoji": "🤸"
+ },
+ "场": {
+  "words": [
+   "操场",
+   "广场",
+   "球场"
+  ],
+  "sentences": [
+   "操场上真热闹。",
+   "下雨了，球场关门了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一块平整的空地，就是场。",
+  "emoji": "🏟️"
+ },
+ "拔": {
+  "words": [
+   "拔河",
+   "拔草"
+  ],
+  "sentences": [
+   "拔河比赛真起劲。",
+   "我帮奶奶拔草。"
+  ],
+  "etym_type": "component",
+  "etym": "手把东西连根拉出来。",
+  "emoji": ""
+ },
+ "拍": {
+  "words": [
+   "拍手",
+   "拍球"
+  ],
+  "sentences": [
+   "大家拍手笑哈哈。",
+   "他拍皮球，一下一下。"
+  ],
+  "etym_type": "component",
+  "etym": "提手旁：伸手拍一拍。",
+  "emoji": "👏"
+ },
+ "跑": {
+  "words": [
+   "跑步",
+   "奔跑",
+   "赛跑"
+  ],
+  "sentences": [
+   "小马奔跑得快。",
+   "早晨跑步身体好。"
+  ],
+  "etym_type": "component",
+  "etym": "足旁：两只脚快离地了。",
+  "emoji": "🏃"
+ },
+ "踢": {
+  "words": [
+   "踢球",
+   "踢腿"
+  ],
+  "sentences": [
+   "哥哥在操场踢球。",
+   "踢腿运动开始啦。"
+  ],
+  "etym_type": "component",
+  "etym": "足旁：用脚踢出去。",
+  "emoji": "⚽"
+ },
+ "铃": {
+  "words": [
+   "铃声",
+   "门铃",
+   "铃铛"
+  ],
+  "sentences": [
+   "上课铃声响了。",
+   "自行车铃铛响。"
+  ],
+  "etym_type": "component",
+  "etym": "金属旁：小铃铛叮当响。",
+  "emoji": "🔔"
+ },
+ "热": {
+  "words": [
+   "热闹",
+   "热天",
+   "热心"
+  ],
+  "sentences": [
+   "大街上真热闹。",
+   "他是个热心肠。"
+  ],
+  "etym_type": "picto",
+  "etym": "火在下面烧，热得很。",
+  "emoji": "🔥"
+ },
+ "闹": {
+  "words": [
+   "热闹",
+   "闹钟",
+   "打闹"
+  ],
+  "sentences": [
+   "闹钟叫醒了我。",
+   "别在教室打闹。"
+  ],
+  "etym_type": "component",
+  "etym": "市场里人声闹哄哄。",
+  "emoji": "⏰"
+ },
+ "锻": {
+  "words": [
+   "锻炼"
+  ],
+  "sentences": [
+   "天天锻炼身体好。"
+  ],
+  "etym_type": "component",
+  "etym": "金属旁：千锤百炼才成材。",
+  "emoji": ""
+ },
+ "炼": {
+  "words": [
+   "锻炼"
+  ],
+  "sentences": [
+   "锻炼让身体更强。"
+  ],
+  "etym_type": "component",
+  "etym": "火字旁：火里炼出来。",
+  "emoji": ""
+ },
+ "体": {
+  "words": [
+   "身体",
+   "体育",
+   "全体"
+  ],
+  "sentences": [
+   "体育课上真开心。",
+   "全体同学做操。"
+  ],
+  "etym_type": "component",
+  "etym": "人（亻）的本钱，就是身体。",
+  "emoji": "🧘"
+ },
+ "之": {
+  "words": [
+   "之间",
+   "之前"
+  ],
+  "sentences": [
+   "学校和我家之间有条河。",
+   "出门之前关好门。"
+  ],
+  "etym_type": "picto",
+  "etym": "脚迈出一步，就是之。",
+  "emoji": ""
+ },
+ "初": {
+  "words": [
+   "年初",
+   "初中"
+  ],
+  "sentences": [
+   "年初定的目标要记住。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "裁布的第一刀，就是初。",
+  "emoji": ""
+ },
+ "性": {
+  "words": [
+   "性格",
+   "个性"
+  ],
+  "sentences": [
+   "她性格开朗。"
+  ],
+  "etym_type": "component",
+  "etym": "心（忄）生出来的样子，性格。",
+  "emoji": ""
+ },
+ "善": {
+  "words": [
+   "善良",
+   "友善"
+  ],
+  "sentences": [
+   "她是个善良的孩子。",
+   "大家友善相处。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "羊儿温和，善良又友好。",
+  "emoji": "🐑"
+ },
+ "习": {
+  "words": [
+   "学习",
+   "练习",
+   "习字"
+  ],
+  "sentences": [
+   "我们天天学习。",
+   "放学后先练习写字。"
+  ],
+  "etym_type": "picto",
+  "etym": "小鸟反复练飞，就是学习。",
+  "emoji": "✍️"
+ },
+ "教": {
+  "words": [
+   "教室",
+   "教师",
+   "请教"
+  ],
+  "sentences": [
+   "教室里安安静静。",
+   "遇到难题去请教老师。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "老师耐心地教孩子。",
+  "emoji": "🏫"
+ },
+ "迁": {
+  "words": [
+   "搬迁"
+  ],
+  "sentences": [
+   "小鸟迁移到南方。"
+  ],
+  "etym_type": "component",
+  "etym": "走到千里之外，就是迁。",
+  "emoji": ""
+ },
+ "贵": {
+  "words": [
+   "宝贵",
+   "可贵"
+  ],
+  "sentences": [
+   "时间最宝贵。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "中用的宝贝最贵重。",
+  "emoji": "💎"
+ },
+ "专": {
+  "words": [
+   "专心",
+   "专门"
+  ],
+  "sentences": [
+   "上课要专心听讲。"
+  ],
+  "etym_type": "picto",
+  "etym": "像纺锤转个不停，不分心。",
+  "emoji": ""
+ },
+ "幼": {
+  "words": [
+   "幼儿园",
+   "幼小"
+  ],
+  "sentences": [
+   "我在幼儿园认识了好朋友。",
+   "要爱护幼小的树苗。"
+  ],
+  "etym_type": "component",
+  "etym": "又小又弱，就是幼。",
+  "emoji": "🧒"
+ },
+ "玉": {
+  "words": [
+   "玉石",
+   "玉兔",
+   "白玉"
+  ],
+  "sentences": [
+   "玉兔住在月亮上。",
+   "玉石又亮又滑。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "王字加一点：王的宝贝是玉。",
+  "emoji": "💎"
+ },
+ "器": {
+  "words": [
+   "机器",
+   "乐器"
+  ],
+  "sentences": [
+   "机器人会扫地。",
+   "钢琴是乐器。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一只狗看着四个口，看管器具。",
+  "emoji": "🤖"
+ },
+ "义": {
+  "words": [
+   "意义",
+   "正义"
+  ],
+  "sentences": [
+   "帮助别人很有意义。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "做得端端正正，就是义。",
+  "emoji": ""
+ },
+ "饭": {
+  "words": [
+   "米饭",
+   "吃饭"
+  ],
+  "sentences": [
+   "吃饭不挑食。",
+   "妈妈煮好了米饭。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "食字旁：煮饭香喷喷。",
+  "emoji": "🍚"
+ },
+ "饱": {
+  "words": [
+   "吃饱",
+   "饱满"
+  ],
+  "sentences": [
+   "小熊吃得饱饱的。",
+   "稻谷颗粒饱满。"
+  ],
+  "etym_type": "component",
+  "etym": "食旁加包：肚子装满了，饱了。",
+  "emoji": ""
+ },
+ "茶": {
+  "words": [
+   "喝茶",
+   "茶叶"
+  ],
+  "sentences": [
+   "爷爷爱喝热茶。",
+   "春天采茶叶。"
+  ],
+  "etym_type": "picto",
+  "etym": "人在草木间喝茶。",
+  "emoji": "🍵"
+ },
+ "泡": {
+  "words": [
+   "泡茶",
+   "水泡"
+  ],
+  "sentences": [
+   "小鱼吐水泡。",
+   "爸爸用茶叶泡茶。"
+  ],
+  "etym_type": "component",
+  "etym": "水旁加包：水包住就是泡。",
+  "emoji": "🫧"
+ },
+ "轻": {
+  "words": [
+   "年轻",
+   "轻声",
+   "轻轻"
+  ],
+  "sentences": [
+   "年轻人跑步快。",
+   "她轻轻关门。"
+  ],
+  "etym_type": "component",
+  "etym": "车字旁：小车不重，轻。",
+  "emoji": "🪶"
+ },
+ "鞭": {
+  "words": [
+   "鞭炮",
+   "鞭子"
+  ],
+  "sentences": [
+   "过年放鞭炮。"
+  ],
+  "etym_type": "component",
+  "etym": "革字旁：皮鞭甩得响。",
+  "emoji": ""
+ },
+ "炮": {
+  "words": [
+   "鞭炮",
+   "花炮"
+  ],
+  "sentences": [
+   "除夕放鞭炮真热闹。"
+  ],
+  "etym_type": "component",
+  "etym": "火字旁：火药点着响。",
+  "emoji": "🧨"
+ },
+ "首": {
+  "words": [
+   "首先",
+   "首都"
+  ],
+  "sentences": [
+   "首先要洗手，再吃饭。",
+   "北京是我国首都。"
+  ],
+  "etym_type": "picto",
+  "etym": "头在最上面，就是第一。",
+  "emoji": ""
+ },
+ "踪": {
+  "words": [
+   "踪迹"
+  ],
+  "sentences": [
+   "雪地上留下了小狗的踪迹。"
+  ],
+  "etym_type": "component",
+  "etym": "足字旁：脚留下的印。",
+  "emoji": "🐾"
+ },
+ "迹": {
+  "words": [
+   "踪迹",
+   "古迹"
+  ],
+  "sentences": [
+   "我们去找小蚂蚁的踪迹。",
+   "长城是古迹。"
+  ],
+  "etym_type": "component",
+  "etym": "走过留下的印，就是迹。",
+  "emoji": ""
+ },
+ "浮": {
+  "words": [
+   "浮萍",
+   "漂浮",
+   "浮出"
+  ],
+  "sentences": [
+   "树叶浮在水上。",
+   "小鸭子浮在水面游。"
+  ],
+  "etym_type": "component",
+  "etym": "水旁加孚：漂在水上。",
+  "emoji": ""
+ },
+ "萍": {
+  "words": [
+   "浮萍"
+  ],
+  "sentences": [
+   "池塘里漂着浮萍。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "草浮在平平的水面，浮萍。",
+  "emoji": "🌿"
+ },
+ "泉": {
+  "words": [
+   "泉水",
+   "温泉",
+   "山泉"
+  ],
+  "sentences": [
+   "清清的泉水流下山。"
+  ],
+  "etym_type": "picto",
+  "etym": "水从石缝里流出来，泉水。",
+  "emoji": "⛲"
+ },
+ "爱": {
+  "words": [
+   "爱心",
+   "可爱",
+   "热爱"
+  ],
+  "sentences": [
+   "妈妈的爱暖暖的。",
+   "大家都爱可爱的小猫。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "用心友好地对待，就是爱。",
+  "emoji": "❤️"
+ },
+ "柔": {
+  "words": [
+   "柔软",
+   "温柔",
+   "柔和"
+  ],
+  "sentences": [
+   "妈妈的声音很温柔。",
+   "小羊的毛柔软又暖和。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "矛放在木上，不硬了，柔。",
+  "emoji": ""
+ },
+ "荷": {
+  "words": [
+   "荷花",
+   "荷叶",
+   "荷塘"
+  ],
+  "sentences": [
+   "荷花开满了池塘。",
+   "青蛙蹲在荷叶上。"
+  ],
+  "etym_type": "component",
+  "etym": "草字头：水里长的花，荷。",
+  "emoji": "🪷"
+ },
+ "露": {
+  "words": [
+   "露水",
+   "露珠",
+   "露出"
+  ],
+  "sentences": [
+   "叶子上滚着露珠。",
+   "太阳出来露水干了。"
+  ],
+  "etym_type": "component",
+  "etym": "雨字头：夜里落在叶上的小水珠。",
+  "emoji": "💧"
+ },
+ "角": {
+  "words": [
+   "牛角",
+   "墙角",
+   "三角"
+  ],
+  "sentences": [
+   "小牛的角弯弯的。",
+   "他在墙角看书。"
+  ],
+  "etym_type": "picto",
+  "etym": "像牛角尖尖的样子。",
+  "emoji": "🔺"
+ },
+ "珠": {
+  "words": [
+   "珍珠",
+   "露珠",
+   "珠子"
+  ],
+  "sentences": [
+   "珍珠圆圆亮亮。",
+   "荷叶上有露珠。"
+  ],
+  "etym_type": "component",
+  "etym": "王字旁：圆圆亮亮像宝贝。",
+  "emoji": "📿"
+ },
+ "摇": {
+  "words": [
+   "摇头",
+   "摇动"
+  ],
+  "sentences": [
+   "小狗摇头摆尾。",
+   "风摇动着树枝。"
+  ],
+  "etym_type": "component",
+  "etym": "提手旁：手来回摆。",
+  "emoji": ""
+ },
+ "躺": {
+  "words": [
+   "躺下"
+  ],
+  "sentences": [
+   "他躺在草地上看云。"
+  ],
+  "etym_type": "component",
+  "etym": "身体弯下来，躺着休息。",
+  "emoji": "🛌"
+ },
+ "晶": {
+  "words": [
+   "亮晶晶",
+   "水晶"
+  ],
+  "sentences": [
+   "星星亮晶晶。",
+   "水晶亮亮的。"
+  ],
+  "etym_type": "component",
+  "etym": "三个太阳，亮晶晶。",
+  "emoji": "✨"
+ },
+ "停": {
+  "words": [
+   "停下",
+   "停车"
+  ],
+  "sentences": [
+   "汽车停在路边。",
+   "雨停了，天晴了。"
+  ],
+  "etym_type": "component",
+  "etym": "人在亭子里，停下来休息。",
+  "emoji": "🅿️"
+ },
+ "机": {
+  "words": [
+   "飞机",
+   "机器",
+   "手机"
+  ],
+  "sentences": [
+   "飞机飞过白云。",
+   "妈妈用手机拍照。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "树上的鸟儿灵巧，像机器。",
+  "emoji": "✈️"
+ }
+}

@@ -68,19 +68,19 @@ def api_tests():
     import database as _dbc
     _d = _dbc.get_db()
     n_content = _d.execute("""SELECT COUNT(*) n FROM zi_content c JOIN hanzi h ON h.id=c.hanzi_id
-                              WHERE h.book='1a'""").fetchone()["n"]
+                              WHERE h.book IN ('1a','1b','2a','2b')""").fetchone()["n"]
     _d.close()
-    check("内容覆盖 1a 281 字全量", n_content == 281, n_content)
+    check("内容覆盖四册 1543 字全量", n_content == 1543, n_content)
     r = call("GET", "/api/me")
     check("me.stage=onboard", r.get("stage") == "onboard", r)
     r = call("POST", "/api/profile/grade", {"grade": "1A"})
     check("set grade 1A", r.get("ok"))
     r = call("POST", "/api/profile/grade", {"grade": "9X"})
     check("grade 校验拒绝", r.get("__error__") == 400, r)
-    r = call("POST", "/api/profile/grade", {"grade": "1B"})
-    check("未生产册(1B)选年级拒绝", r.get("__error__") == 400, r)
+    r = call("POST", "/api/profile/grade", {"grade": "5A"})
+    check("未生产册(5A)选年级拒绝", r.get("__error__") == 400, r)
     r = call("GET", "/api/me")
-    check("me.grades_ready=['1A']", r.get("grades_ready") == ["1A"], r.get("grades_ready"))
+    check("me.grades_ready 四册", r.get("grades_ready") == ["1A", "1B", "2A", "2B"], r.get("grades_ready"))
     r = call("POST", "/api/plan/create", {"target_chars": 300, "days": 50})
     check("plan 创建", r.get("daily_new", 0) >= 1, r)
     r = call("GET", "/api/confirm/batches")
@@ -382,11 +382,11 @@ def content_gate_tests():
     reset_user()
     db = database.get_db()
     uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
-    # 模拟被污染的 1B 账号：1b 册计划 + 今日已"学"过 1b 字 + 1b 字挂到期复习
+    # 模拟被污染的 3A 账号（3a 册有字无内容）：册计划 + 今日已"学"过无内容字 + 挂到期复习
     t0 = date.today().isoformat()
-    db.execute("UPDATE users SET grade='1B', target_chars=30, plan_days=7, plan_start=?, onboarded=1",
+    db.execute("UPDATE users SET grade='3A', target_chars=30, plan_days=7, plan_start=?, onboarded=1",
                (t0,))
-    b1 = db.execute("SELECT h.id, h.char FROM hanzi h WHERE h.book='1b' ORDER BY h.seq LIMIT 2").fetchall()
+    b1 = db.execute("SELECT h.id, h.char FROM hanzi h WHERE h.book='3a' ORDER BY h.seq LIMIT 2").fetchall()
     for r in b1:
         db.execute("INSERT INTO quiz_log(user_id, hanzi_id, phase, quiz_type, correct, ts) "
                    "VALUES(?,?,'learn','card',1,?)", (uid, r["id"], t0))
@@ -395,12 +395,12 @@ def content_gate_tests():
     db.commit(); db.close()
 
     r = call("GET", "/api/me")
-    check("1B 账号 stage 打回 onboard(重选年级)", r.get("stage") == "onboard", r.get("stage"))
+    check("3A 账号 stage 打回 onboard(重选年级)", r.get("stage") == "onboard", r.get("stage"))
     t = scheduler.build_today(uid)
     ids_bad = {x["id"] for x in b1}
     ids_all = ({x["id"] for x in t["new"]} | {x["id"] for x in t["review"]}
                | {x["id"] for x in t["audit"]} | {x["id"] for x in t["learned_today"]})
-    check("1b 无内容字不进新字/复习/抽检/已学", not (ids_all & ids_bad), sorted(ids_all & ids_bad))
+    check("3a 无内容字不进新字/复习/抽检/已学", not (ids_all & ids_bad), sorted(ids_all & ids_bad))
     db = database.get_db()
     n_bad = db.execute(
         f"""SELECT COUNT(*) n FROM hanzi h WHERE h.id IN ({','.join('?' * len(ids_all))})

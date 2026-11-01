@@ -12,6 +12,7 @@
 
 用法：
   python3 gen_questions.py            # 生成（幂等：清空未审查题重灌，保留审查结果）
+  python3 gen_questions.py 1b 2a 2b   # 指定册集生成（默认 1a；册列值见 hanzi.book）
   python3 gen_questions.py review     # 导出审查清单 data/parsed/questions_review.json
 """
 import json
@@ -76,9 +77,10 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems):
             used_stems.add(stem)
             break
 
-    # mean：目标字在词中恰 1 次，干扰≠题干字，代入不得成真词（content ∪ jieba ∪ 补充）
+    # mean：目标字在词中恰 1 次，干扰≠题干字，代入不得成真词（content ∪ jieba ∪ 补充）；
+    # "动词+助词/趋向"二字词结构性多解（＿着/＿了 任何动词代入皆通），与运行时同规则排除
     for w in content_words:
-        if w.count(h["char"]) != 1:
+        if w.count(h["char"]) != 1 or not scheduler._mean_ok(w, h["char"]):
             continue
         dr, subst = [], []
         for d in ds:
@@ -146,6 +148,7 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems):
 
 
 def main():
+    books = [a for a in sys.argv[1:] if a != "review"] or ["1a"]
     db = sqlite3.connect(DB)
     db.row_factory = sqlite3.Row
     jieba_words = load_jieba_words()
@@ -157,7 +160,9 @@ def main():
                   for r in db.execute("SELECT payload FROM questions "
                                       "WHERE quiz_type='sent' AND verified=1")}
 
-    hanzi = db.execute("SELECT * FROM hanzi WHERE book='1a' ORDER BY seq").fetchall()
+    hanzi = db.execute(
+        f"SELECT * FROM hanzi WHERE book IN ({','.join('?' * len(books))}) ORDER BY book, seq",
+        books).fetchall()
     stats = {"listen": 0, "pin": 0, "rev": 0, "mean": 0, "sent": 0, "find": 0}
     no_mean, no_sent, no_find, no_listen = [], [], [], []
     no_pin, no_rev = [], []
@@ -189,7 +194,7 @@ def main():
     total = db.execute("SELECT COUNT(*) n FROM questions").fetchone()["n"]
     print(f"生成入库：{len(rows)} 题（表内现存 {total}，含已审查保留）")
     for qt, n in stats.items():
-        print(f"  {qt}: {n}/281")
+        print(f"  {qt}: {n}/{len(hanzi)}")
     for name, miss in (("缺listen", no_listen), ("缺pin", no_pin), ("缺rev", no_rev),
                        ("缺mean", no_mean), ("缺sent", no_sent), ("缺find", no_find)):
         # 注：重灌跑批时 sent 题干唯一性种子会拦下"句已在库"的字，缺sent 数偏大属预期，

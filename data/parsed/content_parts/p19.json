@@ -1,0 +1,770 @@
+{
+ "鹊": {
+  "words": [
+   "喜鹊",
+   "鹊桥"
+  ],
+  "sentences": [
+   "喜鹊站在枝头。",
+   "喜鹊叫，喜事到。"
+  ],
+  "etym_type": "component",
+  "etym": "报喜的鸟，喜鹊。",
+  "emoji": "🐦"
+ },
+ "朗": {
+  "words": [
+   "晴朗",
+   "朗读",
+   "开朗"
+  ],
+  "sentences": [
+   "今天天气晴朗。",
+   "大家大声朗读。"
+  ],
+  "etym_type": "component",
+  "etym": "月光明亮，晴朗。",
+  "emoji": "🌙"
+ },
+ "衔": {
+  "words": [
+   "衔来"
+  ],
+  "sentences": [
+   "小鸟衔来树枝搭窝。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "用嘴叼着东西，衔。",
+  "emoji": "🐦"
+ },
+ "枯": {
+  "words": [
+   "枯草",
+   "枯黄",
+   "干枯"
+  ],
+  "sentences": [
+   "秋天草枯黄了。",
+   "河边的树干枯了。"
+  ],
+  "etym_type": "component",
+  "etym": "树老了，就枯了。",
+  "emoji": "🍂"
+ },
+ "劝": {
+  "words": [
+   "劝告"
+  ],
+  "sentences": [
+   "喜鹊劝告寒号鸟。",
+   "妈妈劝我早点睡。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "用好话劝说，劝。",
+  "emoji": "💬"
+ },
+ "趁": {
+  "words": [
+   "趁早",
+   "趁着"
+  ],
+  "sentences": [
+   "趁早写完作业。",
+   "趁着天晴晒被子。"
+  ],
+  "etym_type": "component",
+  "etym": "赶着去做，趁。",
+  "emoji": ""
+ },
+ "将": {
+  "words": [
+   "将来",
+   "将要"
+  ],
+  "sentences": [
+   "将来我想当老师。",
+   "天将要黑了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "拿着东西要出发，将。",
+  "emoji": ""
+ },
+ "且": {
+  "words": [
+   "而且"
+  ],
+  "sentences": [
+   "他高而且壮。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一层又一层，而且。",
+  "emoji": ""
+ },
+ "腊": {
+  "words": [
+   "腊月",
+   "腊肉"
+  ],
+  "sentences": [
+   "腊月里家家忙年。",
+   "腊肉香香的。"
+  ],
+  "etym_type": "component",
+  "etym": "腊月做的肉，腊肉。",
+  "emoji": ""
+ },
+ "狂": {
+  "words": [
+   "狂风"
+  ],
+  "sentences": [
+   "狂风吹倒了大树。"
+  ],
+  "etym_type": "component",
+  "etym": "风刮得发狂，狂风。",
+  "emoji": "🌪️"
+ },
+ "吼": {
+  "words": [
+   "吼叫"
+  ],
+  "sentences": [
+   "狮子大声吼叫。"
+  ],
+  "etym_type": "component",
+  "etym": "大声叫出来，吼。",
+  "emoji": "🦁"
+ },
+ "复": {
+  "words": [
+   "复习",
+   "重复"
+  ],
+  "sentences": [
+   "课后要复习。",
+   "这个字重复写了三遍。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一来又一回，重复。",
+  "emoji": "🔁"
+ },
+ "哀": {
+  "words": [
+   "悲哀"
+  ],
+  "sentences": [
+   "寒号鸟悲哀地叫。"
+  ],
+  "etym_type": "picto",
+  "etym": "张口说伤心事，哀。",
+  "emoji": "😢"
+ },
+ "葫": {
+  "words": [
+   "葫芦"
+  ],
+  "sentences": [
+   "我要的是葫芦。",
+   "葫芦藤上结葫芦。"
+  ],
+  "etym_type": "component",
+  "etym": "藤上结的果子，葫。",
+  "emoji": ""
+ },
+ "芦": {
+  "words": [
+   "葫芦"
+  ],
+  "sentences": [
+   "小葫芦慢慢变大。"
+  ],
+  "etym_type": "component",
+  "etym": "细长的草，芦。",
+  "emoji": ""
+ },
+ "藤": {
+  "words": [
+   "瓜藤",
+   "藤条"
+  ],
+  "sentences": [
+   "瓜藤爬满了架子。"
+  ],
+  "etym_type": "component",
+  "etym": "缠绕的茎，藤。",
+  "emoji": "🍃"
+ },
+ "谢": {
+  "words": [
+   "谢谢",
+   "感谢"
+  ],
+  "sentences": [
+   "谢谢你帮我。",
+   "我感谢妈妈。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "弯腰说谢谢。",
+  "emoji": "🙏"
+ },
+ "蚜": {
+  "words": [
+   "蚜虫"
+  ],
+  "sentences": [
+   "叶子上爬着蚜虫。"
+  ],
+  "etym_type": "component",
+  "etym": "咬叶子的害虫，蚜。",
+  "emoji": "🐛"
+ },
+ "盯": {
+  "words": [
+   "盯着",
+   "盯住"
+  ],
+  "sentences": [
+   "小猫盯着鱼。",
+   "他盯着黑板。"
+  ],
+  "etym_type": "component",
+  "etym": "目光钉住不动，盯。",
+  "emoji": "👀"
+ },
+ "啊": {
+  "words": [
+   "啊呀"
+  ],
+  "sentences": [
+   "啊，大海真大！",
+   "啊呀，下雨了！"
+  ],
+  "etym_type": "component",
+  "etym": "口旁：感叹的声音。",
+  "emoji": "😮"
+ },
+ "赛": {
+  "words": [
+   "比赛",
+   "赛跑"
+  ],
+  "sentences": [
+   "我们班赢了比赛。",
+   "赛跑我得了第一。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "比一比高低，比赛。",
+  "emoji": "🏃"
+ },
+ "感": {
+  "words": [
+   "感觉",
+   "感动"
+  ],
+  "sentences": [
+   "我很感动。",
+   "冷热是一种感觉。"
+  ],
+  "etym_type": "component",
+  "etym": "心里全知道，感。",
+  "emoji": "💗"
+ },
+ "怪": {
+  "words": [
+   "奇怪",
+   "怪物"
+  ],
+  "sentences": [
+   "这件事真奇怪。",
+   "大怪兽来了！"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "心里不明白，怪。",
+  "emoji": "👾"
+ },
+ "慢": {
+  "words": [
+   "快慢",
+   "慢慢"
+  ],
+  "sentences": [
+   "慢慢走，别摔了。",
+   "乌龟慢慢地爬。"
+  ],
+  "etym_type": "component",
+  "etym": "心不着急，慢。",
+  "emoji": "🐢"
+ },
+ "锋": {
+  "words": [
+   "锋利"
+  ],
+  "sentences": [
+   "剪刀很锋利。"
+  ],
+  "etym_type": "component",
+  "etym": "刀尖最锋利。",
+  "emoji": "✂️"
+ },
+ "蜜": {
+  "words": [
+   "蜜蜂",
+   "甜蜜"
+  ],
+  "sentences": [
+   "蜜蜂采蜜忙。",
+   "我做了一个甜蜜的梦。"
+  ],
+  "etym_type": "component",
+  "etym": "酿蜜的虫，蜜。",
+  "emoji": "🍯"
+ },
+ "蜂": {
+  "words": [
+   "蜜蜂",
+   "蜂窝"
+  ],
+  "sentences": [
+   "蜜蜂采花蜜。",
+   "树上挂着蜂窝。"
+  ],
+  "etym_type": "component",
+  "etym": "带刺的小飞虫，蜂。",
+  "emoji": "🐝"
+ },
+ "幕": {
+  "words": [
+   "开幕",
+   "幕布"
+  ],
+  "sentences": [
+   "晚会开幕了。",
+   "幕布拉开了。"
+  ],
+  "etym_type": "component",
+  "etym": "遮起来的大布，幕。",
+  "emoji": "🎭"
+ },
+ "扫": {
+  "words": [
+   "扫地",
+   "打扫"
+  ],
+  "sentences": [
+   "值日生打扫教室。",
+   "我帮妈妈扫地。"
+  ],
+  "etym_type": "component",
+  "etym": "手拿笤帚扫地。",
+  "emoji": "🧹"
+ },
+ "墓": {
+  "words": [
+   "扫墓"
+  ],
+  "sentences": [
+   "清明节去扫墓。"
+  ],
+  "etym_type": "picto",
+  "etym": "土里的坟，墓。",
+  "emoji": ""
+ },
+ "慕": {
+  "words": [
+   "羡慕"
+  ],
+  "sentences": [
+   "我羡慕他会飞。",
+   "大家羡慕地看着奖状。"
+  ],
+  "etym_type": "component",
+  "etym": "心里想得到，羡慕。",
+  "emoji": "🥺"
+ },
+ "抄": {
+  "words": [
+   "抄写"
+  ],
+  "sentences": [
+   "抄写生字一遍。"
+  ],
+  "etym_type": "component",
+  "etym": "照着写下来，抄。",
+  "emoji": "✍️"
+ },
+ "炒": {
+  "words": [
+   "炒菜",
+   "炒饭"
+  ],
+  "sentences": [
+   "妈妈会炒菜。",
+   "蛋炒饭真香。"
+  ],
+  "etym_type": "component",
+  "etym": "锅里翻动着炒。",
+  "emoji": "🍳"
+ },
+ "洪": {
+  "words": [
+   "洪水"
+  ],
+  "sentences": [
+   "洪水来了要当心。"
+  ],
+  "etym_type": "component",
+  "etym": "共同的大水，洪水。",
+  "emoji": "🌊"
+ },
+ "毒": {
+  "words": [
+   "毒蛇"
+  ],
+  "sentences": [
+   "草丛里有毒蛇，小心。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "有害的东西，毒。",
+  "emoji": "🐍"
+ },
+ "蛇": {
+  "words": [
+   "毒蛇",
+   "小蛇"
+  ],
+  "sentences": [
+   "小蛇爬得快。"
+  ],
+  "etym_type": "component",
+  "etym": "长长的虫，蛇。",
+  "emoji": ""
+ },
+ "兽": {
+  "words": [
+   "野兽",
+   "怪兽"
+  ],
+  "sentences": [
+   "森林里有野兽。",
+   "大怪兽来了！"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "野外的猛兽，兽。",
+  "emoji": "🦁"
+ },
+ "伤": {
+  "words": [
+   "受伤",
+   "伤心"
+  ],
+  "sentences": [
+   "小心别受伤。",
+   "他伤心地哭了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "破了皮，就是伤。",
+  "emoji": "🩹"
+ },
+ "灾": {
+  "words": [
+   "灾难",
+   "火灾"
+  ],
+  "sentences": [
+   "大水带来了灾难。",
+   "小心火灾。"
+  ],
+  "etym_type": "picto",
+  "etym": "家里着了火，灾。",
+  "emoji": "🔥"
+ },
+ "难": {
+  "words": [
+   "困难",
+   "难题",
+   "难过"
+  ],
+  "sentences": [
+   "遇到难题要想办法。",
+   "他难过得哭了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "被难住了，困难。",
+  "emoji": "😮‍💨"
+ },
+ "仍": {
+  "words": [
+   "仍然"
+  ],
+  "sentences": [
+   "下雨天他仍然来上学。"
+  ],
+  "etym_type": "component",
+  "etym": "还是那样，仍然。",
+  "emoji": ""
+ },
+ "退": {
+  "words": [
+   "后退",
+   "退回"
+  ],
+  "sentences": [
+   "遇到困难不后退。",
+   "小羊慢慢往后退。"
+  ],
+  "etym_type": "component",
+  "etym": "往回走，退。",
+  "emoji": "↩️"
+ },
+ "继": {
+  "words": [
+   "继续"
+  ],
+  "sentences": [
+   "继续努力，下次更好。",
+   "雨继续下着。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "丝接着丝，继续。",
+  "emoji": ""
+ },
+ "续": {
+  "words": [
+   "继续",
+   "连续"
+  ],
+  "sentences": [
+   "他连续跳了一百下。"
+  ],
+  "etym_type": "component",
+  "etym": "连着不断，连续。",
+  "emoji": ""
+ },
+ "认": {
+  "words": [
+   "认字",
+   "认真"
+  ],
+  "sentences": [
+   "认真写字真好。",
+   "我每天认三个字。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "心里认下了，认。",
+  "emoji": "📖"
+ },
+ "训": {
+  "words": [
+   "训练"
+  ],
+  "sentences": [
+   "小狗接受训练。",
+   "运动员天天训练。"
+  ],
+  "etym_type": "component",
+  "etym": "说得有条理，训。",
+  "emoji": "🏅"
+ },
+ "被": {
+  "words": [
+   "被子",
+   "棉被"
+  ],
+  "sentences": [
+   "冬天盖厚被子。"
+  ],
+  "etym_type": "component",
+  "etym": "盖在身上的，被。",
+  "emoji": "🛌"
+ },
+ "恢": {
+  "words": [
+   "恢复"
+  ],
+  "sentences": [
+   "他的病好了，恢复了精神。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "灰心又回来，恢复。",
+  "emoji": ""
+ },
+ "朱": {
+  "words": [
+   "朱红"
+  ],
+  "sentences": [
+   "灯笼是朱红色的。",
+   "朱德爷爷带领大家挑粮。"
+  ],
+  "etym_type": "picto",
+  "etym": "红木的颜色，朱红。",
+  "emoji": "🏮"
+ },
+ "德": {
+  "words": [
+   "品德"
+  ],
+  "sentences": [
+   "诚实是好品德。"
+  ],
+  "etym_type": "component",
+  "etym": "心直行正，德。",
+  "emoji": ""
+ },
+ "扁": {
+  "words": [
+   "扁扁"
+  ],
+  "sentences": [
+   "小船扁扁的。",
+   "鸭嘴扁扁的。"
+  ],
+  "etym_type": "picto",
+  "etym": "薄薄的一片，扁。",
+  "emoji": "🦆"
+ },
+ "担": {
+  "words": [
+   "担心"
+  ],
+  "sentences": [
+   "妈妈担心我着凉。",
+   "别担心，有我呢。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "肩上挑着，心里挂着。",
+  "emoji": ""
+ },
+ "志": {
+  "words": [
+   "志向",
+   "同志"
+  ],
+  "sentences": [
+   "同志们藏起了他的扁担。",
+   "我的志向是当医生。"
+  ],
+  "etym_type": "component",
+  "etym": "士的心，志向。",
+  "emoji": "🎯"
+ },
+ "伍": {
+  "words": [
+   "队伍"
+  ],
+  "sentences": [
+   "队伍走得很整齐。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "五人一伍，队伍。",
+  "emoji": "🚩"
+ },
+ "泽": {
+  "words": [
+   "光泽"
+  ],
+  "sentences": [
+   "月亮散发着光泽。"
+  ],
+  "etym_type": "component",
+  "etym": "水聚的地方，泽。",
+  "emoji": "🌕"
+ },
+ "敌": {
+  "words": [
+   "敌人"
+  ],
+  "sentences": [
+   "敌人被赶跑了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "口舌相争，为敌。",
+  "emoji": ""
+ },
+ "陡": {
+  "words": [
+   "陡坡"
+  ],
+  "sentences": [
+   "上山的路很陡。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "山高路陡，难走。",
+  "emoji": "⛰️"
+ },
+ "仗": {
+  "words": [
+   "打仗"
+  ],
+  "sentences": [
+   "古人用弓箭打仗。"
+  ],
+  "etym_type": "component",
+  "etym": "拿着武器打仗。",
+  "emoji": "⚔️"
+ },
+ "疼": {
+  "words": [
+   "疼爱",
+   "心疼"
+  ],
+  "sentences": [
+   "奶奶最疼爱我。",
+   "腿摔疼了，揉一揉。"
+  ],
+  "etym_type": "component",
+  "etym": "又酸又痛，疼。",
+  "emoji": "💗"
+ },
+ "料": {
+  "words": [
+   "木料",
+   "材料"
+  ],
+  "sentences": [
+   "木料能做桌子。",
+   "手工材料准备好了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "量米的斗，料。",
+  "emoji": "🪵"
+ },
+ "敬": {
+  "words": [
+   "尊敬",
+   "敬礼"
+  ],
+  "sentences": [
+   "向老师敬礼。",
+   "我尊敬奶奶。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "恭恭敬敬，敬。",
+  "emoji": "🫡"
+ },
+ "泼": {
+  "words": [
+   "活泼",
+   "泼水"
+  ],
+  "sentences": [
+   "小妹妹活泼可爱。",
+   "泼水节真热闹。"
+  ],
+  "etym_type": "component",
+  "etym": "水洒出去，泼。",
+  "emoji": "💦"
+ },
+ "族": {
+  "words": [
+   "民族",
+   "家族"
+  ],
+  "sentences": [
+   "五十六个民族一家亲。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "旗下同一族的人。",
+  "emoji": "🎏"
+ }
+}

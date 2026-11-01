@@ -1,0 +1,13 @@
+{
+"情": {"words": ["心情", "事情", "友情"], "sentences": ["今天心情真好。", "把事情做好再玩。", "我们的友情长久。"], "etym_type": "component", "etym": "心（忄）+青：心里的感觉，情。", "emoji": "💗"},
+"至": {"words": ["冬至", "夏至"], "sentences": ["冬至吃饺子。", "夏至白天最长。"], "etym_type": "picto", "etym": "箭落地到达，至。", "emoji": "🎯"},
+"定": {"words": ["决定", "一定", "安定"], "sentences": ["自己决定做哪件。", "我一定说到做到。"], "etym_type": "mnemonic", "etym": "安定下来不乱动，定。", "emoji": "✅"},
+"寿": {"words": ["祝寿", "长寿"], "sentences": ["给爷爷祝寿。", "祝奶奶健康长寿。"], "etym_type": "mnemonic", "etym": "活得长长久久，寿。", "emoji": "🎂"},
+"但": {"words": ["但愿", "但是"], "sentences": ["但愿天天晴。", "雨停了，但是路还滑。"], "etym_type": "mnemonic", "etym": "只这样想，但。", "emoji": ""},
+"费": {"words": ["免费", "收费"], "sentences": ["儿童免费入园。", "停车不收费。"], "etym_type": "mnemonic", "etym": "花出去的钱，费。", "emoji": "💰"},
+"带": {"words": ["带领", "皮带", "带来"], "sentences": ["老师带领我们做操。", "春天带来了花香。"], "etym_type": "picto", "etym": "像腰上的带子，带。", "emoji": ""},
+"城": {"words": ["城市", "长城", "城墙"], "sentences": ["长城又长又壮观。", "城市里高楼多。"], "etym_type": "mnemonic", "etym": "土墙围着的地方，城。", "emoji": "🏙️"},
+"堵": {"words": ["堵车", "堵住"], "sentences": ["早上路上堵车。", "用沙袋堵住水。"], "etym_type": "component", "etym": "土把路挡住，堵。", "emoji": "🚗"},
+"炉": {"words": ["炉火", "火炉"], "sentences": ["炉火烧得旺。", "冬天围着火炉暖和。"], "etym_type": "component", "etym": "生火做饭的器具，炉。", "emoji": "🔥"},
+"提": {"words": ["提问", "提高"], "sentences": ["上课大胆提问。", "成绩提高了。"], "etym_type": "component", "etym": "手把东西拿起来，提。", "emoji": "🙋"}
+}
