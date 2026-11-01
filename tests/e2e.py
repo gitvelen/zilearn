@@ -475,8 +475,8 @@ def content_gate_tests():
     uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
     # 模拟被污染的 5A 账号（5a 册有字无内容）：册计划 + 今日已"学"过无内容字 + 挂到期复习
     t0 = date.today().isoformat()
-    db.execute("UPDATE users SET grade='5A', target_chars=30, plan_days=7, plan_start=?, onboarded=1",
-               (t0,))
+    db.execute("UPDATE users SET grade='5A', target_chars=30, plan_days=7, plan_start=?, onboarded=1 WHERE id=?",
+               (t0, uid))
     b1 = db.execute("SELECT h.id, h.char FROM hanzi h WHERE h.book='5a' ORDER BY h.seq LIMIT 2").fetchall()
     for r in b1:
         db.execute("INSERT INTO quiz_log(user_id, hanzi_id, phase, quiz_type, correct, ts) "
