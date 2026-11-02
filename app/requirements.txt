@@ -5,3 +5,4 @@ itsdangerous>=2.1
 python-multipart>=0.0.9
 httpx>=0.27
 pypinyin>=0.50
+imageio-ffmpeg>=0.5

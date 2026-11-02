@@ -13,3 +13,6 @@ __pycache__/
 
 # 本机测试凭据（mido 随机密码，seed 输出；不入库）
 tests/credentials.json
+
+# ASR key（智谱，同 ~/.claude/settings.json 的 AUTH_TOKEN；勿入库）
+.env

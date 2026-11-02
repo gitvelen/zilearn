@@ -7,15 +7,20 @@
 - ASR 是增强不是依赖：key 未配置/网络失败/超时/格式不支持 → 一律降级放行
   （degraded），孩子端永不因它卡流程。
 
-provider 用 OpenAI 兼容 transcriptions 协议（multipart），默认硅基流动
-SenseVoiceSmall（国内直连、中文强、协议稳定）。env：
-  SILICONFLOW_API_KEY  必填才激活（其余时间纯降级）
-  ASR_BASE_URL         默认 https://api.siliconflow.cn/v1/audio/transcriptions
-  ASR_MODEL            默认 SenseVoiceSmall
+provider 用 OpenAI 兼容 transcriptions 协议（multipart），默认智谱 glm-asr-2512
+（2026-11-02 实测：coding plan key 可直接调用，1.6s 童声 mp3 识别准确，0.06 元/分钟）。
+智谱只收 .wav/.mp3——前端 Safari=audio/mp4、Chrome=audio/webm 实测均被 1214 拒，
+故非 wav/mp3 一律先经 ffmpeg 转 16k 单声道 wav。env：
+  ASR_API_KEY          必填才激活（其余时间纯降级）
+  ASR_BASE_URL         默认 https://open.bigmodel.cn/api/paas/v4/audio/transcriptions
+  ASR_MODEL            默认 glm-asr-2512
 """
 import os
+import subprocess
+import tempfile
 
 import httpx
+from imageio_ffmpeg import get_ffmpeg_exe
 from pypinyin import lazy_pinyin, Style
 
 MAX_AUDIO_BYTES = 1_500_000        # 1.5MB 上限：词跟读窗 ~4s aac/webm 远小于此
@@ -73,17 +78,41 @@ def word_match(recognized: str, target: str) -> bool:
     return False
 
 
+def _to_wav(raw: bytes) -> bytes | None:
+    """浏览器格式（webm/mp4）转 16k 单声道 wav。失败返回 None（降级放行）。"""
+    with tempfile.TemporaryDirectory() as d:
+        src, dst = os.path.join(d, "rec.in"), os.path.join(d, "rec.wav")
+        with open(src, "wb") as f:               # ffmpeg 按内容探测容器，无需扩展名
+            f.write(raw)
+        try:
+            p = subprocess.run(
+                [get_ffmpeg_exe(), "-v", "error", "-i", src, "-ar", "16000", "-ac", "1", dst],
+                capture_output=True, timeout=10)
+        except Exception:
+            return None
+        if p.returncode != 0:
+            return None
+        with open(dst, "rb") as f:
+            return f.read()
+
+
 def _transcribe(raw: bytes, mime: str) -> str | None:
     """OpenAI 兼容转写。任何异常返回 None（调用方降级放行）。"""
-    key = os.environ.get("SILICONFLOW_API_KEY")
+    key = os.environ.get("ASR_API_KEY")
     if not key:
         return None
-    ext = "mp4" if "mp4" in (mime or "") else "webm" if "webm" in (mime or "") else "wav"
+    m = mime or ""
+    if "wav" not in m and "mpeg" not in m and "mp3" not in m:
+        raw = _to_wav(raw)
+        if raw is None:
+            return None
+        m = "audio/wav"
+    ext = "wav" if "wav" in m else "mp3"
     r = httpx.post(
-        os.environ.get("ASR_BASE_URL", "https://api.siliconflow.cn/v1/audio/transcriptions"),
+        os.environ.get("ASR_BASE_URL", "https://open.bigmodel.cn/api/paas/v4/audio/transcriptions"),
         headers={"Authorization": f"Bearer {key}"},
-        files={"file": (f"rec.{ext}", raw, mime or "application/octet-stream")},
-        data={"model": os.environ.get("ASR_MODEL", "SenseVoiceSmall")},
+        files={"file": (f"rec.{ext}", raw, m)},
+        data={"model": os.environ.get("ASR_MODEL", "glm-asr-2512")},
         timeout=6,
     )
     r.raise_for_status()
