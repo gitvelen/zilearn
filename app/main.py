@@ -215,6 +215,23 @@ def today(request: Request):
     return scheduler.build_today(user["id"])
 
 
+@app.post("/api/dev/next-day")
+def dev_next_day(request: Request):
+    """TEST 专属跳日：虚拟日历 +1（同一天连学下一天课程）；非 test 账号 403"""
+    user = auth.current_user(request)
+    if user["username"].lower() != "test":
+        raise HTTPException(403, "仅 test 账号可用")
+    db = database.get_db()
+    try:
+        db.execute("UPDATE users SET day_offset=day_offset+1 WHERE id=?", (user["id"],))
+        db.commit()
+        off = db.execute("SELECT day_offset FROM users WHERE id=?",
+                         (user["id"],)).fetchone()["day_offset"]
+    finally:
+        db.close()
+    return {"ok": True, "day_offset": off}
+
+
 @app.post("/api/submit")
 def submit(body: SubmitIn, request: Request):
     user = auth.current_user(request)

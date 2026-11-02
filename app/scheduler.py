@@ -10,11 +10,13 @@
 - 复习答错：stage 重置 1、next=D+1 完整回炉
 - mastered 每日抽检 3 个（audit）混入复习；答错打回 stage1
 - 摸底三步（表格确认）：速选认识 → 1 题四选一验证（对→skipped 剔除，错→回池）→ 建计划按教材序续补
+- TEST 跳日（虚拟日历）：users.day_offset>0 时该用户所有日期逻辑走"真实今天+offset"，
+  /api/dev/next-day 仅 test 账号可调——同一天连学多日课程；活动日=虚拟日，调度语义不变
 """
 import json
 import math
 import random
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from database import get_db
@@ -30,6 +32,14 @@ MIN_PLAN_DAYS = 7             # 计划天数下限（一个完整周循环）
 CONTENT_READY = "EXISTS (SELECT 1 FROM zi_content c WHERE c.hanzi_id = h.id)"
 
 today_str = lambda: date.today().isoformat()  # noqa: E731
+
+
+def today_for(user):
+    """用户的"今天"：day_offset>0（TEST 跳日）走虚拟日历，其余=真实今天。
+    以 today_str() 起算——e2e 拨日期补丁继续生效。"""
+    off = (user["day_offset"] or 0) if user else 0
+    t = today_str()
+    return (date.fromisoformat(t) + timedelta(days=off)).isoformat() if off else t
 
 
 def book_of(user):
@@ -196,7 +206,7 @@ def day_index(user, db=None):
     own = db is not None
     db = db or get_db()
     try:
-        t = today_str()
+        t = today_for(user)
         return sum(1 for d in _active_days(db, user["id"]) if d < t)
     finally:
         if not own:
@@ -216,6 +226,7 @@ def build_today(user_id):
         di = day_index(user, db)
         if di is None:
             return {"mode": "no-plan"}
+        t = today_for(user)                       # 虚拟日（TEST 跳日）——当日口径唯一真源
 
         if is_weekly_day(user, db):
             week_no = (di + 1) // 7
@@ -225,7 +236,7 @@ def build_today(user_id):
                         (user_id, week_no))
             if done:
                 return {"mode": "weekly", "week_no": week_no, "scope": [], "done": True,
-                        "score": done["score"], "total": done["total"]}
+                        "score": done["score"], "total": done["total"], "date": t}
             # 本周窗口 = 本周首个活动日（第 (week_no-1)*7+1 个）的日期
             active = _active_days(db, user_id)
             week_start = active[(week_no - 1) * 7]
@@ -245,9 +256,9 @@ def build_today(user_id):
             for r in db.execute(f"""SELECT h.id, h.char FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
                                    WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=?
                                    AND {CONTENT_READY}""",
-                                (user_id, today_str())):
+                                (user_id, t)):
                 scope[r["id"]] = dict(r)
-            return {"mode": "weekly", "week_no": week_no, "scope": list(scope.values())}
+            return {"mode": "weekly", "week_no": week_no, "scope": list(scope.values()), "date": t}
 
         # ---- 学习日 ----
         daily_new = math.ceil(user["target_chars"] /
@@ -256,7 +267,7 @@ def build_today(user_id):
         learned_today = [r["hanzi_id"] for r in db.execute(
             f"""SELECT DISTINCT q.hanzi_id FROM quiz_log q JOIN hanzi h ON h.id=q.hanzi_id
                 WHERE q.user_id=? AND q.phase='learn' AND q.ts>=? AND {CONTENT_READY}""",
-            (user_id, today_str()))]
+            (user_id, t))]
         new_ids = list(learned_today)
         if len(new_ids) < daily_new:
             for r in db.execute(f"""SELECT id, char FROM hanzi h
@@ -277,28 +288,29 @@ def build_today(user_id):
             f"""SELECT h.id, h.char, h.pinyin, h.tone3, uh.stage FROM user_hanzi uh
                JOIN hanzi h ON h.id=uh.hanzi_id
                WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=? AND {CONTENT_READY}
-               ORDER BY uh.next_date""", (user_id, today_str()))]  # stage/first_date 已含
+               ORDER BY uh.next_date""", (user_id, t))]  # stage/first_date 已含
         # 掌握词抽检
         audits = [dict(r) for r in db.execute(
             f"""SELECT h.id, h.char, h.pinyin, h.tone3 FROM user_hanzi uh
                JOIN hanzi h ON h.id=uh.hanzi_id
                WHERE uh.user_id=? AND uh.status='mastered' AND
                      (uh.audit_date IS NULL OR uh.audit_date<?) AND {CONTENT_READY}
-               ORDER BY RANDOM() LIMIT ?""", (user_id, today_str(), AUDIT_N))]
+               ORDER BY RANDOM() LIMIT ?""", (user_id, t, AUDIT_N))]
         # 当日已学字（分关测验中途退出重进时，前端据此重建关队列）
         learned_today_chars = [dict(r) for r in db.execute(
             f"""SELECT DISTINCT h.id, h.char, h.pinyin, h.tone3 FROM quiz_log q
                JOIN hanzi h ON h.id=q.hanzi_id
                WHERE q.user_id=? AND q.phase='learn' AND q.ts=? AND {CONTENT_READY} ORDER BY h.seq""",
-            (user_id, today_str()))]
+            (user_id, t))]
         # 当日已答复习/抽检数（完成页统计真源：重进后 review 列表只剩未答项，直接取 length 会少计）
         review_done = db.execute(
             """SELECT COUNT(DISTINCT hanzi_id) n FROM quiz_log
                WHERE user_id=? AND ts>=? AND phase IN ('review','audit')""",
-            (user_id, today_str())).fetchone()["n"]
+            (user_id, t)).fetchone()["n"]
         return {"mode": "learn", "day_index": di, "new": new_chars,
                 "review": reviews, "audit": audits,
-                "learned_today": learned_today_chars, "review_done": review_done}
+                "learned_today": learned_today_chars, "review_done": review_done,
+                "date": t}
     finally:
         db.close()
 
@@ -313,7 +325,8 @@ def submit(user_id, hanzi_id, phase, quiz_type, correct):
     """
     db = get_db()
     try:
-        t = today_str()
+        u = db.execute("SELECT day_offset FROM users WHERE id=?", (user_id,)).fetchone()
+        t = today_for(u)                          # 流水与 next_date 同用虚拟日（TEST 跳日）
         replayed = phase in ("review", "weekly", "audit") and bool(_row(db,
             """SELECT 1 FROM quiz_log WHERE user_id=? AND hanzi_id=? AND phase=? AND ts>=? LIMIT 1""",
             (user_id, hanzi_id, phase, t)))
@@ -364,6 +377,7 @@ def submit(user_id, hanzi_id, phase, quiz_type, correct):
 def weekly_finish(user_id, week_no, score, total, wrong_ids):
     db = get_db()
     try:
+        u = db.execute("SELECT day_offset FROM users WHERE id=?", (user_id,)).fetchone()
         existed = _row(db, "SELECT 1 FROM weekly_reports WHERE user_id=? AND week_no=?",
                        (user_id, week_no))
         db.execute("""INSERT INTO weekly_reports(user_id, week_no, score, total, wrong_ids, done)
@@ -372,7 +386,7 @@ def weekly_finish(user_id, week_no, score, total, wrong_ids):
                    (user_id, week_no, score, total, json.dumps(wrong_ids)))
         if not existed:                     # 首次结算才记星，重复结算不刷星
             db.execute("INSERT INTO stars(user_id, date, src, n) VALUES(?,?,'weekly',?)",
-                       (user_id, today_str(), score))
+                       (user_id, today_for(u), score))
         db.commit()
     finally:
         db.close()

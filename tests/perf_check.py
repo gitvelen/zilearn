@@ -92,7 +92,7 @@ def run(page):
         page.locator(".learn-card > button.btn.big").click()
         page.wait_for_timeout(500)
 
-    # 走完六关（含写字关跳过），全部答对；错一题验重测路径
+    # 走完五关（写字关已删），全部答对；错一题验重测路径
     for _ in range(60):
         st = page.evaluate("""() => { const a = window.ziapp;
             if (!['newlearn', 'review', 'weekly'].includes(a.phase)) return { done: true };
@@ -112,12 +112,6 @@ def run(page):
                       if (q.lines[li][ti] === q.hanzi) a.findTap(li, ti, q.hanzi);
                 } }""")
             page.wait_for_timeout(1250)       # 900ms 停留 + 余量
-        elif t == "strokegate":
-            page.wait_for_timeout(1500)
-            page.evaluate("() => { window.ziapp.traceFallback = true; window.ziapp.gateScores[6] = 1; }")
-            page.wait_for_timeout(200)
-            page.locator(".stroke-card > button.btn.big").click()
-            page.wait_for_timeout(500)
         elif t == "gatesummary":
             page.locator(".gate-card .btn.big").click()
             page.wait_for_timeout(400)

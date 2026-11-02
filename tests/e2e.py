@@ -53,8 +53,8 @@ def reset_user():
     import database
     db = database.get_db()
     uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
-    db.execute("UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0 WHERE id=?", (uid,))
-    for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports", "follow_log"):
+    db.execute("UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0, day_offset=0 WHERE id=?", (uid,))
+    for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports", "follow_log", "daily_mail"):
         db.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
     db.commit()
     db.close()
@@ -169,6 +169,8 @@ def api_tests():
     with urllib.request.urlopen(req) as resp:
         v = json.loads(resp.read())
     check("follow/verify 未配置 key → 降级放行", v.get("pass") is True and v.get("degraded") is True, v)
+    r = call("POST", "/api/dev/next-day")
+    check("跳日接口仅 test 账号可用(mido 403)", r.get("__error__") == 403, r)
 
 
 def gate_question_tests():

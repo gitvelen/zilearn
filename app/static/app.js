@@ -25,7 +25,7 @@ const root = createApp({
   errorHandler(err, inst, info) { console.error("[vue]", info, err && err.message); },
   data() {
     return {
-      phase: "boot", loginForm: { u: "", p: "" }, loginErr: "", userName: "",
+      phase: "boot", loginForm: { u: "", p: "" }, loginErr: "", userName: "", isTest: false,
       progress: {}, obGrade: "", obTarget: 300, obDays: 50, planEst: null, gradesReady: [], obKick: false,
       confirmBatches: [], confirmPage: 0, confirmPicked: [],
       verifyQ: null, verifyPick: null, verifyRevealed: false,
@@ -60,7 +60,10 @@ const root = createApp({
       return this.sessQueue.length ? ((this.sessIdx) / this.sessQueue.length * 100) + "%" : "0%";
     },
     todayCN() {
-      const d = new Date(), wk = ["日", "一", "二", "三", "四", "五", "六"];
+      /* 虚拟日（TEST 跳日）优先显示：与调度同源 today.date；未加载回落真实日历 */
+      const s = this.today && this.today.date;
+      const d = s ? new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) : new Date();
+      const wk = ["日", "一", "二", "三", "四", "五", "六"];
       return `${d.getMonth() + 1}月${d.getDate()}日 · 星期${wk[d.getDay()]}`;
     },
     estLocal() {
@@ -101,6 +104,7 @@ const root = createApp({
       try {
         const me = await api("GET", "/api/me");
         this.progress = me.progress; this.userName = me.user.display_name || me.user.username;
+        this.isTest = (me.user.username || "").toLowerCase() === "test";   /* TEST 专属跳日入口 */
         this.gradesReady = me.grades_ready || [];   /* 册内容就绪度（年级选择禁选"制作中"） */
         if (me.stage === "onboard") { this.obKick = !!me.user.grade; this.phase = "ob-grade"; }
         else if (me.stage === "plan") { this.obTarget = Math.min(300, me.progress.total_hanzi - (me.progress.skipped || 0)); this.phase = "ob-plan"; }
@@ -703,10 +707,8 @@ const root = createApp({
       const t = this.curItem && this.curItem.type;
       if (t === "newcard") return "✨ 新字探索";
       if (t === "readcard") return "📖 今日朗读";
-      /* strokegate 也是分关之一（写字关）：漏判曾让它掉进"复习挑战"兜底，
-         家长实测一头雾水（2026-11-02）——所有关类型必须显式归位 */
-      if (t === "gatequiz" || t === "gatesummary" || t === "strokegate")
-        return `🚪 第${this.curItem.gate}关 · ${["听音", "拼音", "组词", "听句", "字义", "写字"][this.curItem.gate - 1]}`;
+      if (t === "gatequiz" || t === "gatesummary")
+        return `🚪 第${this.curItem.gate}关 · ${["听音", "拼音", "组词", "听句", "字义"][this.curItem.gate - 1]}`;
       if (this.phase === "weekly") return "🏆 周大挑战";
       if (t === "auditquiz") return "🕵️ 小侦探抽查";
       return "🎯 复习挑战";
@@ -839,6 +841,10 @@ const root = createApp({
       else if (this.today.mode === "weekly") { this.phase = "weekly"; this.buildWeeklyQueue(); }
       else this.phase = "done";
     },
+    async skipDay() {                                 /* TEST 专属：虚拟日历+1，今天直接学下一天课程 */
+      await api("POST", "/api/dev/next-day").catch(() => {});
+      await this.loadToday();
+    },
     buildLearnQueue() {
       /* 分关结构（wordslearn v2.1 模式）：先学完 → 复习沉淀 → 分关测验（延迟回忆）→ 朗读收尾 */
       const q = [];
@@ -849,8 +855,9 @@ const root = createApp({
       gen.forEach(r => q.push({ type: "reviewquiz", phase: "review", ...r }));    // 复习沉淀
       this.today.audit.forEach(r => q.push({ type: "auditquiz", phase: "audit", ...r }));
       /* 分关：重进恢复——today.new 只含未学字（build_today 已剔除当日已学），关池 =
-         未学字 ∪ 当日已学（关未完成时）；当日全部学完且关已过 → 不重建 */
-      const gateDone = sessionStorage.getItem("gateDone_" + new Date().toISOString().slice(0, 10)) === "1";
+         未学字 ∪ 当日已学（关未完成时）；当日全部学完且关已过 → 不重建。
+         写字关已删（2026-11-02 拍板）：新字卡第 4 步描红已覆盖写字，测验不重复 */
+      const gateDone = sessionStorage.getItem("gateDone_" + this.today.date) === "1";
       const seenIds = new Set(this.today.new.map(h => h.id));
       const news = [...this.today.new,
         ...(!gateDone ? (this.today.learned_today || []).filter(l => !seenIds.has(l.id)) : [])];
@@ -861,21 +868,14 @@ const root = createApp({
           { gate: 3, label: "组词关", qt: "mean", icon: "🧩" },
           { gate: 4, label: "听句关", qt: "lsent", icon: "🎧" },
           { gate: 5, label: "字义关", qt: "defi", icon: "💡" },
-          { gate: 6, label: "写字关", qt: "stroke", icon: "✍️" },
         ];
+        const lastGate = gates[gates.length - 1].gate;
         gates.forEach(g => {
           const chars = [...news].sort(() => Math.random() - 0.5);   // 各关独立乱序
-          if (g.qt === "stroke") {
-            /* 写字关：每日 1 字随机（时长敏感，不逐字写） */
-            q.push({ type: "strokegate", phase: "learn", gate: g.gate, ...chars[0] });
-            q.push({ type: "gatesummary", gate: g.gate, label: g.label, icon: g.icon,
-                     total: 1, isLast: true });
-            return;
-          }
           chars.forEach(h => q.push({ type: "gatequiz", phase: "learn",
             gate: g.gate, quiz_type: g.qt, ...h }));
           q.push({ type: "gatesummary", gate: g.gate, label: g.label, icon: g.icon,
-                   total: chars.length });
+                   total: chars.length, isLast: g.gate === lastGate });
         });
         this.gateScores = Object.fromEntries(gates.map(g => [g.gate, 0]));
         this.gateWrong = Object.fromEntries(gates.map(g => [g.gate, []]));
@@ -909,7 +909,7 @@ const root = createApp({
       if (!q.length) return this.finishSession();   /* 已答完未结算（最后一题答完即退出） */
       this.enterItem();
     },
-    weeklyKey() { return "weekly_" + new Date().toISOString().slice(0, 10); },
+    weeklyKey() { return "weekly_" + (this.today.date || new Date().toISOString().slice(0, 10)); },
     weeklyProg() { try { return JSON.parse(localStorage.getItem(this.weeklyKey())) || null; } catch { return null; } },
     weeklyLeft() { const p = this.weeklyProg(); return p && this.today.scope ? this.today.scope.length - p.done.length : null; },
     weeklySave() {
@@ -946,8 +946,6 @@ const root = createApp({
           this.stepBusy = false;
           if (!this._narrStop) await this.startFollow("read");   /* 逐句跟读 */
         });
-      } else if (it.type === "strokegate") {
-        this.mountStrokeQuiz(it);
       } else if (it.type.endsWith("quiz")) {
         this.startQuiz(it);
       }
@@ -987,7 +985,7 @@ const root = createApp({
             fetch(`/static/strokes/${encodeURIComponent(c)}.json`)
               .then(r => { if (!r.ok) throw 0; return r.json(); })
               .then(done)
-              .catch(() => { this.traceFallback = true; done(null); }),   /* 笔画数据缺失：门槛降级放行（同写字关） */
+              .catch(() => { this.traceFallback = true; done(null); }),   /* 笔画数据缺失：门槛降级放行 */
         });
         this._hw = w;
         /* 完整笔顺演示一遍（v36 用户拍板：强制看完才开写）；完毕转循环演示供开写后对照，
@@ -1020,56 +1018,6 @@ const root = createApp({
           this.traceMsg = "写完啦 🎉 再点一下还能再写一遍";
           this.playChar(char);
         },
-      });
-    },
-    /* ---------- 写字关（每日 1 字，写完才过关；HanziWriter quiz 复用写步参数） ---------- */
-    mountStrokeQuiz(it) {
-      this._stopHw();                               /* 写字关每日 1 次，但重进会重建：先停旧实例 */
-      this.traceDone = false; this.traceFallback = false;
-      this.traceWatched = false;                    /* v36：先看完一遍笔顺才可开写（同写步） */
-      this.traceMsg = "👀 先看一遍笔顺演示…";
-      this.playTts("q_write");
-      this.$nextTick(() => {
-        const el = document.getElementById("hw-gate");
-        if (!el || !window.HanziWriter) { this.traceFallback = true; return; }
-        try {
-          const w = HanziWriter.create(el, it.char, {
-            width: 210, height: 210, padding: 5, showOutline: true,
-            strokeAnimationSpeed: 1.2, strokeColor: "#ff9800", outlineColor: "#ffe0b2",
-            charDataLoader: (c, done) =>
-              fetch(`/static/strokes/${encodeURIComponent(c)}.json`)
-                .then(r => { if (!r.ok) throw 0; return r.json(); })
-                .then(done)
-                .catch(() => { this.traceFallback = true; done(null); }),
-          });
-          this._hw = w;
-          /* 完整笔顺演示一遍才可开写（v36）；完毕转循环演示，quiz 启动自动接管 */
-          w.animateCharacter({ onComplete: () => {
-            if (this._hw !== w) return;
-            this.traceWatched = true;
-            this.traceMsg = `✏️ 看完啦，点米字格把「${it.char}」一笔一笔写完吧`;
-            w.loopCharacterAnimation();
-          } });
-          el.onclick = () => {
-            if (this.traceDone || this.tracing) return;
-            if (!this.traceWatched) { this.holdTip("先看完一遍笔顺演示哦 👀"); return; }
-            this.tracing = true; el.classList.add("tracing");
-            w.quiz({
-              leniency: 1.4, showHintAfterMisses: 1,
-              onCorrectStroke: d => { this.traceMsg = `真棒！第 ${d.strokeNum + 1} 笔写对了，继续～`; this.playSfx("ok", 0.3); },
-              onMistake: () => { this.traceMsg = "没关系，跟着虚线再试一次～"; },
-              onComplete: () => {
-                el.classList.remove("tracing"); el.classList.add("done");
-                this.tracing = false; this.traceDone = true;
-                this.traceMsg = "写完啦 🎉";
-                this.gateScores[it.gate] = 1;
-                this.playChar(it.char); this.playSfx("ok");
-                api("POST", "/api/submit", { hanzi_id: it.id, phase: "learn",
-                  quiz_type: "stroke", correct: true });
-              },
-            });
-          };
-        } catch { this.traceFallback = true; }
       });
     },
     /* ---------- 今日朗读卡（今日新字例句串读，目标字高亮） ---------- */
@@ -1141,10 +1089,6 @@ const root = createApp({
             sents.forEach((s, i) => this._preload(`s_${ch}_${i + 1}`));
           } catch { }
         }).catch(() => { });
-        return;
-      }
-      if (it.type === "strokegate") {
-        fetch(`/static/strokes/${encodeURIComponent(it.char)}.json`).catch(() => { });
         return;
       }
       if (it.type === "readcard") {
@@ -1346,9 +1290,9 @@ const root = createApp({
         api("POST", "/api/submit", { hanzi_id: done.id, phase: "learn",
           quiz_type: "card", correct: true });
       }
-      /* 全部关过完 → 标记当日关完成（重进不重建关队列） */
+      /* 全部关过完 → 标记当日关完成（重进不重建关队列；键=虚拟日，跳日后同一天不误判已过） */
       if (done && done.type === "gatesummary" && done.isLast)
-        sessionStorage.setItem("gateDone_" + new Date().toISOString().slice(0, 10), "1");
+        sessionStorage.setItem("gateDone_" + this.today.date, "1");
       this.stopNarration();
       this.sessIdx++;
       this.enterItem();

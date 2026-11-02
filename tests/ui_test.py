@@ -135,8 +135,10 @@ def reset_test_user():
     conn = sqlite3.connect("/root/zilearn/app/data/zilearn.db")
     uid = conn.execute("SELECT id FROM users WHERE username='test'").fetchone()[0]
     conn.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL,
-                    plan_start=NULL, onboarded=0 WHERE id=?""", (uid,))
-    for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports", "follow_log"):
+                    plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0,
+                    day_offset=0 WHERE id=?""", (uid,))
+    for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports",
+              "follow_log", "daily_mail"):
         conn.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
     conn.commit()
     conn.close()
@@ -319,7 +321,7 @@ def run(page):
     check("跟读中点下一步即越步(新字2认→词)", app(page)["nc"] == 2)
     follow_wait(page, False, timeout=5000)       # 点走后跟读链终止
     quiz_seq, gates_seen = [], 0
-    while gates_seen < 6:
+    while gates_seen < 5:
         st = app(page)
         if st["type"] == "newcard":
             # 新字2：长按跳步直达"写"（家长快进；nc-dot 长按化防孩子误触）
@@ -344,29 +346,10 @@ def run(page):
                 "window.ziapp.curItem && (window.ziapp.curItem.type === 'gatequiz' "
                 "|| window.ziapp.curItem.type === 'gatesummary')", timeout=10000, polling=100)
             continue
-        if st["type"] == "strokegate":
-            page.wait_for_timeout(1200)              # HanziWriter 动画挂载
-            check("写字关描红挂载", page.locator(".stroke-card .hanzi-wrap svg").count() >= 1)
-            page.wait_for_function("window.ziapp.traceWatched === true", timeout=20000, polling=100)
-            check("写字关笔顺演示一遍完成", True)
-            check("写字关未写完按钮锁", page.locator(".stroke-card > button.btn.big").is_disabled())
-            shot(page, "10b-stroke-gate")
-            # 家长长按跳过（真实路径：skipHold 返回值驱动 traceDone，勿用 evaluate 绕过）
-            skip = page.locator(".stroke-card .skip-link")
-            skip.dispatch_event("pointerdown")
-            page.wait_for_timeout(1700)
-            skip.dispatch_event("pointerup")
-            page.wait_for_timeout(200)
-            check("家长长按跳过解锁按钮", not page.locator(".stroke-card > button.btn.big").is_disabled())
-            page.evaluate("() => { window.ziapp.gateScores[6] = 1; }")   # 保持 1/1 结算断言
-            page.click(".stroke-card > button.btn.big")
-            page.wait_for_timeout(600)
-            continue
         if st["type"] == "gatesummary":
             gates_seen += 1
-            want = "1 / 1" if gates_seen == 6 else "2 / 2"
             txt = page.locator(".gate-card .score-xl").inner_text()
-            check(f"第{gates_seen}关结算 {want}", txt == want, txt)
+            check(f"第{gates_seen}关结算 2 / 2", txt == "2 / 2", txt)
             shot(page, f"10-gate{gates_seen}-summary")
             page.locator(".gate-card .btn.big").click()
             page.wait_for_timeout(400)
@@ -405,7 +388,7 @@ def run(page):
     page.wait_for_selector(".parent-grid", timeout=10000)
     check("家长页卡片", page.locator(".p-card").count() >= 4)
     shot(page, "12-parent")
-    check_no_overlap(page, "零叠音(学习日全程)")   # 不变量：四步卡/六关/朗读卡任何两路长音频不重叠
+    check_no_overlap(page, "零叠音(学习日全程)")   # 不变量：四步卡/五关/朗读卡任何两路长音频不重叠
 
     print("== UI 阶段1（学习日）完成 ==")
 
@@ -534,6 +517,18 @@ def run_weekly(page):
     page.evaluate("() => document.querySelector('.wizard button.btn.big').click()")   # 订好啦，继续学
     page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=8000)
     check("续订提交后回今日(不进摸底)", True)
+
+    # ---- TEST 跳日（虚拟日历）：今天直接进入下一天课程 ----
+    check("TEST 跳日按钮可见", page.locator("button.btn.ghost", has_text="直接学下一天").count() == 1)
+    page.evaluate("async () => { await window.ziapp.skipDay(); }")
+    page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=8000)
+    from datetime import date as _d3, timedelta as _td3
+    tmr = (_d3.today() + _td3(days=1)).isoformat()
+    vd = page.evaluate("() => window.ziapp.today.date")
+    check("跳日后虚拟日期=明天", vd == tmr, vd)
+    check("跳日后进入新学习日(第 2 周)", page.evaluate("() => window.ziapp.today.mode") == "learn"
+          and len(page.evaluate("() => window.ziapp.today.new || []")) >= 1,
+          page.evaluate("() => ({m: window.ziapp.today.mode, n: (window.ziapp.today.new||[]).length})"))
 
     reset_test_user()   # teardown：清测试状态，防污染线上库（拨日历时代的教训）
 

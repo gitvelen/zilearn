@@ -133,6 +133,7 @@
           @click="startToday">开始学习 🚀</button>
   <div class="hint mic-hint" v-if="today.mode==='learn' && !today.done && (today.new.length || today.review.length || today.audit.length)"
        >🎤 跟读要用麦克风：第一次使用，弹出的小窗请点"允许"</div>
+  <button class="btn ghost" v-if="isTest && today.mode" @click="skipDay">⏭️ 直接学下一天</button>
   <button class="btn ghost" v-if="today.done || (today.mode==='learn' && !today.new.length && !today.review.length && !today.audit.length)"
           @click="goParent">看看成绩 📊</button>
 </div>
@@ -205,7 +206,7 @@
            @click="followSentClick(i)" v-html="sentHtml(s)"></div>
     </template>
 
-    <!-- ④ 写：描红（写对才放行；家长长按跳过防死路，同写字关） -->
+    <!-- ④ 写：描红（写对才放行；家长长按跳过防死路） -->
     <template v-else>
       <div class="zi-row">
         <div class="zi-mid">{{curItem.char}}</div>
@@ -334,24 +335,6 @@
     <div v-else class="loading">出题中…</div>
   </div>
 
-  <!-- 写字关（每日 1 字，写完才过关） -->
-  <div v-else-if="curItem && curItem.type==='strokegate'" class="card stroke-card">
-    <div class="nc-title">写字关 ✍️ 把「{{curItem.char}}」写漂亮</div>
-    <div class="zi-row">
-      <div class="zi-mid">{{curItem.char}}</div>
-      <div class="hanzi-wrap" id="hw-gate"></div>
-    </div>
-    <div class="trace-tip">{{traceMsg}}</div>
-    <div class="hint" v-if="!traceDone && !traceFallback">先看完笔顺演示，再点米字格开写哦</div>
-    <div class="hint" v-if="traceFallback">这个字今天写不了，读给爸爸妈妈听吧</div>
-    <button v-if="!traceDone && !traceFallback" class="skip-link"
-            @pointerdown="skipHold(true)" @pointerup="skipHold(false) && (traceDone = true)"
-            @pointerleave="skipHold(false)">⏭ 家长长按跳过</button>
-    <button class="btn big" :disabled="!traceDone && !traceFallback" @click="advance">
-      {{ traceDone || traceFallback ? '下一关 →' : '写完才能继续哦 ✍️' }}
-    </button>
-  </div>
-
   <!-- 关末结算 -->
   <div v-else-if="curItem && curItem.type==='gatesummary'" class="card gate-card">
     <div class="big-emoji">{{curItem.icon}}</div>
@@ -458,6 +441,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=41"></script>
+<script src="/app.js?v=42"></script>
 </body>
 </html>

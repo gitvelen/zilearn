@@ -15,6 +15,7 @@ from email.mime.text import MIMEText
 from pathlib import Path
 
 from database import get_db, DB_PATH
+import scheduler                      # 日报聚合口径与调度同源（TEST 跳日：quiz_log ts 记虚拟日）
 
 SMTP_CONF = DB_PATH.parent / "smtp.json"
 SMTP_SKIP_USERS = ("mido",)                   # 仅 e2e 账号不发信（test 是孩子真机账号，必须发！）
@@ -201,13 +202,14 @@ def _smtp_conf():
 
 def send_daily_report(user_id):
     """完成事件入口：当日无学习不送；已送幂等跳过；失败不置位可重试。"""
-    day = _today()
     db = get_db()
     try:
-        user = db.execute("SELECT username FROM users WHERE id=?", (user_id,)).fetchone()
+        user = db.execute("SELECT username, day_offset FROM users WHERE id=?",
+                          (user_id,)).fetchone()
         if not user:
             return {"sent": False, "reason": "用户不存在"}
         uname = user["username"]
+        day = scheduler.today_for(user)      # TEST 跳日：流水 ts 是虚拟日，聚合须同口径
         n_learn = db.execute("""SELECT COUNT(*) n FROM quiz_log WHERE user_id=? AND ts=?""",
                              (user_id, day)).fetchone()["n"]
         if not n_learn:
