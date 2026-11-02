@@ -289,9 +289,9 @@ def build_today(user_id):
                JOIN hanzi h ON h.id=uh.hanzi_id
                WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=? AND {CONTENT_READY}
                ORDER BY uh.next_date""", (user_id, t))]  # stage/first_date 已含
-        # 掌握词抽检
+        # 掌握词抽检（带 stage：mastered=4，前端题型分层落深阶池）
         audits = [dict(r) for r in db.execute(
-            f"""SELECT h.id, h.char, h.pinyin, h.tone3 FROM user_hanzi uh
+            f"""SELECT h.id, h.char, h.pinyin, h.tone3, uh.stage FROM user_hanzi uh
                JOIN hanzi h ON h.id=uh.hanzi_id
                WHERE uh.user_id=? AND uh.status='mastered' AND
                      (uh.audit_date IS NULL OR uh.audit_date<?) AND {CONTENT_READY}

@@ -234,12 +234,13 @@ def run(page):
     check("多音字区隐藏/正常", page.locator(".learn-card .zi-big").inner_text().strip()[0] in ("天", "地", "人"))
     shot(page, "04-nc1-recite")
 
-    # ---- 跟读（认步·鼓励式）：字音→故事→范读(叮)→留白听读→✓；不锁按钮 ----
+    # ---- 跟读（认步·v45 跟读门全步）：字音→故事→范读(叮)→留白听读→✓；有麦锁按钮 ----
     follow_wait(page, True, timeout=20000)       # v32：跟读前多一段字源故事（~5s）
     page.wait_for_function("window.ziapp.follow.state==='wait'", timeout=20000)
-    check("跟读中(认·大字高亮+聆听指示器+按钮不锁)", page.locator(".zi-big.follow-cur").count() == 1
+    check("跟读中(认·大字高亮+聆听指示器+按钮锁)", page.locator(".zi-big.follow-cur").count() == 1
           and page.locator(".listen-orb.wait").count() == 1
-          and not page.locator(".learn-card > button.btn.big").is_disabled())
+          and (page.evaluate("() => window.ziapp.micDenied")
+               or page.locator(".learn-card > button.btn.big").is_disabled()))
     shot(page, "04b-follow-wait")
     follow_wait(page, False, timeout=20000)      # 留白+确认读+夸奖
     check("跟读完成后按钮仍可点(认)", not page.locator(".learn-card > button.btn.big").is_disabled())

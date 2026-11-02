@@ -100,7 +100,7 @@ def run(page):
     t_wait = time.time()
     page.wait_for_function("window.ziapp.follow.on===false", timeout=20000, polling=100)
     gap1 = time.time() - t_wait
-    check("T1 超时~5.5s 后直接放行", 4.5 <= gap1 <= 8, f"{gap1:.1f}s")
+    check("T1 超时~6.5s 后直接放行", 5.5 <= gap1 <= 10, f"{gap1:.1f}s")  # v45 EXCL 800→1500（叮直耦串扰）：超时=留白+EXCL+兜底 6.5s
     check("T1 按钮解禁", not page.locator(".learn-card > button.btn.big").is_disabled())
     rows = follow_rows()
     check("T1 流水 heard=0/tries=0", rows == [(ch, "char", 0, 0)], rows)
@@ -169,12 +169,12 @@ if __name__ == "__main__":
                   "--use-fake-ui-for-media-stream"])
         page = browser.new_page(viewport={"width": 820, "height": 1100})
         page.on("pageerror", lambda e: errors.append(str(e)))
-        page.on("response", lambda r: v18.append(r.status) if "app.js?v=41" in r.url else None)
+        page.on("response", lambda r: v18.append(r.status) if "app.js?v=45" in r.url else None)
         try:
             run(page)
         finally:
             browser.close()
-    check("T3 app.js?v=41 加载 200", v18 == [200], v18)
+    check("T3 app.js?v=45 加载 200", v18 == [200], v18)
     check("T3 无 JS pageerror", not errors, errors[:3])
     print(f"\n{PASS_N} pass / {FAIL_N} fail  （截图: tests/shots/fix-*.png）")
     sys.exit(1 if FAIL_N else 0)

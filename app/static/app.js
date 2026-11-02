@@ -122,12 +122,26 @@ const root = createApp({
       /* 播放专用 AudioContext：iPadOS Safari 的 element autoplay 在手势激活窗口外几乎
          全拒（v21 遥测实锤：played=0/model_ms≈3ms 遍地，唯一 played=1 恰距点击<1s）。
          AudioContext 手势内 resume 一次后持续可调度，绕开该限制。首次创建挂 startToday
-         手势链（warmMic 同机），运行中被系统挂起由全局 pointerdown 兜底 resume */
+         手势链（warmMic 同机），运行中被系统挂起由全局 pointerdown 兜底 resume。
+         resume 后补一次 1 采样静音 start（v45）：部分 iPadOS 版本 resume() 置 running
+         仍不开输出通道（v43 pointerdown 兜底、v44 四事件兜底后真机验证轮依旧全程
+         无声，而 Chrome/WebKit 模拟同链路全绿——差异只剩"手势内从未实际调度过播放"），
+         howler 等库的标准 unlock 均含此步；幂等，running 后不再重入 */
       if (!this._playCtx) {
         try { this._playCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { }
       }
-      if (this._playCtx && this._playCtx.state === "suspended") this._playCtx.resume().catch(() => { });
-      return this._playCtx;
+      const c = this._playCtx;
+      if (c && c.state === "suspended") {
+        c.resume().then(() => {
+          if (c.state !== "running") return;
+          try {
+            const b = c.createBuffer(1, 1, c.sampleRate);
+            const s = c.createBufferSource();
+            s.buffer = b; s.connect(c.destination); s.start(0);
+          } catch { }
+        }).catch(() => { });
+      }
+      return c;
     },
     async _loadBuf(ctx, url) {
       /* LRU 上限 48 条（2026-10-30 走查：整日会话不同音频数百个，decoded buffer
@@ -310,22 +324,29 @@ const root = createApp({
       if (step === 4) this.$nextTick(() => this.mountTracer(this.curItem.char));
       else this.stepAudio();
     },
+    followGate() {
+      /* 跟读门（v45 扩到全步）：跟读中且有麦 → 必须读完才能下一步（产品决策"跟读强制不评测"）。
+         原只锁词步，认步/句步点"下一步"即跳过跟读——"认新字阶段不需要跟读"的用户实报。
+         无麦（micDenied，含被拒/弹窗未决/无设备）不锁：降级放行，孩子不被卡死。
+         家长快进=长按步指示器 ncGo 绕过（不变） */
+      return this.follow.on && !this.micDenied;
+    },
     ncNext() {
-      if (this.stepBusy || (this.follow.on && this.follow.kind === "word")) return;
+      if (this.stepBusy || this.followGate()) return;
                                                       /* stepBusy=音频范读期锁定（防没听就走）；
-                                                         词步跟读门=必须读完（disabled 为主此处兜底，
+                                                         跟读门=必须读完（disabled 为主此处兜底，
                                                          家长长按步指示器 ncGo 可绕过） */
       if (this.ncStep === 4 && !this.traceDone && !this.traceFallback) return;   /* 写步门槛（v32）：
                                                         写对才放行，按钮禁用为主，此处兜底键盘/时序残留 */
       this.ncStep >= 4 ? this.advance() : this.ncGo(this.ncStep + 1);
     },
     ncNextDisabled() {
-      if (this.follow.on && this.follow.kind === "word")
-        return true;   /* 词步跟读门（必须读完）：家长长按步指示器可跳（ncGo 绕过） */
+      if (this.followGate())
+        return true;   /* 跟读门（必须读完）：家长长按步指示器可跳（ncGo 绕过） */
       return this.stepBusy || (this.ncStep === 4 && !this.traceDone && !this.traceFallback);
     },
     ncNextLabel() {
-      if (this.follow.on && this.follow.kind === "word") return "读完这几个词哦 🎤";
+      if (this.followGate()) return this.follow.kind === "word" ? "读完这几个词哦 🎤" : "跟着读一读吧 🎤";
       if (this.ncStep < 4) return "下一步 →";
       if (!this.traceDone && !this.traceFallback) return "写完才能继续哦 ✍️";
       return this.hasNextNew() ? "这个字学会啦，下一个 →" : "我会写啦，去答题 →";
@@ -531,15 +552,19 @@ const root = createApp({
         an.fftSize = 512;
         src.connect(gain); gain.connect(an);
         const buf = new Uint8Array(an.fftSize);
-        const EXCL = 800;                                 /* EXCL 800(无 AEC 压尾音，防串扰) */
+        /* EXCL 1500（v45，2026-11-02 生产日志实锤"叮"直耦串扰秒过）：无 AEC 设备上扬声器
+           播"叮"→麦 5cm 直耦拾音，尾音在 800ms 排除窗后仍高于 thr（深夜底噪低 thr 极低），
+           80ms 即积满"读到"——词步 1.4-2.0s/项秒过、孩子不读也全过。1500ms 覆盖叮(180ms)
+           +直耦拖尾+反射；代价=留白起点晚 0.7s */
+        const EXCL = 1500;
         const sent = this.follow.kind === "sent" || this.follow.kind === "read";
         /* 句档放宽（v43，2026-11-02 真机 follow_log 实锤"句子没读完就跳"）：voiced_ms 恒
            ≈84ms 即判"读到"、dur 2.5-3.6s 即切——句中换气 600ms、起读 2.5s 封顶，长句必被
            腰斩；且门槛 80ms 连环境瞬态都挡不住（peak 0.025 刚过 thr 0.023 也记 heard=1）。
-           句档：起音 120ms（顺带压瞬态误判）、句中停顿容忍 1200ms、封顶=范读时长+2s（幼儿
-           读句约为范读时长的 1.5~2 倍）；词/字档维持 v41/80ms（v33 真机：单字音被 AGC 压到
-           只剩起音瞬态，120ms 积不满——档位差异勿互搬） */
-        const HEARD_MS = sent ? 120 : 80;
+           v45 词/字档 80→120ms：串扰尾音（快速衰减）积不满 120ms，童声持续音节轻松积满
+           （句档 v43 已验证 120ms 可行；v33"起音瞬态积不满"是 AGC+绝对地板时代，现 AGC
+           关+增益×3+相对判据，条件已变） */
+        const HEARD_MS = 120;
         const QUIET_MS = sent ? 1200 : 600;
         /* 反馈封顶（v41，2026-11-02 真机 follow_log 方差实锤：word 1960-6072ms）：
            读到后等静音 600ms 才确认，但家里背景声（空调/人声，≈thr 量级）反复清零
@@ -1115,7 +1140,7 @@ const root = createApp({
       })();
     },
     _qtOf(it) {                                  /* 复习/周测题题型会话内固定（randType 结果挂 it，预取与出题一致） */
-      return it.quiz_type || it._qt || (it._qt = this.randType(it.id));
+      return it.quiz_type || it._qt || (it._qt = this.randType(it));
     },
     _preloadFile(fname) {                        /* 音频预载（完整文件名含扩展名；LRU 入队，失败静默） */
       const ctx = this._ensurePlayCtx();
@@ -1228,8 +1253,19 @@ const root = createApp({
       this.quizCorrect = !failed;
       this.submitQuiz(this.quizCorrect);   /* advance 统一由 submitQuiz 负责（双定时器曾跳卡） */
     },
-    randType(hid) {
-      return ["listen", "mean", "sent", "find"][Math.floor(Math.random() * 4)];
+    randType(it) {
+      /* 题型按记忆阶段分层（wordslearn d2/d5/d12 模式，2026-11-02 用户拍板"复习设计低级"重构）：
+         stage0(D+1 昨日重现)=再认：听音选字/组词——刚学一天只求音形义再认；
+         stage1(D+4)=语境：句子填空/组词——晋级证据须是"用得出"而非"认得出"；
+         stage≥2(D+11/D+25)=深阶：听句辨字/字义——接近掌握，考句境与字义映射。
+         find（词句中点目标字）=纯字形匹配游戏，不认识字也能玩，砍出复习/周测池。
+         周测 scope 无 stage → 通用池。题库缺题型由后端 _QB_DEGRADE 退化链兜底。 */
+      const st = it && it.stage;
+      const pool = st === 0 ? ["listen", "mean"]
+        : st === 1 ? ["sent", "mean"]
+        : st >= 2 ? ["lsent", "defi", "sent"]
+        : ["listen", "mean", "sent", "lsent", "defi"];
+      return pool[Math.floor(Math.random() * pool.length)];
     },
     async _wrongAudio(qz) {
       /* 答错讲解链：字音（确认读音）→ 题型语境音频（半卡期间自动重听）——
