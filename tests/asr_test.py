@@ -29,6 +29,22 @@ class WordMatchTest(unittest.TestCase):
     def test_wrong_word(self):
         self.assertFalse(asr.word_match("我要吃苹果", "天空"))
 
+    def test_phonological_flat_retroflex(self):   # 平翘舌：三→山
+        self.assertTrue(asr.word_match("山水", "三水"))
+
+    def test_phonological_n_l_r(self):            # n/l/r 等价：牛奶→流来
+        self.assertTrue(asr.word_match("流来", "牛奶"))
+
+    def test_phonological_f_h(self):              # f/h：飞机→灰机
+        self.assertTrue(asr.word_match("灰机", "飞机"))
+
+    def test_phonological_nasal_tail(self):       # 前后鼻音：星星→心心
+        self.assertTrue(asr.word_match("心心", "星星"))
+
+    def test_confusion_still_rejects_unrelated(self):  # 等价类不吞无关词
+        self.assertFalse(asr.word_match("大地", "天空"))  # ED2 判错能力保留
+        self.assertFalse(asr.word_match("苏慧", "山水"))  # 单音节等价救不了双错
+
     def test_garbage(self):                        # "啊——"乱喊不能过
         self.assertFalse(asr.word_match("啊啊啊啊", "天空"))
         self.assertFalse(asr.word_match("", "天空"))

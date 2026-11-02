@@ -26,9 +26,33 @@ from pypinyin import lazy_pinyin, Style
 MAX_AUDIO_BYTES = 1_500_000        # 1.5MB 上限：词跟读窗 ~4s aac/webm 远小于此
 
 
+_CONFU_SM = {"zh": "z", "ch": "c", "sh": "s"}     # 平翘舌
+_CONFU_TAIL = {"ang": "an", "eng": "en", "ing": "in"}  # 前后鼻音
+
+
+def _canon(syl: str) -> str:
+    """幼儿音系等价归一：平翘舌/前后鼻音/n·l·r/f·h 视为同音。
+    幼儿声母习得晚，"三"读"山"、"牛奶"读"流来"属发音近似不算错；
+    乱喊（啊/哦）不落在任何等价类，仍拒。（2026-11-02 用户拍板放宽）"""
+    s = syl.replace("ü", "v")
+    for k, v in _CONFU_SM.items():
+        if s.startswith(k):
+            s = v + s[len(k):]
+            break
+    if s and s[0] in "nr":
+        s = "l" + s[1:]
+    if s and s[0] == "f":
+        s = "h" + s[1:]
+    for k, v in _CONFU_TAIL.items():
+        if s.endswith(k):
+            s = s[:-len(k)] + v
+            break
+    return s
+
+
 def _syl(text):
-    """声调忽略的拼音音节序列（ü→v 归一，非汉字字符跳过）"""
-    return [s.replace("ü", "v") for s in lazy_pinyin(text, style=Style.NORMAL, errors="ignore")]
+    """声调+音系等价的音节序列（非汉字字符跳过）"""
+    return [_canon(s) for s in lazy_pinyin(text, style=Style.NORMAL, errors="ignore")]
 
 
 def _subseq(needle, hay):
@@ -61,7 +85,8 @@ def _ed_le1(a, b):
 
 def word_match(recognized: str, target: str) -> bool:
     """低门槛内容匹配：文本包含 / 拼音子序列 / 滑窗编辑距离 ≤1 任一命中。
-    同音错字（下→夏）在拼音层天然算对。"""
+    同音错字（下→夏）与音系近似（平翘舌/前后鼻音/n·l·r/f·h）在拼音层天然算对。
+    注：ED 上限保持 1——双字词放开到 2 即两音节全错也过，判错能力归零。"""
     if not recognized or not target:
         return False
     if target in recognized:
