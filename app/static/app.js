@@ -131,32 +131,62 @@ const root = createApp({
     },
     async _loadBuf(ctx, url) {
       /* LRU 上限 48 条（2026-10-30 走查：整日会话不同音频数百个，decoded buffer
-         每个百余 KB，无上限缓存在 iPad 上累积数十 MB）——命中提新，超限淘汰最旧 */
+         每个百余 KB，无上限缓存在 iPad 上累积数十 MB）——命中提新，超限淘汰最旧。
+         fetch/decode 各带超时（v43）：任何一层挂起都会顺着 playFile 卡死 stepAudio
+         链（stepBusy 永锁），弱网断连时浏览器自身超时可长达 30s+，不可依赖 */
       if (!this._bufC) this._bufC = new Map();
       if (this._bufC.has(url)) {
         const b = this._bufC.get(url);
         this._bufC.delete(url); this._bufC.set(url, b);
         return b;
       }
-      const r = await fetch(url);
+      const ac = new AbortController();
+      const ftmo = setTimeout(() => ac.abort(), 8000);
+      let r;
+      try { r = await fetch(url, { signal: ac.signal }); }
+      finally { clearTimeout(ftmo); }
       if (!r.ok) throw new Error("audio " + r.status);
       const ab = await r.arrayBuffer();
-      const buf = await new Promise((res, rej) => {          /* Safari 老回调式 decodeAudioData 兼容 */
-        const p = ctx.decodeAudioData(ab, res, rej);
-        if (p && p.then) p.then(res, rej);
-      });
+      const buf = await Promise.race([                       /* Safari 老回调式 decodeAudioData 兼容；
+                                                               回调不回来的形态 6s 兜底拒结 */
+        new Promise((res, rej) => {
+          const p = ctx.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("decode-timeout")), 6000)),
+      ]);
       this._bufC.set(url, buf);
       while (this._bufC.size > 48) this._bufC.delete(this._bufC.keys().next().value);
       return buf;
     },
-    _playBuf(url, vol = 1, ch = "narr") {
+    async _ensurePlayRunning(ms = 1500) {
+      /* ctx 必须 running 才可调度播放：suspended 上 start() 合法但无声、onended 永不
+         触发（2026-11-02 macOS Safari 真机实锤：后台/久置挂起 ctx 后新字卡认步
+         playFile 永挂 → stepBusy 永锁 →"点小图标也不行，流程卡住"）。resume 带
+         超时（Safari 的 resume() 可能永不 settle）；仍非 running 返回 null，调用方
+         回退 element——用户手势内的 element.play() 可放行，自动链则静默失败但
+         不挂死，下一次 pointerdown 兜底即恢复 */
+      const ctx = this._ensurePlayCtx();
+      if (!ctx) return null;
+      if (ctx.state === "running") return ctx;
+      await Promise.race([
+        ctx.resume().catch(() => { }),
+        new Promise(r => setTimeout(r, ms)),
+      ]);
+      return ctx.state === "running" ? ctx : null;
+    },
+    async _playBuf(url, vol = 1, ch = "narr") {
       /* WebAudio 播放底座：narr/tts/char 三通道各自单实例（新播停旧，onended 自动结清旧
          promise——无 element pause/换src 时序坑），sfx 多实例。返回 Promise：
-         true=播完/被停，false=失败（404/decode 拒），null=ctx 不可用（调用方回退 element） */
-      const ctx = this._ensurePlayCtx();
-      if (!ctx) return Promise.resolve(null);
+         true=播完/被停，false=失败（404/decode 拒/超时兜底），null=ctx 不可用（调用方回退 element）
+         播放超时兜底（v43）：duration+2s 仍未 onended（suspended 调度/onended 丢失等一切
+         挂起形态）强制结清为 false——音频链任何一层都不得永久挂起 */
+      const ctx = await this._ensurePlayRunning();
+      if (!ctx) return null;
       const key = { narr: "_narrSrc", tts: "_ttsSrc", char: "_charSrc" }[ch];
-      return this._loadBuf(ctx, url).then(buf => new Promise(res => {
+      let buf;
+      try { buf = await this._loadBuf(ctx, url); } catch { return false; }
+      return new Promise(res => {
         if (key) {
           if (this[key]) { try { this[key].stop(); } catch { } }   /* stop 触发旧 onended：旧 promise 结清 */
         }
@@ -164,18 +194,24 @@ const root = createApp({
         g.gain.value = vol;
         src.buffer = buf;
         src.connect(g); g.connect(ctx.destination);
-        src.onended = () => res(true);
+        const tmo = setTimeout(() => { try { src.stop(); } catch { } res(false); },
+          (buf.duration || 3) * 1000 + 2000);
+        src.onended = () => { clearTimeout(tmo); res(true); };
         if (key) this[key] = src;
-        try { src.start(); } catch (e) { res(false); }
-      })).catch(() => false);
+        try { src.start(); } catch (e) { clearTimeout(tmo); res(false); }
+      });
     },
-    _elFallback(url) {                                 /* 极老浏览器无 AudioContext 的兜底（autoplay 听天由命） */
+    _elFallback(url) {                                 /* 无可用 AudioContext 的兜底（autoplay 听天由命） */
       return new Promise((res) => {
         const a = new Audio(url);
-        let failed = false;
-        a.onended = () => res(!failed);
+        let failed = false, tmo = null;
+        a.onloadedmetadata = () => {                   /* 元数据超时兜底（v43）：事件全不来也不挂链 */
+          tmo = setTimeout(() => { try { a.pause(); } catch { } res(false); },
+            (a.duration || 10) * 1000 + 3000);
+        };
+        a.onended = () => { if (tmo) clearTimeout(tmo); res(!failed); };
         a.onerror = () => { failed = true; res(false); };
-        a.onpause = () => res(!failed);
+        a.onpause = () => { if (tmo) clearTimeout(tmo); res(!failed); };
         a.play().catch(() => { failed = true; res(false); });
       });
     },
@@ -445,19 +481,21 @@ const root = createApp({
         this.playSfx("ding");                          /* "叮"=轮到你（不用啰嗦语音指令） */
       }
       /* 留白按内容自适应：句=范读时长+2.5s（TTS 成人语速，幼儿复述慢得多，1.5s 余量实测偏紧），词 4s，字 3.5s */
-      const ms = (f.kind === "sent" || f.kind === "read")
-        ? (await this.audioDur(it.audio) || 3) * 1000 + 2500
-        : f.kind === "word" ? 4000 : 3500;
+      let modelMs = 0, ms;
+      if (f.kind === "sent" || f.kind === "read") {
+        modelMs = (await this.audioDur(it.audio) || 3) * 1000;
+        ms = modelMs + 2500;
+      } else ms = f.kind === "word" ? 4000 : 3500;
       if (gen !== this._followGen || !f.on) return;
       const micReady = await micP;                    /* 范读+时长查询期间取麦早该就绪；至多再等超时余量 */
       if (gen !== this._followGen || !f.on || f.state !== "wait") return;
-      const heard = await this.followHeard(ms, gen, micReady);   /* 音量校验：true读到/false超时/null无麦降级 */
+      const heard = await this.followHeard(ms, gen, micReady, modelMs);   /* 音量校验：true读到/false超时/null无麦降级 */
       this.micLvl = 0;
       if (gen !== this._followGen || !f.on || f.state !== "wait") return;
       this.followDoneOne(heard);                      /* 三态透传(true读到/false超时/null无麦降级)：
                                                           家长报表 na=heard IS NULL 靠它区分，折叠成 false 会全记超时 */
     },
-    async followHeard(ms, gen, micReady) {
+    async followHeard(ms, gen, micReady, modelMs = 0) {
       /* 留白窗口内监听麦克风电量（不录音不保存）：说到(true)/超时(false)/无麦或拒绝(null=节奏式降级)
          R1 动态阈值=滚动本底×2.5，绝对下限 0.035（v20 据遥测分布定）。v19 结构修复（RCA 仿真抓到自掩蔽 bug）：
          孩子说话期间 base 被语音帧自己抬升，thr=2.5×base 在语音结束前反超童声电平——本底
@@ -480,14 +518,22 @@ const root = createApp({
         an.fftSize = 512;
         src.connect(gain); gain.connect(an);
         const buf = new Uint8Array(an.fftSize);
-        const EXCL = 800, HEARD_MS = 80, QUIET_MS = 600;    /* EXCL 800(无 AEC 压尾音，防串扰)；
-                                                               HEARD_MS 120→80（v33 真机：单字音被
-                                                               AGC 压到只有起音瞬态，120ms 积不满） */
+        const EXCL = 800;                                 /* EXCL 800(无 AEC 压尾音，防串扰) */
+        const sent = this.follow.kind === "sent" || this.follow.kind === "read";
+        /* 句档放宽（v43，2026-11-02 真机 follow_log 实锤"句子没读完就跳"）：voiced_ms 恒
+           ≈84ms 即判"读到"、dur 2.5-3.6s 即切——句中换气 600ms、起读 2.5s 封顶，长句必被
+           腰斩；且门槛 80ms 连环境瞬态都挡不住（peak 0.025 刚过 thr 0.023 也记 heard=1）。
+           句档：起音 120ms（顺带压瞬态误判）、句中停顿容忍 1200ms、封顶=范读时长+2s（幼儿
+           读句约为范读时长的 1.5~2 倍）；词/字档维持 v41/80ms（v33 真机：单字音被 AGC 压到
+           只剩起音瞬态，120ms 积不满——档位差异勿互搬） */
+        const HEARD_MS = sent ? 120 : 80;
+        const QUIET_MS = sent ? 1200 : 600;
         /* 反馈封顶（v41，2026-11-02 真机 follow_log 方差实锤：word 1960-6072ms）：
            读到后等静音 600ms 才确认，但家里背景声（空调/人声，≈thr 量级）反复清零
            静音计时，拖到 6.3s 硬兜底——孩子读完无反馈→以为没听到→更大声重复→更慢。
-           范读已停不在窗内，QUIET 只防"话没说完就切"，读到后封顶 1.5s（句 2.5s）足够 */
-        const DONE_CAP = (this.follow.kind === "sent" || this.follow.kind === "read") ? 2500 : 1500;
+           v43 句档修正：固定 2.5s 对句是"起读即倒计时"，长句必被腰斩（用户实报"没读完
+           就跳"）→ 句封顶=范读时长+2s；词 1.5s 维持 v41 */
+        const DONE_CAP = sent ? Math.max(2500, modelMs + 2000) : 1500;
         const t0 = performance.now(), hardAt = ms + EXCL + 1500;
         let base = 0.05, minExcl = 1, voicedMs = 0, trailAt = 0, voicedDoneAt = 0, lastT = t0;
         let peak = 0, thrEnd = 0;
@@ -686,8 +732,9 @@ const root = createApp({
       }
       return new Promise(res => {
         const a = new Audio(`/static/audio/${encodeURIComponent(name)}.mp3`);
-        a.onloadedmetadata = () => res(a.duration || 0);
-        a.onerror = () => res(0);
+        const tmo = setTimeout(() => res(0), 5000);          /* 元数据不来也不得挂链（v43） */
+        a.onloadedmetadata = () => { clearTimeout(tmo); res(a.duration || 0); };
+        a.onerror = () => { clearTimeout(tmo); res(0); };
       });
     },
     skipHold(down) {                                   /* 家长长按 1.5s 跳过（防孩子误触）；返回是否达成 */
@@ -1328,9 +1375,13 @@ const root = createApp({
   },
   async mounted() {
     this.boot();
-    /* iPad/Safari 系统随时可挂起 AudioContext（切后台/锁屏）：任何点击手势内兜底 resume */
+    /* iPad/macOS Safari 系统随时可挂起 AudioContext（切后台/锁屏/久置）：任何点击手势内
+       兜底 resume。必须走 _ensurePlayCtx（创建也在此刻）——若只在 ctx 已存在时 resume，
+       摸底/验证等无 startToday 预热的流程里 ctx 尚未创建，首次手势被浪费，之后 playTts
+       首调创建于非手势上下文 → 创建即 suspended 且永无法解锁 → 全程无声（2026-11-02
+       摸底验证轮"看到了选项但字音不读"实锤） */
     window.addEventListener("pointerdown", () => {
-      if (this._playCtx && this._playCtx.state === "suspended") this._playCtx.resume().catch(() => { });
+      this._ensurePlayCtx();
     }, { passive: true });
   },
 });
