@@ -163,10 +163,23 @@ const root = createApp({
       /* ctx 必须 running 才可调度播放：suspended 上 start() 合法但无声、onended 永不
          触发（2026-11-02 macOS Safari 真机实锤：后台/久置挂起 ctx 后新字卡认步
          playFile 永挂 → stepBusy 永锁 →"点小图标也不行，流程卡住"）。resume 带
-         超时（Safari 的 resume() 可能永不 settle）；仍非 running 返回 null，调用方
-         回退 element——用户手势内的 element.play() 可放行，自动链则静默失败但
-         不挂死，下一次 pointerdown 兜底即恢复 */
-      const ctx = this._ensurePlayCtx();
+         超时（Safari 的 resume() 可能永不 settle）。
+         仍非 running → 重建 ctx 再试一次：Safari 特有 'interrupted'（电话/他 app
+         音频抢占）对 resume 免疫，唯一出路是弃旧建新；新建于手势内（本调用多源自
+         四事件兜底/点击链）即 running。最终仍失败返回 null，调用方回退 element——
+         用户手势内的 element.play() 可放行，自动链静默失败但不挂死 */
+      let ctx = this._ensurePlayCtx();
+      if (!ctx) return null;
+      if (ctx.state === "running") return ctx;
+      await Promise.race([
+        ctx.resume().catch(() => { }),
+        new Promise(r => setTimeout(r, ms)),
+      ]);
+      if (ctx.state === "running") return ctx;
+      try { ctx.close().catch(() => { }); } catch { }    /* 异步弃旧，防 Safari 实例配额 */
+      this._playCtx = null;
+      this._narrSrc = this._ttsSrc = this._charSrc = null;   /* 旧 ctx 的 source 引用随之作废 */
+      ctx = this._ensurePlayCtx();
       if (!ctx) return null;
       if (ctx.state === "running") return ctx;
       await Promise.race([
@@ -1375,14 +1388,14 @@ const root = createApp({
   },
   async mounted() {
     this.boot();
-    /* iPad/macOS Safari 系统随时可挂起 AudioContext（切后台/锁屏/久置）：任何点击手势内
-       兜底 resume。必须走 _ensurePlayCtx（创建也在此刻）——若只在 ctx 已存在时 resume，
-       摸底/验证等无 startToday 预热的流程里 ctx 尚未创建，首次手势被浪费，之后 playTts
-       首调创建于非手势上下文 → 创建即 suspended 且永无法解锁 → 全程无声（2026-11-02
-       摸底验证轮"看到了选项但字音不读"实锤） */
-    window.addEventListener("pointerdown", () => {
-      this._ensurePlayCtx();
-    }, { passive: true });
+    /* iPad/macOS Safari 系统随时可挂起 AudioContext（切后台/锁屏/久置）：任何用户手势内
+       兜底创建+resume。事件必须四件套——Safari 的 WebAudio 解锁只可靠认传统手势事件
+       （click/touchend/keydown），pointerdown(≈touchstart 时刻)不被认定：v43 只挂
+       pointerdown 时摸底验证轮在 iPad 依旧全程无声（2026-11-02 二次实锤；主学习流程
+       正常是因为 startToday 的 click 处理器内另有解锁）。Chrome 对事件类型不挑，多挂
+       无害；passive 且只做状态检查+幂等 resume，开销可忽略 */
+    for (const ev of ["pointerdown", "click", "touchend", "keydown"])
+      window.addEventListener(ev, () => this._ensurePlayCtx(), { passive: true });
   },
 });
 app = root.mount("#app");
