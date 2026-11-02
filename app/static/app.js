@@ -377,9 +377,11 @@ const root = createApp({
       });
     },
     async verifyWord() {
-      /* 上传录音→ASR 内容匹配（1.6s 超时/任何失败=降级放行）——判定层永不卡节奏 */
+      /* 上传录音→ASR 内容匹配（1.6s 超时/任何失败=降级放行）——判定层永不卡节奏。
+         v41：reason 标记降级原因（noblob/timeout/server），真机全 degraded 时可区分
+         "没录上"还是"来不及"（asr_text 列记 △前缀） */
       const blob = this._recBlob;
-      if (!blob) return { pass: true, text: null, degraded: true };
+      if (!blob) return { pass: true, text: null, degraded: true, reason: "noblob" };
       const fd = new FormData();
       fd.append("char", this.curItem.char);
       fd.append("word", (this.curContent ? this.curContent.words : [])[this.follow.idx] || this.curItem.char);
@@ -390,7 +392,9 @@ const root = createApp({
           new Promise((_, rej) => setTimeout(() => rej(new Error("asr-timeout")), 1600)),
         ]);
         return await r.json();
-      } catch { return { pass: true, text: null, degraded: true }; }
+      } catch (e) {
+        return { pass: true, text: null, degraded: true, reason: e.message === "asr-timeout" ? "timeout" : "server" };
+      }
     },
     followItems(kind) {
       if (kind === "char") return [{ key: "c", audio: this.curItem.char }];
@@ -475,8 +479,13 @@ const root = createApp({
         const EXCL = 800, HEARD_MS = 80, QUIET_MS = 600;    /* EXCL 800(无 AEC 压尾音，防串扰)；
                                                                HEARD_MS 120→80（v33 真机：单字音被
                                                                AGC 压到只有起音瞬态，120ms 积不满） */
+        /* 反馈封顶（v41，2026-11-02 真机 follow_log 方差实锤：word 1960-6072ms）：
+           读到后等静音 600ms 才确认，但家里背景声（空调/人声，≈thr 量级）反复清零
+           静音计时，拖到 6.3s 硬兜底——孩子读完无反馈→以为没听到→更大声重复→更慢。
+           范读已停不在窗内，QUIET 只防"话没说完就切"，读到后封顶 1.5s（句 2.5s）足够 */
+        const DONE_CAP = (this.follow.kind === "sent" || this.follow.kind === "read") ? 2500 : 1500;
         const t0 = performance.now(), hardAt = ms + EXCL + 1500;
-        let base = 0.05, minExcl = 1, voicedMs = 0, trailAt = 0, lastT = t0;
+        let base = 0.05, minExcl = 1, voicedMs = 0, trailAt = 0, voicedDoneAt = 0, lastT = t0;
         let peak = 0, thrEnd = 0;
         const done = v => {
           this._fStats = { peak_rms: +peak.toFixed(3), noise_base: +base.toFixed(3),
@@ -509,10 +518,14 @@ const root = createApp({
                 base = rms < base ? rms : base + (rms - base) * a;
               }
               if (voicedMs >= HEARD_MS) {                       /* 已读到：等孩子说完 */
+                if (!voicedDoneAt) voicedDoneAt = now;
                 if (rms < thr) {
                   if (!trailAt) trailAt = now;
                   if (now - trailAt >= QUIET_MS) return res(done(true));
                 } else trailAt = 0;
+                /* 读到后封顶放行：背景声压不住阈值时静音计时反复清零，不能让反馈拖过
+                   DONE_CAP（真机 6s 无反馈=家长报障"很大声读了还是听不到"的直接根源） */
+                if (now - voicedDoneAt >= DONE_CAP) return res(done(true));
               } else {
                 voicedMs = Math.max(0, voicedMs + (rms > thr ? dt : -dt * 0.5));
               }
@@ -530,25 +543,26 @@ const root = createApp({
       this._asrRes = null;
       if (f.kind === "word") await this._recStop();    /* 组装录音 blob（幂等；等待期被跳步则中止） */
       if (!f.on || f.state !== "wait") return;
-      if (f.kind === "word" && heard !== null) {
-        /* 词步门（2026-11-01 拍板：必须跟读+低门槛正确性，对孩子无感知）：
-           有麦没声 → 重播范读再来一轮；读到 → ASR 内容匹配（声调容错拼音比对），
-           没读对同样再一轮；二次仍不过 → 放行（正确性不卡死，遥测记录）。
-           重试的呈现=范读重播（"再听一遍"节奏信号），无任何评判反馈 */
-        if (heard === false && f.tries < 1) {
-          f.tries++;
-          return this.followPlay(f.idx, true);
-        }
-        if (heard === true && this._recBlob) {
-          this._asrRes = await this.verifyWord();
-          if (!f.on || f.state !== "wait") return;     /* 判定等待期被跳步/重听 */
-          if (!this._asrRes.pass && f.tries < 1) {
-            f.tries++;
-            return this.followPlay(f.idx, true);
-          }
-        }
+      /* 词步音量门：有麦没声→重播范读再来一轮（正确性门 v41 异步化——真机 follow_log
+         实锤 asr 全 degraded（1.6s 超时在公网链路上传+转码+转写根本不够），且 await 把
+         ✓ 反馈拖出 1.6s+。现改为：读到立即反馈推进，ASR 结果异步落遥测不卡节奏，
+         不再因识别不符重播（线上从未生效过此路径，行为无回归；遥测保留正确性数据） */
+      if (f.kind === "word" && heard === false && f.tries < 1) {
+        f.tries++;
+        return this.followPlay(f.idx, true);
       }
-      this.logFollow(heard, f.tries);                         /* R5：开口流水（fire-and-forget） */
+      /* 遥测快照：ASR settle 晚于下一项开始时，全局 _fStats/_asrRes/curItem 已被新项
+         改写——流水必须带当项闭包快照，否则张冠李戴/丢失（follow_fix 轮询实锤 3/4 条） */
+      const snap = {
+        char: f.kind === "read" ? (this.readLines[f.idx] || {}).char : this.curItem.char,
+        stats: this._fStats || {}, model: this._fModel || {},
+      };
+      const finishLog = asr => this.logFollow(heard, f.tries, { ...snap, asr });
+      if (f.kind === "word" && heard === true && this._recBlob) {
+        this.verifyWord().then(finishLog, () => finishLog(null));
+      } else {
+        finishLog(null);                                    /* R5：开口流水（fire-and-forget） */
+      }
       f.heardAny = f.heardAny || !!heard;
       if (heard) {                                            /* 读到瞬间 ✓ 爆闪+推进音（反馈可感知） */
         this.followPop = true;
@@ -580,11 +594,12 @@ const root = createApp({
       if (f.state === "wait") return "go";
       return "";
     },
-    logFollow(heard, tries) {
+    logFollow(heard, tries, snap) {                 /* snap=当项快照（v41 异步 ASR 下必传） */
       const f = this.follow;
-      const char = f.kind === "read" ? (this.readLines[f.idx] || {}).char : this.curItem.char;
+      const char = (snap && snap.char) || (f.kind === "read" ? (this.readLines[f.idx] || {}).char : this.curItem.char);
       if (!char) return;
-      const s = this._fStats || {}, m = this._fModel || {};
+      const s = (snap && snap.stats) || this._fStats || {}, m = (snap && snap.model) || this._fModel || {};
+      const asr = (snap && snap.asr) || this._asrRes;
       api("POST", "/api/follow/log", {                        /* 过程量遥测：peak/thr/voiced/dur+范读结果+UA+客户端时刻 */
         char, kind: f.kind, heard, tries,
         peak_rms: s.peak_rms ?? null, noise_base: s.noise_base ?? null,
@@ -592,8 +607,8 @@ const root = createApp({
         dur_ms: s.dur_ms ?? null,
         played: m.played ?? null, model_ms: m.model_ms ?? null,
         mic_settings: this._micSettings || null,
-        asr_text: this._asrRes ? (this._asrRes.text ?? null) : null,
-        asr_pass: this._asrRes ? (this._asrRes.degraded ? null : (this._asrRes.pass ? 1 : 0)) : null,
+        asr_text: asr ? (asr.text ?? (asr.reason ? "△" + asr.reason : null)) : null,
+        asr_pass: asr ? (asr.degraded ? null : (asr.pass ? 1 : 0)) : null,
         ts_ms: Date.now(),
         ua: navigator.userAgent.slice(0, 160),
       }).catch(() => {});

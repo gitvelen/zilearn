@@ -12,6 +12,7 @@ T3 /app.js?v=19 加载 200 + 全程无 JS pageerror
 
 用法: python3 tests/follow_fix_test.py [base_url]   # 需本地服务已起
 """
+import json
 import sqlite3
 import sys
 import time
@@ -95,20 +96,14 @@ def run(page):
     print(f"  [T1] 新字: {ch}")
     page.wait_for_function("window.ziapp.follow.state==='wait'", timeout=15000, polling=100)
     check("T1 wait 态提示轮到你", "轮到你啦" in page.locator(".fb-hint").inner_text())
+    # v24 删 char 重试/v38 词步门后：char 超时=直接放行（不再有重试轮）——T1 断言放行语义
     t_wait = time.time()
-    page.wait_for_function(
-        "window.ziapp.follow.state==='model' && window.ziapp.follow.tries===1",
-        timeout=15000, polling=100)
-    gap1 = time.time() - t_wait
-    check("T1 单轮超时 ~5.5s(兜底1.5s生效)", 4.5 <= gap1 <= 8, f"{gap1:.1f}s")
-    check("T1 重试轮文案", "没听到" in page.locator(".fb-hint.retry").inner_text())
-    page.screenshot(path=str(SHOTS / "fix-t1-retry-hint.png"), full_page=True)
-    t_retry = time.time()
     page.wait_for_function("window.ziapp.follow.on===false", timeout=20000, polling=100)
-    check("T1 第二轮后放行不卡死", True, f"{time.time()-t_retry:.1f}s")
+    gap1 = time.time() - t_wait
+    check("T1 超时~5.5s 后直接放行", 4.5 <= gap1 <= 8, f"{gap1:.1f}s")
     check("T1 按钮解禁", not page.locator(".learn-card > button.btn.big").is_disabled())
     rows = follow_rows()
-    check("T1 流水 heard=0/tries=1", rows == [(ch, "char", 0, 1)], rows)
+    check("T1 流水 heard=0/tries=0", rows == [(ch, "char", 0, 0)], rows)
     import sqlite3 as _s
     _c = _s.connect(DB); _t = _c.execute("SELECT peak_rms,thr_used,dur_ms,ua FROM follow_log WHERE kind='char' AND char=? ORDER BY rowid DESC LIMIT 1", (ch,)).fetchone(); _c.close()
     check("T1 遥测落库(peak≈0/dur>4s)", _t and _t[0] is not None and _t[0] <= 0.05 and _t[2] > 4000, _t)
@@ -123,13 +118,20 @@ def run(page):
     page.wait_for_function("window.ziapp.follow.on===false", timeout=40000, polling=100)
     total = time.time() - t_word
     check("T0 词跟读全部读到推进", total < 40, f"{total:.1f}s")
-    w = [r for r in follow_rows() if r[1] == "word"]
-    check("T0 流水 word×4 heard=1/tries=0", len(w) == 4 and all(r[2] == 1 and r[3] == 0 for r in w), w)
+    for _ in range(60):                  # v41：ASR 异步判定 settle 后才 logFollow，轮询等齐
+                                         # （间歇流 350ms 切换与 voiced 80ms 博弈，末词二轮可拖 10s+）
+        w = [r for r in follow_rows() if r[1] == "word"]
+        if len(w) >= 4: break
+        page.wait_for_timeout(200)
+    n_want = len(json.loads(_s.connect(DB).execute(
+        "SELECT c.words FROM zi_content c JOIN hanzi h ON h.id=c.hanzi_id WHERE h.char=?", (ch,)
+    ).fetchone()[0]))
+    check(f"T0 流水 word×{n_want} heard=1/tries=0", len(w) == n_want and all(r[2] == 1 and r[3] == 0 for r in w), w)
     st = page.evaluate("() => window.ziapp._fStats")
     check("T0 遥测 peak_rms>0.1(读到)", st and st["peak_rms"] > 0.1, st)
     import sqlite3 as _s2
     _c2 = _s2.connect(DB); _t2 = _c2.execute("SELECT played, model_ms FROM follow_log WHERE kind='word' AND heard=1 ORDER BY id DESC LIMIT 1").fetchone(); _c2.close()
-    check("T0 范读遥测 played=1/model_ms>400", _t2 == (1, _t2[1]) and _t2[1] > 400, _t2)
+    check("T0 无范读轮 played=None（noModel 语义）", _t2 is not None and _t2[0] is None, _t2)
     page.screenshot(path=str(SHOTS / "fix-t0-word-done.png"), full_page=True)
 
     # ---- T2 挂起的 getUserMedia（句步 sent）：原硬卡死路径 ----
@@ -167,12 +169,12 @@ if __name__ == "__main__":
                   "--use-fake-ui-for-media-stream"])
         page = browser.new_page(viewport={"width": 820, "height": 1100})
         page.on("pageerror", lambda e: errors.append(str(e)))
-        page.on("response", lambda r: v18.append(r.status) if "app.js?v=23" in r.url else None)
+        page.on("response", lambda r: v18.append(r.status) if "app.js?v=41" in r.url else None)
         try:
             run(page)
         finally:
             browser.close()
-    check("T3 app.js?v=23 加载 200", v18 == [200], v18)
+    check("T3 app.js?v=41 加载 200", v18 == [200], v18)
     check("T3 无 JS pageerror", not errors, errors[:3])
     print(f"\n{PASS_N} pass / {FAIL_N} fail  （截图: tests/shots/fix-*.png）")
     sys.exit(1 if FAIL_N else 0)
