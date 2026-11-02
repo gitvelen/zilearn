@@ -434,6 +434,7 @@
     <div class="hint">读到 {{report.follow.heard}} / {{report.follow.n}} 次 · 超时 {{report.follow.timeout}} 次 · 麦克风未开 {{report.follow.na}} 次</div>
   </div>
   <button class="btn ghost" @click="parentBack">← 返回</button>
+  <button class="btn ghost" @click="logout">退出登录</button>
 </div>
 
 <div v-else class="loading">加载中… 🐣</div>
@@ -441,6 +442,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=45"></script>
+<script src="/app.js?v=46"></script>
 </body>
 </html>

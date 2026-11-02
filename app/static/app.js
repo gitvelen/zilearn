@@ -118,6 +118,12 @@ const root = createApp({
         await this.boot();
       } catch (e) { this.loginErr = "登录失败，再试试"; }
     },
+    async logout() {
+      /* 家长页切账号入口：清会话回登录页。密码框必清；其余状态由登录后 boot()/引导流重拉 */
+      await api("POST", "/api/logout").catch(() => { });
+      this.loginForm.p = "";
+      this.phase = "login";
+    },
     _ensurePlayCtx() {
       /* 播放专用 AudioContext：iPadOS Safari 的 element autoplay 在手势激活窗口外几乎
          全拒（v21 遥测实锤：played=0/model_ms≈3ms 遍地，唯一 played=1 恰距点击<1s）。
