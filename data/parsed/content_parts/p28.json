@@ -1,65 +1,765 @@
 {
-"任": {"words": ["任何", "责任"], "sentences": ["任何困难都不怕。", "我的责任我来担。"], "etym_type": "component", "etym": "人担起担子，任。", "emoji": ""},
-"何": {"words": ["任何", "如何"], "sentences": ["任何时间都行。", "如何做才好呢？"], "etym_type": "mnemonic", "etym": "问什么，何。", "emoji": "❓"},
-"纺": {"words": ["纺织", "纺线"], "sentences": ["奶奶会纺线。", "纺织厂织布。"], "etym_type": "component", "etym": "丝线纺出来，纺。", "emoji": "🧵"},
-"竭": {"words": ["枯竭", "竭力"], "sentences": ["河水枯竭了。", "竭力把事做好。"], "etym_type": "mnemonic", "etym": "力气用完了，竭。", "emoji": ""},
-"规": {"words": ["规则", "圆规"], "sentences": ["圆规画出圆圈。", "做守规则的好孩子。"], "etym_type": "mnemonic", "etym": "量圆的工具，规。", "emoji": "⭕"},
-"律": {"words": ["规律", "纪律"], "sentences": ["万物都有规律。", "上课守纪律。"], "etym_type": "mnemonic", "etym": "做事的准则，律。", "emoji": "📏"},
-"待": {"words": ["等待", "期待"], "sentences": ["耐心等待花开。", "我期待春游。"], "etym_type": "component", "etym": "停在那里等，待。", "emoji": "⏳"},
-"挣": {"words": ["挣扎"], "sentences": ["小虫挣扎着爬出来。"], "etym_type": "component", "etym": "用力争脱，挣。", "emoji": ""},
-"愉": {"words": ["愉快"], "sentences": ["大家玩得愉快。", "愉快的一天过去了。"], "etym_type": "component", "etym": "心里高兴，愉。", "emoji": "😊"},
-"绒": {"words": ["绒毛"], "sentences": ["小鸭的绒毛黄黄的。"], "etym_type": "component", "etym": "细软的毛，绒。", "emoji": "🐤"},
-"帚": {"words": ["扫帚"], "sentences": ["扫帚扫走落叶。"], "etym_type": "picto", "etym": "手里拿的扫地工具，帚。", "emoji": "🧹"},
-"抹": {"words": ["抹布", "涂抹"], "sentences": ["用抹布擦桌子。", "墙上的涂抹要擦掉。"], "etym_type": "component", "etym": "擦过去，抹。", "emoji": "🧽"},
-"拖": {"words": ["拖把", "拖鞋"], "sentences": ["帮妈妈拖地。", "进门换拖鞋。"], "etym_type": "mnemonic", "etym": "拉着走，拖。", "emoji": ""},
-"桶": {"words": ["水桶"], "sentences": ["提着水桶浇花。"], "etym_type": "mnemonic", "etym": "圆圆的盛水器，桶。", "emoji": "🪣"},
-"簸": {"words": ["簸箕"], "sentences": ["用簸箕收垃圾。"], "etym_type": "mnemonic", "etym": "竹子编的簸箕。", "emoji": "🧺"},
-"箕": {"words": ["簸箕"], "sentences": ["簸箕里装着落叶。"], "etym_type": "component", "etym": "竹子编的器具，箕。", "emoji": ""},
-"玻": {"words": ["玻璃"], "sentences": ["玻璃擦得亮亮的。", "玻璃窗关好了。"], "etym_type": "mnemonic", "etym": "像玉一样透明，玻。", "emoji": "🪟"},
-"璃": {"words": ["玻璃"], "sentences": ["玻璃上贴了窗花。"], "etym_type": "component", "etym": "透明如玉，璃。", "emoji": ""},
-"垃": {"words": ["垃圾"], "sentences": ["垃圾要分类。", "捡起垃圾扔进桶。"], "etym_type": "mnemonic", "etym": "脏脏的废弃，垃。", "emoji": "🗑️"},
-"圾": {"words": ["垃圾"], "sentences": ["垃圾不能乱扔。"], "etym_type": "mnemonic", "etym": "脏土，圾。", "emoji": ""},
-"祖": {"words": ["祖国"], "sentences": ["我们爱祖国。", "祖国的山河美。"], "etym_type": "mnemonic", "etym": "祭拜的先人，祖。", "emoji": ""},
-"掏": {"words": ["掏出"], "sentences": ["从口袋掏出糖果。"], "etym_type": "component", "etym": "伸手挖出来，掏。", "emoji": "🍬"},
-"逗": {"words": ["逗号", "逗笑"], "sentences": ["小丑把大家逗笑了。", "写句子要用逗号。"], "etym_type": "mnemonic", "etym": "引着人笑，逗。", "emoji": "🤡"},
-"蔷": {"words": ["蔷薇"], "sentences": ["墙边开着蔷薇。"], "etym_type": "mnemonic", "etym": "爬墙开的花，蔷。", "emoji": "🌹"},
-"薇": {"words": ["蔷薇"], "sentences": ["蔷薇香香的。"], "etym_type": "component", "etym": "小小的香花，薇。", "emoji": ""},
-"逮": {"words": ["逮住"], "sentences": ["猫逮住了老鼠。"], "etym_type": "mnemonic", "etym": "追上抓住，逮。", "emoji": "🐱"},
-"忆": {"words": ["回忆", "记忆"], "sentences": ["回忆幼儿园的时光。", "好记忆靠练习。"], "etym_type": "component", "etym": "心里想起，忆。", "emoji": "💭"},
-"纪": {"words": ["纪律", "纪念"], "sentences": ["做守纪律的好孩子。", "拍照留个纪念。"], "etym_type": "mnemonic", "etym": "记下来的事，纪。", "emoji": ""},
-"必": {"words": ["必须"], "sentences": ["过马路必须看红绿灯。"], "etym_type": "mnemonic", "etym": "一定要，必。", "emoji": "✔️"},
-"须": {"words": ["必须"], "sentences": ["写作业必须专心。"], "etym_type": "mnemonic", "etym": "胡须的样子，须。", "emoji": ""},
-"功": {"words": ["成功", "功课"], "sentences": ["努力就会成功。", "做完功课再玩。"], "etym_type": "component", "etym": "出力有成效，功。", "emoji": "🏅"},
-"譬": {"words": ["譬如"], "sentences": ["譬如西瓜，夏天吃最好。"], "etym_type": "mnemonic", "etym": "打个比方，譬。", "emoji": "📖"},
-"糙": {"words": ["粗糙"], "sentences": ["树皮粗糙。"], "etym_type": "component", "etym": "不光滑，糙。", "emoji": "🌳"},
-"敏": {"words": ["灵敏", "敏捷"], "sentences": ["小狗鼻子灵敏。", "他身手敏捷。"], "etym_type": "component", "etym": "反应快，敏。", "emoji": "🐕"},
-"式": {"words": ["算式", "样式"], "sentences": ["列算式算一算。"], "etym_type": "mnemonic", "etym": "一定的格式，式。", "emoji": "➗"},
-"简": {"words": ["简单"], "sentences": ["这道题很简单。", "简单的图形拼出画。"], "etym_type": "mnemonic", "etym": "竹片做的书，简。", "emoji": ""},
-"由": {"words": ["自由", "由于"], "sentences": ["小鸟自由地飞。", "由于起晚了，我跑着上学。"], "etym_type": "picto", "etym": "从田里长出来，由。", "emoji": "🕊️"},
-"睁": {"words": ["睁开"], "sentences": ["睁开眼睛看看。"], "etym_type": "component", "etym": "把眼睛撑开，睁。", "emoji": "👀"},
-"秩": {"words": ["秩序"], "sentences": ["排队要有秩序。"], "etym_type": "mnemonic", "etym": "有条不乱，秩。", "emoji": "🚶"},
-"序": {"words": ["秩序", "顺序"], "sentences": ["按顺序来。", "排队讲秩序。"], "etym_type": "mnemonic", "etym": "先后的次序，序。", "emoji": ""},
-"哦": {"words": ["哦哦"], "sentences": ["哦，我明白了！"], "etym_type": "component", "etym": "口旁：明白了的声音，哦。", "emoji": "💡"},
-"射": {"words": ["发射", "射门"], "sentences": ["火箭发射升空。", "他把球射门了。"], "etym_type": "mnemonic", "etym": "箭放出去，射。", "emoji": "🚀"},
-"值": {"words": ["值日", "值得"], "sentences": ["今天我值日。", "这本书值得看。"], "etym_type": "component", "etym": "守在那里办事，值。", "emoji": "🧹"},
-"熔": {"words": ["熔化"], "sentences": ["高温把铁熔化了。"], "etym_type": "component", "etym": "火里化开，熔。", "emoji": "🔥"},
-"艰": {"words": ["艰难", "艰苦"], "sentences": ["艰难的路也要走完。", "条件艰苦不叫累。"], "etym_type": "mnemonic", "etym": "路难走，艰。", "emoji": ""},
-"箭": {"words": ["火箭", "弓箭"], "sentences": ["火箭飞上太空。", "古人用弓箭打猎。"], "etym_type": "component", "etym": "竹子做的箭，箭。", "emoji": "🏹"},
-"裂": {"words": ["裂开"], "sentences": ["西瓜熟得裂开了。"], "etym_type": "mnemonic", "etym": "衣裳分成两半，裂。", "emoji": "🍉"},
-"窜": {"words": ["窜出"], "sentences": ["小老鼠窜进了洞。"], "etym_type": "mnemonic", "etym": "钻洞逃跑，窜。", "emoji": "🐭"},
-"炎": {"words": ["炎热"], "sentences": ["夏天炎热多喝水。"], "etym_type": "picto", "etym": "两团火，热上加热，炎。", "emoji": "🥵"},
-"庄": {"words": ["庄稼", "村庄"], "sentences": ["庄稼熟了。", "山下有个小村庄。"], "etym_type": "mnemonic", "etym": "田边的房舍，庄。", "emoji": "🌾"},
-"稼": {"words": ["庄稼"], "sentences": ["庄稼要水也要阳光。"], "etym_type": "component", "etym": "田里种的，稼。", "emoji": ""},
-"滋": {"words": ["滋润"], "sentences": ["雨水滋润禾苗。"], "etym_type": "component", "etym": "水给养分，滋。", "emoji": "💧"},
-"腾": {"words": ["沸腾", "腾飞"], "sentences": ["水烧得沸腾。", "火箭腾飞了。"], "etym_type": "mnemonic", "etym": "马跳起来，腾。", "emoji": "🐎"},
-"钩": {"words": ["鱼钩", "钩子"], "sentences": ["鱼钩钓上了大鱼。", "衣服挂上钩子。"], "etym_type": "component", "etym": "弯曲的挂物，钩。", "emoji": "🎣"},
-"铲": {"words": ["铲子", "锅铲"], "sentences": ["用铲子铲雪。", "锅铲炒菜。"], "etym_type": "component", "etym": "挖东西的工具，铲。", "emoji": "🥘"},
-"梅": {"words": ["梅花", "杨梅"], "sentences": ["梅花冬天开。", "杨梅酸酸甜甜。"], "etym_type": "component", "etym": "结果的树，梅。", "emoji": "🌸"},
-"柿": {"words": ["柿子"], "sentences": ["柿子红了像灯笼。"], "etym_type": "component", "etym": "结果的树，柿。", "emoji": ""},
-"源": {"words": ["水源", "源头"], "sentences": ["保护水源。", "河的源头在山里。"], "etym_type": "component", "etym": "水出来的地方，源。", "emoji": "💧"},
-"涨": {"words": ["涨水", "涨潮"], "sentences": ["下大雨，河水涨了。", "涨潮了，浪来了。"], "etym_type": "component", "etym": "水位升高，涨。", "emoji": "🌊"},
-"炬": {"words": ["火炬"], "sentences": ["火炬点亮了夜。"], "etym_type": "component", "etym": "大火把，炬。", "emoji": "🔥"},
-"灿": {"words": ["灿烂"], "sentences": ["阳光灿烂。", "他笑得灿烂。"], "etym_type": "mnemonic", "etym": "光彩耀眼，灿。", "emoji": "☀️"},
-"垮": {"words": ["冲垮"], "sentences": ["洪水冲垮了小桥。"], "etym_type": "component", "etym": "土塌下来，垮。", "emoji": "🌊"},
-"坟": {"words": ["坟墓"], "sentences": ["山坡上有座坟墓。"], "etym_type": "component", "etym": "土堆起的墓，坟。", "emoji": ""}
+ "任": {
+  "words": [
+   "任何",
+   "责任"
+  ],
+  "sentences": [
+   "任何困难都不怕。",
+   "我的责任我来担。"
+  ],
+  "etym_type": "component",
+  "etym": "人担起担子，任。",
+  "emoji": ""
+ },
+ "何": {
+  "words": [
+   "任何",
+   "如何"
+  ],
+  "sentences": [
+   "任何时间都行。",
+   "如何做才好呢？"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "问什么，何。",
+  "emoji": "❓"
+ },
+ "纺": {
+  "words": [
+   "纺织",
+   "纺线"
+  ],
+  "sentences": [
+   "奶奶会纺线。",
+   "纺织厂织布。"
+  ],
+  "etym_type": "component",
+  "etym": "丝线纺出来，纺。",
+  "emoji": "🧵"
+ },
+ "竭": {
+  "words": [
+   "枯竭",
+   "竭力"
+  ],
+  "sentences": [
+   "河水枯竭了。",
+   "竭力把事做好。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "力气用完了，竭。",
+  "emoji": ""
+ },
+ "规": {
+  "words": [
+   "规则",
+   "圆规"
+  ],
+  "sentences": [
+   "圆规画出圆圈。",
+   "做守规则的好孩子。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "量圆的工具，规。",
+  "emoji": "⭕"
+ },
+ "律": {
+  "words": [
+   "规律",
+   "纪律"
+  ],
+  "sentences": [
+   "万物都有规律。",
+   "上课守纪律。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "做事的准则，律。",
+  "emoji": "📏"
+ },
+ "待": {
+  "words": [
+   "等待",
+   "期待"
+  ],
+  "sentences": [
+   "耐心等待花开。",
+   "我期待春游。"
+  ],
+  "etym_type": "component",
+  "etym": "停在那里等，待。",
+  "emoji": "⏳"
+ },
+ "挣": {
+  "words": [
+   "挣扎",
+   "挣钱"
+  ],
+  "sentences": [
+   "小虫挣扎着爬出来。"
+  ],
+  "etym_type": "component",
+  "etym": "用力争脱，挣。",
+  "emoji": ""
+ },
+ "愉": {
+  "words": [
+   "愉快"
+  ],
+  "sentences": [
+   "大家玩得愉快。",
+   "愉快的一天过去了。"
+  ],
+  "etym_type": "component",
+  "etym": "心里高兴，愉。",
+  "emoji": "😊"
+ },
+ "绒": {
+  "words": [
+   "绒毛"
+  ],
+  "sentences": [
+   "小鸭的绒毛黄黄的。"
+  ],
+  "etym_type": "component",
+  "etym": "细软的毛，绒。",
+  "emoji": "🐤"
+ },
+ "帚": {
+  "words": [
+   "扫帚"
+  ],
+  "sentences": [
+   "扫帚扫走落叶。"
+  ],
+  "etym_type": "picto",
+  "etym": "手里拿的扫地工具，帚。",
+  "emoji": "🧹"
+ },
+ "抹": {
+  "words": [
+   "抹布",
+   "涂抹"
+  ],
+  "sentences": [
+   "用抹布擦桌子。",
+   "墙上的涂抹要擦掉。"
+  ],
+  "etym_type": "component",
+  "etym": "擦过去，抹。",
+  "emoji": "🧽"
+ },
+ "拖": {
+  "words": [
+   "拖把",
+   "拖鞋"
+  ],
+  "sentences": [
+   "帮妈妈拖地。",
+   "进门换拖鞋。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "拉着走，拖。",
+  "emoji": ""
+ },
+ "桶": {
+  "words": [
+   "水桶",
+   "马桶"
+  ],
+  "sentences": [
+   "提着水桶浇花。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "圆圆的盛水器，桶。",
+  "emoji": "🪣"
+ },
+ "簸": {
+  "words": [
+   "簸箕"
+  ],
+  "sentences": [
+   "用簸箕收垃圾。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "竹子编的簸箕。",
+  "emoji": "🧺"
+ },
+ "箕": {
+  "words": [
+   "簸箕"
+  ],
+  "sentences": [
+   "簸箕里装着落叶。"
+  ],
+  "etym_type": "component",
+  "etym": "竹子编的器具，箕。",
+  "emoji": ""
+ },
+ "玻": {
+  "words": [
+   "玻璃"
+  ],
+  "sentences": [
+   "玻璃擦得亮亮的。",
+   "玻璃窗关好了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "像玉一样透明，玻。",
+  "emoji": "🪟"
+ },
+ "璃": {
+  "words": [
+   "玻璃"
+  ],
+  "sentences": [
+   "玻璃上贴了窗花。"
+  ],
+  "etym_type": "component",
+  "etym": "透明如玉，璃。",
+  "emoji": ""
+ },
+ "垃": {
+  "words": [
+   "垃圾"
+  ],
+  "sentences": [
+   "垃圾要分类。",
+   "捡起垃圾扔进桶。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "脏脏的废弃，垃。",
+  "emoji": "🗑️"
+ },
+ "圾": {
+  "words": [
+   "垃圾"
+  ],
+  "sentences": [
+   "垃圾不能乱扔。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "脏土，圾。",
+  "emoji": ""
+ },
+ "祖": {
+  "words": [
+   "祖国",
+   "祖宗"
+  ],
+  "sentences": [
+   "我们爱祖国。",
+   "祖国的山河美。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "祭拜的先人，祖。",
+  "emoji": ""
+ },
+ "掏": {
+  "words": [
+   "掏出",
+   "掏钱"
+  ],
+  "sentences": [
+   "从口袋掏出糖果。"
+  ],
+  "etym_type": "component",
+  "etym": "伸手挖出来，掏。",
+  "emoji": "🍬"
+ },
+ "逗": {
+  "words": [
+   "逗号",
+   "逗笑"
+  ],
+  "sentences": [
+   "小丑把大家逗笑了。",
+   "写句子要用逗号。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "引着人笑，逗。",
+  "emoji": "🤡"
+ },
+ "蔷": {
+  "words": [
+   "蔷薇"
+  ],
+  "sentences": [
+   "墙边开着蔷薇。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "爬墙开的花，蔷。",
+  "emoji": "🌹"
+ },
+ "薇": {
+  "words": [
+   "蔷薇"
+  ],
+  "sentences": [
+   "蔷薇香香的。"
+  ],
+  "etym_type": "component",
+  "etym": "小小的香花，薇。",
+  "emoji": ""
+ },
+ "逮": {
+  "words": [
+   "逮住"
+  ],
+  "sentences": [
+   "猫逮住了老鼠。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "追上抓住，逮。",
+  "emoji": "🐱"
+ },
+ "忆": {
+  "words": [
+   "回忆",
+   "记忆"
+  ],
+  "sentences": [
+   "回忆幼儿园的时光。",
+   "好记忆靠练习。"
+  ],
+  "etym_type": "component",
+  "etym": "心里想起，忆。",
+  "emoji": "💭"
+ },
+ "纪": {
+  "words": [
+   "纪律",
+   "纪念"
+  ],
+  "sentences": [
+   "做守纪律的好孩子。",
+   "拍照留个纪念。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "记下来的事，纪。",
+  "emoji": ""
+ },
+ "必": {
+  "words": [
+   "必须",
+   "必胜"
+  ],
+  "sentences": [
+   "过马路必须看红绿灯。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一定要，必。",
+  "emoji": "✔️"
+ },
+ "须": {
+  "words": [
+   "必须",
+   "胡须"
+  ],
+  "sentences": [
+   "写作业必须专心。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "胡须的样子，须。",
+  "emoji": ""
+ },
+ "功": {
+  "words": [
+   "成功",
+   "功课"
+  ],
+  "sentences": [
+   "努力就会成功。",
+   "做完功课再玩。"
+  ],
+  "etym_type": "component",
+  "etym": "出力有成效，功。",
+  "emoji": "🏅"
+ },
+ "譬": {
+  "words": [
+   "譬如"
+  ],
+  "sentences": [
+   "譬如西瓜，夏天吃最好。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "打个比方，譬。",
+  "emoji": "📖"
+ },
+ "糙": {
+  "words": [
+   "粗糙"
+  ],
+  "sentences": [
+   "树皮粗糙。"
+  ],
+  "etym_type": "component",
+  "etym": "不光滑，糙。",
+  "emoji": "🌳"
+ },
+ "敏": {
+  "words": [
+   "灵敏",
+   "敏捷"
+  ],
+  "sentences": [
+   "小狗鼻子灵敏。",
+   "他身手敏捷。"
+  ],
+  "etym_type": "component",
+  "etym": "反应快，敏。",
+  "emoji": "🐕"
+ },
+ "式": {
+  "words": [
+   "算式",
+   "样式"
+  ],
+  "sentences": [
+   "列算式算一算。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "一定的格式，式。",
+  "emoji": "➗"
+ },
+ "简": {
+  "words": [
+   "简单"
+  ],
+  "sentences": [
+   "这道题很简单。",
+   "简单的图形拼出画。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "竹片做的书，简。",
+  "emoji": ""
+ },
+ "由": {
+  "words": [
+   "自由",
+   "由于"
+  ],
+  "sentences": [
+   "小鸟自由地飞。",
+   "由于起晚了，我跑着上学。"
+  ],
+  "etym_type": "picto",
+  "etym": "从田里长出来，由。",
+  "emoji": "🕊️"
+ },
+ "睁": {
+  "words": [
+   "睁开"
+  ],
+  "sentences": [
+   "睁开眼睛看看。"
+  ],
+  "etym_type": "component",
+  "etym": "把眼睛撑开，睁。",
+  "emoji": "👀"
+ },
+ "秩": {
+  "words": [
+   "秩序"
+  ],
+  "sentences": [
+   "排队要有秩序。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "有条不乱，秩。",
+  "emoji": "🚶"
+ },
+ "序": {
+  "words": [
+   "秩序",
+   "顺序"
+  ],
+  "sentences": [
+   "按顺序来。",
+   "排队讲秩序。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "先后的次序，序。",
+  "emoji": ""
+ },
+ "哦": {
+  "words": [
+   "哦哦"
+  ],
+  "sentences": [
+   "哦，我明白了！"
+  ],
+  "etym_type": "component",
+  "etym": "口旁：明白了的声音，哦。",
+  "emoji": "💡"
+ },
+ "射": {
+  "words": [
+   "发射",
+   "射门"
+  ],
+  "sentences": [
+   "火箭发射升空。",
+   "他把球射门了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "箭放出去，射。",
+  "emoji": "🚀"
+ },
+ "值": {
+  "words": [
+   "值日",
+   "值得"
+  ],
+  "sentences": [
+   "今天我值日。",
+   "这本书值得看。"
+  ],
+  "etym_type": "component",
+  "etym": "守在那里办事，值。",
+  "emoji": "🧹"
+ },
+ "熔": {
+  "words": [
+   "熔化",
+   "熔岩"
+  ],
+  "sentences": [
+   "高温把铁熔化了。"
+  ],
+  "etym_type": "component",
+  "etym": "火里化开，熔。",
+  "emoji": "🔥"
+ },
+ "艰": {
+  "words": [
+   "艰难",
+   "艰苦"
+  ],
+  "sentences": [
+   "艰难的路也要走完。",
+   "条件艰苦不叫累。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "路难走，艰。",
+  "emoji": ""
+ },
+ "箭": {
+  "words": [
+   "火箭",
+   "弓箭"
+  ],
+  "sentences": [
+   "火箭飞上太空。",
+   "古人用弓箭打猎。"
+  ],
+  "etym_type": "component",
+  "etym": "竹子做的箭，箭。",
+  "emoji": "🏹"
+ },
+ "裂": {
+  "words": [
+   "裂开"
+  ],
+  "sentences": [
+   "西瓜熟得裂开了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "衣裳分成两半，裂。",
+  "emoji": "🍉"
+ },
+ "窜": {
+  "words": [
+   "窜出"
+  ],
+  "sentences": [
+   "小老鼠窜进了洞。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "钻洞逃跑，窜。",
+  "emoji": "🐭"
+ },
+ "炎": {
+  "words": [
+   "炎热"
+  ],
+  "sentences": [
+   "夏天炎热多喝水。"
+  ],
+  "etym_type": "picto",
+  "etym": "两团火，热上加热，炎。",
+  "emoji": "🥵"
+ },
+ "庄": {
+  "words": [
+   "庄稼",
+   "村庄"
+  ],
+  "sentences": [
+   "庄稼熟了。",
+   "山下有个小村庄。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "田边的房舍，庄。",
+  "emoji": "🌾"
+ },
+ "稼": {
+  "words": [
+   "庄稼"
+  ],
+  "sentences": [
+   "庄稼要水也要阳光。"
+  ],
+  "etym_type": "component",
+  "etym": "田里种的，稼。",
+  "emoji": ""
+ },
+ "滋": {
+  "words": [
+   "滋润",
+   "滋味"
+  ],
+  "sentences": [
+   "雨水滋润禾苗。"
+  ],
+  "etym_type": "component",
+  "etym": "水给养分，滋。",
+  "emoji": "💧"
+ },
+ "腾": {
+  "words": [
+   "沸腾",
+   "腾飞"
+  ],
+  "sentences": [
+   "水烧得沸腾。",
+   "火箭腾飞了。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "马跳起来，腾。",
+  "emoji": "🐎"
+ },
+ "钩": {
+  "words": [
+   "鱼钩",
+   "钩子"
+  ],
+  "sentences": [
+   "鱼钩钓上了大鱼。",
+   "衣服挂上钩子。"
+  ],
+  "etym_type": "component",
+  "etym": "弯曲的挂物，钩。",
+  "emoji": "🎣"
+ },
+ "铲": {
+  "words": [
+   "铲子",
+   "锅铲"
+  ],
+  "sentences": [
+   "用铲子铲雪。",
+   "锅铲炒菜。"
+  ],
+  "etym_type": "component",
+  "etym": "挖东西的工具，铲。",
+  "emoji": "🥘"
+ },
+ "梅": {
+  "words": [
+   "梅花",
+   "杨梅"
+  ],
+  "sentences": [
+   "梅花冬天开。",
+   "杨梅酸酸甜甜。"
+  ],
+  "etym_type": "component",
+  "etym": "结果的树，梅。",
+  "emoji": "🌸"
+ },
+ "柿": {
+  "words": [
+   "柿子"
+  ],
+  "sentences": [
+   "柿子红了像灯笼。"
+  ],
+  "etym_type": "component",
+  "etym": "结果的树，柿。",
+  "emoji": ""
+ },
+ "源": {
+  "words": [
+   "水源",
+   "源头"
+  ],
+  "sentences": [
+   "保护水源。",
+   "河的源头在山里。"
+  ],
+  "etym_type": "component",
+  "etym": "水出来的地方，源。",
+  "emoji": "💧"
+ },
+ "涨": {
+  "words": [
+   "涨水",
+   "涨潮"
+  ],
+  "sentences": [
+   "下大雨，河水涨了。",
+   "涨潮了，浪来了。"
+  ],
+  "etym_type": "component",
+  "etym": "水位升高，涨。",
+  "emoji": "🌊"
+ },
+ "炬": {
+  "words": [
+   "火炬"
+  ],
+  "sentences": [
+   "火炬点亮了夜。"
+  ],
+  "etym_type": "component",
+  "etym": "大火把，炬。",
+  "emoji": "🔥"
+ },
+ "灿": {
+  "words": [
+   "灿烂",
+   "金灿灿"
+  ],
+  "sentences": [
+   "阳光灿烂。",
+   "他笑得灿烂。"
+  ],
+  "etym_type": "mnemonic",
+  "etym": "光彩耀眼，灿。",
+  "emoji": "☀️"
+ },
+ "垮": {
+  "words": [
+   "冲垮"
+  ],
+  "sentences": [
+   "洪水冲垮了小桥。"
+  ],
+  "etym_type": "component",
+  "etym": "土塌下来，垮。",
+  "emoji": "🌊"
+ },
+ "坟": {
+  "words": [
+   "坟墓"
+  ],
+  "sentences": [
+   "山坡上有座坟墓。"
+  ],
+  "etym_type": "component",
+  "etym": "土堆起的墓，坟。",
+  "emoji": ""
+ }
 }
