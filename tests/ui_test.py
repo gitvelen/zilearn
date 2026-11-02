@@ -378,10 +378,10 @@ def run(page):
             shot(page, "08-gate1-listen")
         answer_quiz(page)
         page.wait_for_timeout(1400)
-    check(f"五关题序 listen,pin,mean,rev×2,sent|find×2，写字关1题另计（{quiz_seq}）",
+    check(f"五关题序 listen,pin,mean,lsent,defi 各×2（{quiz_seq}）",
           quiz_seq[0:2] == ["listen", "listen"] and quiz_seq[2:4] == ["pin", "pin"]
-          and quiz_seq[4:6] == ["mean", "mean"] and quiz_seq[6:8] == ["rev", "rev"]
-          and sorted(quiz_seq[8:10]) == ["find", "sent"], quiz_seq)
+          and quiz_seq[4:6] == ["mean", "mean"] and quiz_seq[6:8] == ["lsent", "lsent"]
+          and quiz_seq[8:10] == ["defi", "defi"], quiz_seq)
     check("两字共 10 题", len(quiz_seq) == 10, quiz_seq)
 
     # ---- 今日朗读卡（收尾：指令→逐句跟读→自由朗读） ----

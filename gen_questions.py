@@ -59,11 +59,19 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems,
     if content_mean:
         avoid = {x for x in (content_avoid or "").split(",") if x}
         in_mean = set(content_mean)                     # 释义里出现的字不当干扰（听到音会困惑）
-        dr = [d["char"] for d in ds if d["char"] not in avoid and d["char"] not in in_mean]
+        # 姓氏互斥（2026-11-02 实锤："一个很常见的姓"+干扰吴/古=多解）：
+        # 释义含"姓"→ 排除其余姓氏字（多姓氏字共享"姓"维度，释义再好也稳排除）。
+        # 同 unit 不排：同课文组辨析是教学点，真义近由内容层 avoid 标注拦截
+        SURNAME_CHARS = set("李张吴赵钱孙周官古王黄马")
+        sur_bad = SURNAME_CHARS if "姓" in content_mean else set()
+        dr = [d["char"] for d in ds
+              if d["char"] not in avoid and d["char"] not in in_mean
+              and d["char"] not in sur_bad]
         if len(dr) < 3:                      # 形近池耗尽 → 随机同册补足（仍排 avoid）
             for r in db.execute("SELECT char FROM hanzi WHERE book=? AND char != ? "
                                 "ORDER BY RANDOM() LIMIT 20", (h["book"], h["char"])):
-                if r["char"] not in avoid and r["char"] not in dr and r["char"] not in in_mean:
+                if r["char"] not in avoid and r["char"] not in dr and r["char"] not in in_mean \
+                        and r["char"] not in sur_bad:
                     dr.append(r["char"])
                 if len(dr) >= 3:
                     break

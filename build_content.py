@@ -34,6 +34,16 @@ PUNCT = set("，。！？、；：—…“”‘’")
 TYPES = {"picto", "component", "mnemonic", "scene"}
 EXEMPT = set("走过亮玩笑快给边孩己以时听海什成活变爬灯衣挂远住猫丽苹膏娃呱喔咩很睡卡那真同诗穿服近候全华台无洞叭")
 
+# 组词下限豁免（2026-11-02 品质门禁：每字真词 ≥2）。以下字确无第二个常用词：
+# 连绵词素（蜻蜓/蚂蚁/浮萍）、语气字（啦）、单一搭配字（铅笔/注意/已经…）。
+# 显式列出可审计；新字入表须注明理由。伪组词"姓X"不算真词（用目标字给目标字搭台）。
+ONE_WORD_OK = set("蚂蜓蜻萍虹铅注已忽却仔氏该啦膀臂您森旦")
+SURNAMES = set("李张吴赵钱孙周官古王黄马")   # 姓氏歌单元字（defi 歧义互斥用）
+# 品质门禁分层（2026-11-02 拍板"整体优化、不轻易放水"）：新门禁（真词≥2/姓氏 avoid）
+# 先对已人工整治的册强制 fail；扩容初版册（2a+，连绵字/单词字 600+）降为警告——
+# 违规清单导出 one_word_todo.json 供逐册整治，整治完的册加入 STRICT 即全量强制
+STRICT_BOOKS = {"一年级上册", "一年级下册"}
+
 
 def main():
     book_names = sys.argv[1:] or DEFAULT_BOOKS
@@ -58,6 +68,14 @@ def main():
             if ch in merged:
                 errors.append(f"[{ch}] 重复定义（{f.name}）")
             merged[ch] = c
+
+    # 字 → 首现册（品质门禁分层：STRICT 册 fail，其余册记 todo 不拦构建）
+    char_book = {}
+    for b in book_names:
+        for ch in all_books[b]:
+            char_book.setdefault(ch, b)
+    strict_chars = {ch for ch, b in char_book.items() if b in STRICT_BOOKS}
+    todo_oneword = []
 
     # 释义叠加层（char 级字段合并，不与 parts 冲突定义字段）
     for f in sorted(MEAN_DIR.glob("*.json")) if MEAN_DIR.exists() else []:
@@ -90,6 +108,16 @@ def main():
             errors.append(f"[{ch}] 词数 {len(ws)} 不在 1-6")
         if len(set(ws)) != len(ws):
             errors.append(f"[{ch}] 词重复 {ws}")
+        # 真词下限（2026-11-02 1b 扩容滑坡：45 字单词、且"姓X"是伪组词——
+        # 用目标字给目标字搭台，教学信息量≈0）。
+        # 判定：总词数 ≥2 且其中至少 1 个真词（≠"姓X"模式）；"姓X"可作搭配词保留
+        true_words = [w for w in ws if w != "姓" + ch]
+        if not (len(ws) >= 2 and true_words) and ch not in ONE_WORD_OK:
+            if ch in strict_chars:
+                errors.append(f"[{ch}] 真词不足（{ws}；需 ≥2 词且至少 1 个非姓X 真词，"
+                              f"确无词可入 ONE_WORD_OK 豁免）")
+            else:
+                todo_oneword.append(ch)
         for w in ws:
             if not (2 <= len(w) <= 4):
                 errors.append(f"[{ch}] 词长异常 {w}")
@@ -123,6 +151,14 @@ def main():
                 errors.append(f"[{ch}] 释义长度 {len(core)} 不在 6-30：{mean}")
             if ch in mean:
                 errors.append(f"[{ch}] 释义含目标字：{mean}")
+            # 姓氏释义互斥（2026-11-02 实锤："一个很常见的姓"+干扰吴/古=多解题）：
+            # 释义含"姓"的字，avoid 必须覆盖其余姓氏字，defi 干扰生成期双保险排除。
+            # 干扰池按目标字所在册取材（_distractors 同册锚定），互斥只要求同册姓氏字
+            if "姓" in mean and ch in strict_chars:
+                same_book = set(all_books[char_book[ch]])
+                miss = (SURNAMES & same_book) - {ch} - set(c.get("avoid", "").split(","))
+                if miss:
+                    errors.append(f"[{ch}] 姓氏释义未排除干扰姓 {''.join(sorted(miss))}")
             check_chars(mean, "释义", ch)
         avoid = c.get("avoid", "")
         if avoid:
@@ -145,6 +181,11 @@ def main():
     OUT.write_text(json.dumps(out, ensure_ascii=False, indent=1))
     n_w = sum(len(c["words"]) for c in out.values())
     n_s = sum(len(c["sentences"]) for c in out.values())
+    if todo_oneword:                    # 非 STRICT 册的单词字清单（逐册整治工作底稿）
+        todo = sorted(set(todo_oneword))
+        (ROOT / "data/parsed/one_word_todo.json").write_text(
+            json.dumps(todo, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"⚠ 单词字待整治 {len(todo)}（非 STRICT 册，已导出 one_word_todo.json）")
     print(f"✓ {len(out)} 字 / 词 {n_w}（均 {n_w/len(out):.1f}）/ 句 {n_s}（均 {n_s/len(out):.1f}）→ {OUT}")
 
 

@@ -198,10 +198,11 @@ def gate_question_tests():
     opts_others = [o for o in q2["options"] if o != q2["hanzi"]]
     check("defi 释义不含任何选项字（无音节泄漏/困惑）",
           not any(o in q2["mean"] for o in opts_others), q2["mean"])
-    # 1a 字无 mean：defi 退化 listen（不排哑巴题）
+    # v40：1a 释义补全（259 字），1a 字 defi 也正常出题（原"无 mean 退化 listen"路径仅剩无释义册）
     h2 = db.execute("SELECT id, char FROM hanzi WHERE book='1a' LIMIT 1").fetchone()
     q3 = scheduler.gen_quiz(h2["id"], "defi", book="1a")
-    check("defi 无素材退化 listen", q3.get("quiz_type") == "listen", q3.get("quiz_type"))
+    check("1a defi 正常出题（v40 释义补全）", q3.get("quiz_type") == "defi" and q3.get("mean"),
+          q3.get("quiz_type"))
     db.close()
 
 

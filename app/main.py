@@ -346,7 +346,11 @@ def _safe_file(sub: str, name: str) -> Path:
 
 @app.get("/static/audio/{name}")
 def audio_file(name: str):
-    return FileResponse(_safe_file("audio", name), media_type="audio/mpeg")
+    # 音频走内容寻址（文件名=内容），可长缓存：省掉每次 304 revalidation 的 RTT——
+    # 公网真机上题干音频的加载迟滞是"切题卡顿"主源之一（2026-11-02 用户实测反馈）
+    r = FileResponse(_safe_file("audio", name), media_type="audio/mpeg")
+    r.headers["Cache-Control"] = "public, max-age=86400"
+    return r
 
 @app.get("/static/strokes/{name}")
 def stroke_file(name: str):

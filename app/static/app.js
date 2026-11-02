@@ -178,7 +178,9 @@ const root = createApp({
     playChar(ch, altTone3) {
       this.stopNarration();                            /* 同一时刻最多一个字音（find 连点防叠音） */
       const f = `/static/audio/${encodeURIComponent(altTone3 ? `${ch}_${altTone3}` : ch)}.mp3`;
-      this._playBuf(f, 1, "char").then(ok => { if (ok === null) this._elFallback(f).catch(() => {}); });
+      return this._playBuf(f, 1, "char").then(async ok => {
+        if (ok === null) await this._elFallback(f).catch(() => {});
+      });                                               /* 返回 promise：讲解链可衔接字音后 */
     },
     async playFile(name) {
       /* 播放单个音频文件，resolve(true)=正常播完/被停，resolve(false)=缺文件或播放被拒
@@ -685,7 +687,11 @@ const root = createApp({
     sessionLabel() {
       const t = this.curItem && this.curItem.type;
       if (t === "newcard") return "✨ 新字探索";
-      if (t === "gatequiz" || t === "gatesummary") return `🚪 第${this.curItem.gate}关 · ${["听音", "拼音", "组词", "听句", "字义", "写字"][this.curItem.gate - 1]}`;
+      if (t === "readcard") return "📖 今日朗读";
+      /* strokegate 也是分关之一（写字关）：漏判曾让它掉进"复习挑战"兜底，
+         家长实测一头雾水（2026-11-02）——所有关类型必须显式归位 */
+      if (t === "gatequiz" || t === "gatesummary" || t === "strokegate")
+        return `🚪 第${this.curItem.gate}关 · ${["听音", "拼音", "组词", "听句", "字义", "写字"][this.curItem.gate - 1]}`;
       if (this.phase === "weekly") return "🏆 周大挑战";
       if (t === "auditquiz") return "🕵️ 小侦探抽查";
       return "🎯 复习挑战";
@@ -711,6 +717,7 @@ const root = createApp({
     exitSession() {                               /* skipFollow：不终止的话跟读链在退出后仍后台响（走查抓到） */
       this._stopHw();
       this._quizCache = {};                       /* 预取缓存随会话作废（防陈旧题跨会话命中） */
+      this._contentCache = {};                    /* 内容预取缓存同作废 */
       this.stopNarration(); this.skipFollow(); this.closeMic();
       this.homeTip = false; this.sessQueue = []; this.sessIdx = 0; this.loadToday();
     },
@@ -862,6 +869,8 @@ const root = createApp({
       } else { this.readNews = []; }
       this.sessQueue = q; this.sessIdx = 0; this.doneStats = { new: 0, review: 0 };
       this._promptDone = new Set(); this._quizCache = {};   /* 会话级：玩法指令首题化 + 题目预取缓存 */
+      ["ok", "no", "ding", "win"].forEach(s => this._preloadFile(`sfx_${s}.wav`));  /* 反馈音效预载：首次答题不哑火 */
+      this._prefetchItem(this.sessQueue[0]);                /* 首项预取（无答题停留窗可搭） */
       this.enterItem();
     },
     isWarm(r) { return r.stage === 0; },   /* stage=0 即只学过首学，就是昨日重现批 */
@@ -876,6 +885,8 @@ const root = createApp({
       }
       this.sessQueue = q; this.sessIdx = 0;
       this._promptDone = new Set(); this._quizCache = {};   /* 会话级：玩法指令首题化 + 题目预取缓存 */
+      ["ok", "no", "ding", "win"].forEach(s => this._preloadFile(`sfx_${s}.wav`));
+      this._prefetchItem(this.sessQueue[0]);                /* 首项预取 */
       this.weeklyScore = prog ? prog.score : 0;
       this.weeklyTotal = this.today.scope.length;
       this.weeklyWrong = prog ? prog.wrong : [];
@@ -927,7 +938,10 @@ const root = createApp({
       }
     },
     async mountContent(hid) {
-      const r = await api("GET", `/api/hanzi/${hid}/full`);
+      /* 预取命中直接用（一次性）：错题半卡/朗读卡不再现场等网络 */
+      let r = (this._contentCache || {})[hid];
+      if (r) delete this._contentCache[hid];
+      else r = await api("GET", `/api/hanzi/${hid}/full`);
       let words = [], sentList = [];
       try { words = r.content && r.content.words ? JSON.parse(r.content.words) : []; }
       catch { words = []; }
@@ -1080,14 +1094,61 @@ const root = createApp({
     _qtOf(it) {                                  /* 复习/周测题题型会话内固定（randType 结果挂 it，预取与出题一致） */
       return it.quiz_type || it._qt || (it._qt = this.randType(it.id));
     },
-    _prefetchNext() {
-      /* 答对后 900ms 停留窗内预拉下一题：advance 时直接命中，"出题中…"消失 */
-      const nxt = this.sessQueue[this.sessIdx + 1];
-      if (!nxt || !nxt.type.endsWith("quiz")) return;
-      const key = this._qtOf(nxt) + ":" + nxt.id;
-      if (this._quizCache && this._quizCache[key]) return;
-      api("GET", `/api/quiz?hanzi_id=${nxt.id}&quiz_type=${this._qtOf(nxt)}`)
-        .then(q => { (this._quizCache ||= {})[key] = q; }).catch(() => { });
+    _preloadFile(fname) {                        /* 音频预载（完整文件名含扩展名；LRU 入队，失败静默） */
+      const ctx = this._ensurePlayCtx();
+      if (ctx) this._loadBuf(ctx, `/static/audio/${encodeURIComponent(fname)}`).catch(() => { });
+    },
+    _preload(name) { this._preloadFile(name + ".mp3"); },
+    _preloadQuizAudio(q) {                       /* 题干音频按题型确定（与 startQuiz 自动播音同源） */
+      const t = q.quiz_type;
+      if (t === "listen" || t === "find") this._preload(q.hanzi);
+      else if (t === "rev" || t === "lsent" || t === "defi") this._preload(q.audio);
+      else if (t === "sent") this._preload(`s_${q.hanzi}_1`);
+    },
+    _prefetchItem(it) {
+      /* 会话推进统一预取（2026-11-02 卡顿整治）：题面+题干音频+内容+笔画数据。
+         旧 _prefetchNext 只覆盖"答对停留窗的下一道 quiz"，四个盲区（错题重测、
+         每关首题、新字卡内容、朗读卡）全部现场串行 await——公网 RTT 下"出题中…"
+         闪烁+音频迟滞。预取源全部确定性可知（题型固定/音频 URL 在 payload 内） */
+      if (!it || !this._quizCache) return;
+      if (it.type === "newcard") {
+        if (this._contentCache && this._contentCache[it.id]) return;
+        api("GET", `/api/hanzi/${it.id}/full`).then(r => {
+          (this._contentCache ||= {})[it.id] = r;
+          /* 四步卡音频全套预载：字音/字源故事/组词连读/逐词/逐句（URL 全部可预知） */
+          const ch = it.char;
+          this._preload(ch); this._preload(`e_${ch}`); this._preload(`w_${ch}`);
+          try {
+            const words = r.content && r.content.words ? JSON.parse(r.content.words) : [];
+            const sents = r.content && r.content.sentences ? JSON.parse(r.content.sentences)
+              : (r.content && r.content.sentence ? [r.content.sentence] : []);
+            words.forEach((w, i) => this._preload(`n_${ch}_${i + 1}`));
+            sents.forEach((s, i) => this._preload(`s_${ch}_${i + 1}`));
+          } catch { }
+        }).catch(() => { });
+        return;
+      }
+      if (it.type === "strokegate") {
+        fetch(`/static/strokes/${encodeURIComponent(it.char)}.json`).catch(() => { });
+        return;
+      }
+      if (it.type === "readcard") {
+        this._preload("t_readcard");
+        (this.readNews || []).forEach(h => this._preload(`s_${h.char}_1`));
+        return;
+      }
+      if (!it.type.endsWith("quiz")) return;
+      const key = this._qtOf(it) + ":" + it.id;
+      if (this._quizCache[key]) { this._preloadQuizAudio(this._quizCache[key]); return; }
+      api("GET", `/api/quiz?hanzi_id=${it.id}&quiz_type=${this._qtOf(it)}`)
+        .then(q => {
+          this._quizCache[key] = q;
+          this._preloadQuizAudio(q);
+          /* 答错半卡要拉内容：一并预取（mountContent 命中免现场等） */
+          if (!(this._contentCache || {})[it.id])
+            api("GET", `/api/hanzi/${it.id}/full`)
+              .then(r => { (this._contentCache ||= {})[it.id] = r; }).catch(() => { });
+        }).catch(() => { });
     },
     async startQuiz(it) {
       const qt = this._qtOf(it);
@@ -1141,8 +1202,8 @@ const root = createApp({
     },
     findDone(failed) {
       if (!failed) { this.playSfx("ok"); this.burst(); }
-      else setTimeout(() => {              /* 答错自动播正确字音（同 pickOpt） */
-        if (this.curQuiz && this.quizRevealed && !this.quizCorrect) this.playChar(this.curQuiz.hanzi);
+      else setTimeout(() => {              /* 答错自动讲解（同 pickOpt：字音→语境音频） */
+        if (this.curQuiz && this.quizRevealed && !this.quizCorrect) this._wrongAudio(this.curQuiz);
       }, 600);
       this.quizRevealed = true;
       this.quizCorrect = !failed;
@@ -1150,6 +1211,16 @@ const root = createApp({
     },
     randType(hid) {
       return ["listen", "mean", "sent", "find"][Math.floor(Math.random() * 4)];
+    },
+    async _wrongAudio(qz) {
+      /* 答错讲解链：字音（确认读音）→ 题型语境音频（半卡期间自动重听）——
+         defi 答错=释义↔字形映射没建立，重听释义是闭环核心；mean/sent 播组词连读；
+         rev/lsent 重播词/句。目标用户不识字，半卡只有文字词句等于没讲 */
+      await this.playChar(qz.hanzi);
+      if (this.curQuiz !== qz || !this.quizRevealed) return;   /* 半卡期已切题则止链 */
+      const t = qz.quiz_type;
+      if (t === "defi" || t === "rev" || t === "lsent") return this.playFile(qz.audio);
+      if (t === "mean" || t === "sent") return this.playFile(`w_${qz.hanzi}`);
     },
     optClass(o) {
       if (!this.quizRevealed) return "";
@@ -1168,8 +1239,8 @@ const root = createApp({
         if (qz.quiz_type === "sent")
           setTimeout(() => this.playFile(`s_${qz.hanzi}_1`), 450);   /* 音效后再听整句 */
       } else {
-        setTimeout(() => {                        /* 答错 600ms 后自动播正确字音：错题学习闭环 */
-          if (this.curQuiz === qz && this.quizRevealed) this.playChar(qz.hanzi);
+        setTimeout(() => {                        /* 答错 600ms 后自动讲解：字音→题型语境音频 */
+          if (this.curQuiz === qz && this.quizRevealed) this._wrongAudio(qz);
         }, 600);
       }
       await this.submitQuiz(this.quizCorrect);
@@ -1183,7 +1254,9 @@ const root = createApp({
       /* 弱网兜底：submit 失败只丢流水不卡推进（答对 900ms 定时 advance 曾因它不调度） */
       const send = (body) => api("POST", "/api/submit", body).catch(e => console.warn("submit 弱网失败", e));
       if (it.type === "gatequiz") {
-        /* 关题：调度已在卡片完成时注册（learn 幂等），此处只记流水+关分；答错半卡重测到对 */
+        /* 关题：调度已在卡片完成时注册（learn 幂等），此处只记流水+关分；答错看半卡、
+           错题克隆推本关末重测（quizContinue，v40 拍板方案 A：立即重测短时记忆作弊、
+           提取强度低，间隔=本关剩余题数） */
         const first = !it._answered; it._answered = true;
         await send({ hanzi_id: it.id, phase: "learn",
           quiz_type: this.curQuiz.quiz_type, correct });
@@ -1191,7 +1264,7 @@ const root = createApp({
           if (correct) this.gateScores[it.gate]++;
           else this.gateWrong[it.gate].push(this.curQuiz.hanzi);
         }
-        if (correct) { this._prefetchNext(); setTimeout(() => this.advance(), 900); }
+        if (correct) { this._prefetchItem(this.sessQueue[this.sessIdx + 1]); setTimeout(() => this.advance(), 900); }
         else this.mountContent(it.id);
         return;
       }
@@ -1210,14 +1283,31 @@ const root = createApp({
       }
       if (correct) {
         if (first && this.phase === "weekly") this.weeklyScore++;
-        this._prefetchNext();
+        this._prefetchItem(this.sessQueue[this.sessIdx + 1]);
         setTimeout(() => this.advance(), 900);
       }
     },
     async quizContinue() {
       const it = this.quizPending;
-      if (it.type === "gatequiz" || it.type === "reviewquiz" || it.type === "weeklyquiz" || it.type === "auditquiz") {
-        /* 复习/周测错题：同题型重测到对（不重复提交，回炉轨迹完整） */
+      if (it.type === "gatequiz") {
+        /* 关题答错：错题克隆推到本关 gatesummary 前，间隔=本关剩余题数后重测（方案 A）。
+           克隆继承 _answered=true → 重测答对不提交不计数（首答已记流水/关分，关分不虚高）；
+           重测又错（it._retest）不再推、直接放行——防无限循环，靠 D+1 复习兜底。
+           克隆重测走完整 startQuiz：defi/rev/lsent 自动播题干音频（旧路径
+           quizContinue 快捷重拉不播释义，2026-11-02 用户实锤"断头路"） */
+        if (!it._retest) {
+          let pos = this.sessQueue.length;
+          for (let k = this.sessIdx + 1; k < this.sessQueue.length; k++) {
+            const nx = this.sessQueue[k];
+            if (nx.type === "gatesummary" && nx.gate === it.gate) { pos = k; break; }
+          }
+          this.sessQueue.splice(pos, 0, { ...it, _retest: true });
+        }
+        return this.advance();
+      }
+      if (it.type === "reviewquiz" || it.type === "weeklyquiz" || it.type === "auditquiz") {
+        /* 复习/周测错题：同题型立即重测到对（不重复提交，回炉轨迹完整；周测有
+           结算语义 + D+1 回炉兜底，与关题的推关尾策略不同源） */
         this.quizRevealed = false; this.quizPick = null;
         this.findFound = []; this.findMisses = 0; this.findMiss = "";
         /* 弱网兜底：重拉失败直接过题（防卡在已重置的旧题上） */
@@ -1231,6 +1321,9 @@ const root = createApp({
     },
     advance() {
       if (!this.sessQueue.length) return;          /* 已退出会话：迟到的 submit/跳题定时器不再推进（防甩到完成页） */
+      /* 推进即预取下一项（覆盖非答题推进：四步卡下一步/关末结算/错题推队尾）——
+         与 submitQuiz 答对停留窗的调用幂等重复（缓存命中即返回） */
+      this._prefetchItem(this.sessQueue[this.sessIdx + 1]);
       const done = this.curItem;
       /* 新字卡四步完成 → 提交首学（注册 D+1 复习；分关题只记流水不再动调度） */
       if (done && done.type === "newcard" && !this.learnDone) {
