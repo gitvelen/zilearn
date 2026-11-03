@@ -132,6 +132,17 @@ const root = createApp({
       this.loginForm.p = "";
       this.phase = "login";
     },
+    _resetPlayCtx() {
+      /* 假死自愈（2026-11-03 MIDO 实报根治位）：弃旧建新。running 状态不可信——真机
+         follow_log 实锤"state=running 但调度无声、onended 永不触发"（played=0×5、
+         model_ms=duration+2s 超时形态），此时 resume 无效，唯一出路是重建。
+         手势内重建（四事件兜底/startToday 链）= 活 ctx；自动链内重建尽力而为 */
+      if (this._playCtx) { try { this._playCtx.close().catch(() => { }); } catch { } }
+      this._playCtx = null; this._ctxSus = false;
+      this._narrSrc = this._ttsSrc = this._charSrc = null;   /* 旧 ctx 的 source 引用随之作废 */
+      try { this._playCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { }
+      return this._playCtx;
+    },
     _ensurePlayCtx() {
       /* 播放专用 AudioContext：iPadOS Safari 的 element autoplay 在手势激活窗口外几乎
          全拒（v21 遥测实锤：played=0/model_ms≈3ms 遍地，唯一 played=1 恰距点击<1s）。
@@ -140,7 +151,9 @@ const root = createApp({
          resume 后补一次 1 采样静音 start（v45）：部分 iPadOS 版本 resume() 置 running
          仍不开输出通道（v43 pointerdown 兜底、v44 四事件兜底后真机验证轮依旧全程
          无声，而 Chrome/WebKit 模拟同链路全绿——差异只剩"手势内从未实际调度过播放"），
-         howler 等库的标准 unlock 均含此步；幂等，running 后不再重入 */
+         howler 等库的标准 unlock 均含此步；幂等，running 后不再重入。
+         v49：_ctxSus（播放超时置位）→ 先重建再走解锁，孩子下一次点击即自愈 */
+      if (this._ctxSus) { this._resetPlayCtx(); console.warn("[ctx] 假死，已重建"); }
       if (!this._playCtx) {
         try { this._playCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { }
       }
@@ -204,10 +217,9 @@ const root = createApp({
         new Promise(r => setTimeout(r, ms)),
       ]);
       if (ctx.state === "running") return ctx;
-      try { ctx.close().catch(() => { }); } catch { }    /* 异步弃旧，防 Safari 实例配额 */
-      this._playCtx = null;
-      this._narrSrc = this._ttsSrc = this._charSrc = null;   /* 旧 ctx 的 source 引用随之作废 */
-      ctx = this._ensurePlayCtx();
+      this._resetPlayCtx();                          /* 异步弃旧防 Safari 配额；此处重建非手势尽力而为 */
+      ctx = this._playCtx;
+      if (!ctx) return null;
       if (!ctx) return null;
       if (ctx.state === "running") return ctx;
       await Promise.race([
@@ -235,8 +247,8 @@ const root = createApp({
         g.gain.value = vol;
         src.buffer = buf;
         src.connect(g); g.connect(ctx.destination);
-        const tmo = setTimeout(() => { try { src.stop(); } catch { } res(false); },
-          (buf.duration || 3) * 1000 + 2000);
+        const tmo = setTimeout(() => { try { src.stop(); } catch { } this._ctxSus = true; res(false); },
+          (buf.duration || 3) * 1000 + 2000);   /* 超时=onended 永不触发：ctx 假死实锤，置位待重建（v49） */
         src.onended = () => { clearTimeout(tmo); res(true); };
         if (key) this[key] = src;
         try { src.start(); } catch (e) { clearTimeout(tmo); res(false); }
