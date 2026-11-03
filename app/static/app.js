@@ -28,8 +28,6 @@ const root = createApp({
       phase: "boot", loginForm: { u: "", p: "" }, loginErr: "", userName: "", isTest: false,
       progress: {}, obGrade: "", obTarget: 300, obDays: 50, planEst: null, gradesReady: [], obKick: false,
       confirmBatches: [], confirmPage: 0, confirmPicked: [],
-      verifyQ: null, verifyPick: null, verifyRevealed: false,
-      verifyDone: 0, verifyTotal: 0,
       today: {}, sessQueue: [], sessIdx: 0,
       ncStep: 1, readLines: [], readPlaying: false, readCur: "",
       curQuiz: null, quizPick: null, quizRevealed: false, quizCorrect: false, quizPending: null,
@@ -39,7 +37,8 @@ const root = createApp({
       findFound: [], findMisses: 0, findMiss: "",
       doneStats: { new: 0, review: 0 }, report: null,
       follow: { on: false, kind: "", idx: 0, done: [], state: "off" }, micLvl: 0,
-      micDenied: false, micState: "ok", followPop: false, quizBurst: false, stepBusy: false,
+      micDenied: false, micState: "ok", followPop: false, quizBurst: false,
+      narrLock: false, readAudioUrl: "",
       homeTip: false, homeHold: false, ncHold: -1, renewing: false, moreRound: false,
       BURST_DIRS: [["-70px","-60px"],["70px","-75px"],["0px","-95px"],["-55px","55px"],["55px","65px"],["0px","-30px"]],
       gateScores: {}, gateWrong: {}, readNews: [],
@@ -108,6 +107,15 @@ const root = createApp({
         this.gradesReady = me.grades_ready || [];   /* 册内容就绪度（年级选择禁选"制作中"） */
         if (me.stage === "onboard") { this.obKick = !!me.user.grade; this.phase = "ob-grade"; }
         else if (me.stage === "plan") { this.obTarget = Math.min(300, me.progress.total_hanzi - (me.progress.skipped || 0)); this.phase = "ob-plan"; }
+        else if (me.stage === "confirm") {
+          /* 摸底中途刷新：回摸底页续选（2026-11-03 补洞——原直接进学习日，速选作废）。
+             confirm_batches 按水位重出批次：补摸轮的已见字会重列（重选幂等），可接受 */
+          const r = await api("GET", "/api/confirm/batches").catch(() => null);
+          if (r && r.batches && r.batches.length) {
+            this.confirmBatches = r.batches; this.confirmPage = 0; this.confirmPicked = [];
+            this.moreRound = false; this.phase = "ob-confirm";
+          } else { await this.loadToday(); }
+        }
         else { await this.loadToday(); }
       } catch (e) { if (this.phase !== "login") this.phase = "login"; }
     },
@@ -266,19 +274,27 @@ const root = createApp({
     },
     stopNarration() {
       /* 三通道统一停（narration 链/指令/字音）：切题、跳步、答题后遗留音频继续响的根源
-         是这里只停一个通道（2026-10-28 叠音检测器抓到 4 组）
-         同时作废悬挂的 stepAudio 链（v21：防 resume 后旧链 startFollow 顶掉新步跟读）
-         并交还 stepBusy 锁（2026-10-30 断头路修复）：作废链的 finally 因代际守卫不复位，
-         若无新链接手（用户点词卡/听按钮只是自由播放，不开新链）按钮将永久禁用 */
+         是这里只停一个通道（2026-10-28 叠音检测器抓到 4 组）。
+         音频时钟化（2026-11-03）：同时作废悬挂的环境范读链（代际）并立即解除 narrLock
+         ——不再触碰任何流程状态；narrLock 的解除只由 _endNarr/cap 定时器/此处同步完成 */
       this._stepGen = (this._stepGen || 0) + 1;
       this._narrStop = true;
-      this.stepBusy = false;
+      this._endNarr();
       for (const k of ["_narrSrc", "_ttsSrc", "_charSrc"]) {
         if (this[k]) { try { this[k].stop(); } catch { } this[k] = null; }
       }
-      if (this._narrAudio) { try { this._narrAudio.pause(); } catch { } this._narrAudio = null; }
-      if (this._ttsAudio) { try { this._ttsAudio.pause(); } catch { } this._ttsAudio = null; }
-      if (this._charAudio) { try { this._charAudio.pause(); } catch { } this._charAudio = null; }
+    },
+    _beginNarr(ms, onCap) {
+      /* 定时器锁（音频时钟化核心）：环境范读期防"没听就走"，cap ms 兜底——链在任何一层
+         挂死（fetch/decode/ctx）也必然解锁（认步兜底回调直接进跟读槽）。不变量：
+         任何按钮 disabled 的解除只依赖定时器或孩子操作，永不依赖音频事件 */
+      this.narrLock = true;
+      clearTimeout(this._narrT);
+      this._narrT = setTimeout(() => { this.narrLock = false; if (onCap) onCap(); }, ms);
+    },
+    _endNarr() {
+      clearTimeout(this._narrT);
+      this.narrLock = false;
     },
     playOne(name) { this.stopNarration(); this.playFile(name); },
     playTts(name) {                                   /* 语音指令（t_ 前缀）：单实例，新的停旧的（防连题双指令叠音） */
@@ -290,69 +306,55 @@ const root = createApp({
       this._playBuf(u, vol, null).then(ok => { if (ok === null) this._elFallback(u).catch(() => {}); });
     },
     async stepAudio() {
-      /* 四步卡每步音频+跟读（方案 A 节奏式：范读→留白跟读→✓；认步=字音→字源故事→跟读，
-         v32 用户拍板：先听完讲解再开口；跟读范读紧贴留白，模仿窗口仍在）
-         代际守卫（v21）：跳步（家长长按步指示器）时旧链的 playFile 还在 await，resume 后
-         _narrStop 已被新 stepAudio 重置为 false，旧链守卫失效会继续 startFollow 把新步的
-         跟读顶掉（复现实锤：认步悬挂链覆盖句步跟读）——gen 与 _narrStop 双查 */
+      /* 四步卡每步音频（音频时钟化，2026-11-03 拍板）：环境范读链只负责"播"，不锁流程——
+         下一步按钮的锁只来自定时器（narrLock，cap 兜底）与跟读槽窗（follow.on）。
+         认步=字音→字源故事→读字槽（v32 讲解前置保留）；词步=整体连听后自由点选
+         （逐词跟读槽已删，拍板"词步回自由"）；句步=逐句范读→读句槽。
+         代际守卫（v21 沿用）：跳步时旧链的 playFile 还在 await，gen 比对作废 */
       const ch = this.curItem && this.curItem.char;
       if (!ch) return;
       const gen = (this._stepGen = (this._stepGen || 0) + 1);
-      this._narrStop = false;
-      this.stepBusy = true;                           /* 音频+跟读链进行中：下一步按钮锁定（防连听期误触） */
-      const stale = () => gen !== this._stepGen || this._narrStop;
-      try {
-        if (this.ncStep === 1) {
-          await this.playFile(ch);
-          if (stale()) return;
-          await this.playFile(`e_${ch}`);              /* 字源故事（讲解）跟在字音后整段锁听 */
-          if (stale()) return;
-          this.stepBusy = false;                        /* 跟读启动即由 follow.on 接管锁 */
-          await this.startFollow("char");              /* 跟读（范读后"叮"提示，无啰嗦语音指令） */
-        } else if (this.ncStep === 2) {
-          await this.playFile(`w_${ch}`);               /* 整体连听一遍（即全部范读） */
-          if (stale()) return;
-          this.stepBusy = false;
-          await this.startFollow("word", true);        /* noModel：连听已是范读，逐词只"叮"→留白（v32 用户拍板：
-                                                          不再系统读一个孩子读一个） */
-        } else if (this.ncStep === 3) {
-          this.stepBusy = false;
-          await this.startFollow("sent");               /* 逐句：范读→跟读→✓ */
-        }
-      } finally { if (gen === this._stepGen) this.stepBusy = false; }   /* 旧链的 finally 不得踩掉新链的锁 */
+      const stale = () => gen !== this._stepGen;
+      if (this.ncStep === 1) {
+        this._beginNarr(12000, () => {           /* 链挂死兜底：cap 到点强制进槽（v43 永锁类根除） */
+          if (!stale()) { this._endNarr(); this.startFollow("char"); }
+        });
+        await this.playFile(ch);                 /* 字音 */
+        if (stale()) return;
+        await this.playFile(`e_${ch}`);          /* 字源故事（环境音） */
+        if (stale()) return;
+        this._endNarr();
+        this.startFollow("char");                /* 认步读字槽（强制窗） */
+      } else if (this.ncStep === 2) {
+        this._beginNarr(10000);
+        await this.playFile(`w_${ch}`);          /* 整体连听（环境音），完毕转自由点选 */
+        if (stale()) return;
+        this._endNarr();
+      } else if (this.ncStep === 3) {
+        this.startFollow("sent");                /* 逐句：范读→读句槽 */
+      }
     },
     ncGo(step) {
-      /* 跳步（步指示器可点=家长快进，绕过跟读）；到写步才挂描红 */
+      /* 跳步（步指示器可点=家长快进，绕过跟读/范读）；到写步才挂描红 */
       this.stopNarration();
       this.skipFollow();
-      this.stepBusy = false;    /* 被作废的旧音频链 finally 因代际守卫不复位（写步无新链接手），此处直接清 */
       this.ncStep = step;
       if (step === 4) this.$nextTick(() => this.mountTracer(this.curItem.char));
       else this.stepAudio();
     },
-    followGate() {
-      /* 跟读门（v45 扩到全步）：跟读中且有麦 → 必须读完才能下一步（产品决策"跟读强制不评测"）。
-         原只锁词步，认步/句步点"下一步"即跳过跟读——"认新字阶段不需要跟读"的用户实报。
-         无麦（micDenied，含被拒/弹窗未决/无设备）不锁：降级放行，孩子不被卡死。
-         家长快进=长按步指示器 ncGo 绕过（不变） */
-      return this.follow.on && !this.micDenied;
-    },
     ncNext() {
-      if (this.stepBusy || this.followGate()) return;
-                                                      /* stepBusy=音频范读期锁定（防没听就走）；
-                                                         跟读门=必须读完（disabled 为主此处兜底，
-                                                         家长长按步指示器 ncGo 可绕过） */
-      if (this.ncStep === 4 && !this.traceDone && !this.traceFallback) return;   /* 写步门槛（v32）：
-                                                        写对才放行，按钮禁用为主，此处兜底键盘/时序残留 */
+      if (this.ncNextDisabled()) return;         /* 判定统一（键盘/时序残留兜底） */
       this.ncStep >= 4 ? this.advance() : this.ncGo(this.ncStep + 1);
     },
     ncNextDisabled() {
-      if (this.followGate())
-        return true;   /* 跟读门（必须读完）：家长长按步指示器可跳（ncGo 绕过） */
-      return this.stepBusy || (this.ncStep === 4 && !this.traceDone && !this.traceFallback);
+      if (this.follow.on) return true;           /* 跟读槽窗（强制·定时器）：读的时机不可跳过；
+                                                    家长长按步指示器 ncGo 可绕过 */
+      if (this.narrLock) return true;            /* 环境范读期（字音+故事/连听）：定时器 cap 兜底解锁 */
+      return this.ncStep === 4 && !this.traceDone && !this.traceFallback;   /* 写步门槛（v32） */
     },
     ncNextLabel() {
-      if (this.followGate()) return this.follow.kind === "word" ? "读完这几个词哦 🎤" : "跟着读一读吧 🎤";
+      if (this.follow.on) return "跟着读一读吧 🎤";
+      if (this.narrLock) return "先听一听哦 👂";
       if (this.ncStep < 4) return "下一步 →";
       if (!this.traceDone && !this.traceFallback) return "写完才能继续哦 ✍️";
       return this.hasNextNew() ? "这个字学会啦，下一个 →" : "我会写啦，去答题 →";
@@ -428,7 +430,11 @@ const root = createApp({
       if (this._micCtx) { try { this._micCtx.close(); } catch { } this._micCtx = null; }
       this._micFailUntil = 0; this.micState = "ok"; this.micDenied = false;   /* 新会话重给麦克风一次机会 */
     },
-    /* ---------- 跟读（节奏式+音量校验：范读→叮→留白听你读→✓；读到才夸，无录音无回放） ---------- */
+    /* ---------- 跟读（节奏槽，2026-11-03 两轮拍板：结构强制窗，不做正确性判定）
+       槽=范读→"叮"→留白窗（定时器上限）：读的时机不可跳过，窗走完即完成；
+       音量检测只做可视化/提前收窗/遥测（不 gate 不重试不录音）；
+       ASR 判定已删（用户拍板：只要跟读完成即可，不判断正确性）；
+       朗读卡会话录音（"听听自己读的"回放）保留——它是素材不是判定。 ---------- */
     _recStart() {
       /* 词步 ASR 录音：留白窗起点开录（范读已停——录音不含范读，堵"重听范读声=假通过"）。
          设备不支持 MediaRecorder/流失效则静默放弃（_recBlob=null → verify 降级放行） */
@@ -456,42 +462,24 @@ const root = createApp({
         try { r.state !== "inactive" ? r.stop() : r.onstop(); } catch { res(); }
       });
     },
-    async verifyWord() {
-      /* 上传录音→ASR 内容匹配（1.6s 超时/任何失败=降级放行）——判定层永不卡节奏。
-         v41：reason 标记降级原因（noblob/timeout/server），真机全 degraded 时可区分
-         "没录上"还是"来不及"（asr_text 列记 △前缀） */
-      const blob = this._recBlob;
-      if (!blob) return { pass: true, text: null, degraded: true, reason: "noblob" };
-      const fd = new FormData();
-      fd.append("char", this.curItem.char);
-      fd.append("word", (this.curContent ? this.curContent.words : [])[this.follow.idx] || this.curItem.char);
-      fd.append("file", blob, "rec." + (blob.type.includes("mp4") ? "mp4" : "webm"));
-      try {
-        const r = await Promise.race([
-          fetch("/api/follow/verify", { method: "POST", body: fd }),
-          new Promise((_, rej) => setTimeout(() => rej(new Error("asr-timeout")), 1600)),
-        ]);
-        return await r.json();
-      } catch (e) {
-        return { pass: true, text: null, degraded: true, reason: e.message === "asr-timeout" ? "timeout" : "server" };
-      }
-    },
     followItems(kind) {
       if (kind === "char") return [{ key: "c", audio: this.curItem.char }];
-      if (kind === "word") return (this.curContent ? this.curContent.words : [])
-        .map((w, i) => ({ key: "w" + i, audio: `n_${this.curItem.char}_${i + 1}` }));
       if (kind === "sent") return this.curSentences
         .map((s, i) => ({ key: "s" + i, audio: `s_${this.curItem.char}_${i + 1}` }));
       return this.readLines.map(l => ({ key: "r" + l.char, audio: `s_${l.char}_1` }));
     },
-    startFollow(kind, noModel = false) {
-      /* 返回 Promise：跟读全流程（范读→留白→✓→夸奖，或家长跳过）结束后才 resolve——
-         认步的 e_故事必须等它，否则故事压着留白与跟读反馈叠音（2026-10-28 用户抓到）
-         noModel（词步 v32）：整体连听已是范读，逐项不再重播，直接"叮"→留白 */
+    startFollow(kind) {
+      /* 开槽（范读→叮→留白窗，窗必经）：窗的推进只认定时器/音量提前收窗/家长长按跳过 */
       const items = this.followItems(kind);
-      if (!items.length) return Promise.resolve();
-      this.follow = { on: true, kind, idx: 0, done: [], state: "model", tries: 0, heardAny: false, noModel };
-      return new Promise(res => { this._followResolve = res; this.followPlay(0); });
+      if (!items.length) return this.followFinish();
+      this.follow = { on: true, kind, idx: 0, done: [], state: "model", heardAny: false };
+      this.followPlay(0);
+    },
+    async startReadSession() {
+      /* 朗读卡（层3）：会话级录音（跨全部逐句槽）→ 结束生成"听听自己读的"回放 URL */
+      const micReady = await this.ensureMic().catch(() => false);
+      if (micReady && this.curItem && this.curItem.type === "readcard") this._recStart();
+      this.startFollow("read");
     },
     async followPlay(i, replay = false) {
       const f = this.follow;
@@ -505,31 +493,24 @@ const root = createApp({
       const micP = this.ensureMic();                  /* 范读期间并行取麦（RCA：v18 wait 后才取，首个
                                                          wait 有 1~3s 聋窗=对着空气读；且流先建立，
                                                          AEC/AGC 听过范读才预热，冷流会压童声） */
-      if (f.noModel && !replay) {
-        /* 无范读轮次：遥测 _fModel 置空——played 落 NULL，与"范读失败=0"可区分 */
-        this._fModel = null;
-        f.state = "wait";
-        this.playSfx("ding");                        /* "叮"=轮到你（不用啰嗦语音指令） */
-      } else {
-        f.state = "model";
-        const tModel0 = performance.now();
-        const played = await this.playFile(it.audio);   /* 范读（replay=用户点当前对象重听，主动重播） */
-        this._fModel = { played: played ? 1 : 0, model_ms: Math.round(performance.now() - tModel0) };
-        if (!played) console.warn("范读播放失败/被拒:", it.audio);   /* RCA：哑播放曾无迹可查；v21 落库遥测 */
-        if (gen !== this._followGen || !f.on) return;
-        f.state = "wait";
-        this.playSfx("ding");                          /* "叮"=轮到你（不用啰嗦语音指令） */
-      }
-      /* 留白按内容自适应：句=范读时长+2.5s（TTS 成人语速，幼儿复述慢得多，1.5s 余量实测偏紧），词 4s，字 3.5s */
+      f.state = "model";
+      const tModel0 = performance.now();
+      const played = await this.playFile(it.audio);   /* 范读（replay=用户点当前对象重听，主动重播） */
+      this._fModel = { played: played ? 1 : 0, model_ms: Math.round(performance.now() - tModel0) };
+      if (!played) console.warn("范读播放失败/被拒:", it.audio);   /* RCA：哑播放曾无迹可查；v21 落库遥测 */
+      if (gen !== this._followGen || !f.on) return;
+      f.state = "wait";
+      this.playSfx("ding");                           /* "叮"=轮到你（不用啰嗦语音指令） */
+      /* 留白按内容自适应：句=范读时长+2.5s（TTS 成人语速，幼儿复述慢得多），字 3.5s */
       let modelMs = 0, ms;
       if (f.kind === "sent" || f.kind === "read") {
         modelMs = (await this.audioDur(it.audio) || 3) * 1000;
         ms = modelMs + 2500;
-      } else ms = f.kind === "word" ? 4000 : 3500;
+      } else ms = 3500;
       if (gen !== this._followGen || !f.on) return;
       const micReady = await micP;                    /* 范读+时长查询期间取麦早该就绪；至多再等超时余量 */
       if (gen !== this._followGen || !f.on || f.state !== "wait") return;
-      const heard = await this.followHeard(ms, gen, micReady, modelMs);   /* 音量校验：true读到/false超时/null无麦降级 */
+      const heard = await this.followHeard(ms, gen, micReady, modelMs);   /* 音量快检：true读到(提前收窗)/false超时/null无麦 */
       this.micLvl = 0;
       if (gen !== this._followGen || !f.on || f.state !== "wait") return;
       this.followDoneOne(heard);                      /* 三态透传(true读到/false超时/null无麦降级)：
@@ -548,7 +529,7 @@ const root = createApp({
          过程量（peak_rms/thr_used/…）随结果落 _fStats 供 logFollow 上报：下次报障直判"没读"还是"漏检" */
       if (!(micReady === true || await this.ensureMic())) return null;
       try {
-        if (this.follow.kind === "word") this._recStart();   /* 词步录音（范读已停，窗内无外放） */
+        /* 不录音（ASR 判定已删）：麦流只喂 AnalyserNode 做音量可视化与遥测 */
         const src = this._micCtx.createMediaStreamSource(this._micStream);
         /* 增益 ×3（2026-10-31 iPad 实测：Safari 链路童声仅 0.007-0.017，绝对地板 0.035 挡死）：
            拉回工作区；正常电平设备信号削顶仍远超阈值，base 同步放大、相对判据不变 */
@@ -631,46 +612,28 @@ const root = createApp({
         } finally { src.disconnect(); }
       } catch (e) { return null; }
     },
-    async followDoneOne(heard) {                       /* heard 三态：true读到/false超时/null无麦降级 */
+    async followDoneOne(heard) {
+      /* 槽窗结束（heard=音量快检三态）：窗必经、结束必放行——检测永不拦截推进。
+         ✓ 爆闪=结构完成的可视反馈（无论是否检测到）；音量命中加即时确认音。
+         不做正确性判定（2026-11-03 拍板）：无录音无 ASR，槽走完即完成 */
       const f = this.follow;
       if (!f.on || f.state !== "wait") return;
-      this._asrRes = null;
-      if (f.kind === "word") await this._recStop();    /* 组装录音 blob（幂等；等待期被跳步则中止） */
-      if (!f.on || f.state !== "wait") return;
-      /* 词步音量门：有麦没声→重播范读再来一轮（正确性门 v41 异步化——真机 follow_log
-         实锤 asr 全 degraded（1.6s 超时在公网链路上传+转码+转写根本不够），且 await 把
-         ✓ 反馈拖出 1.6s+。现改为：读到立即反馈推进，ASR 结果异步落遥测不卡节奏，
-         不再因识别不符重播（线上从未生效过此路径，行为无回归；遥测保留正确性数据） */
-      if (f.kind === "word" && heard === false && f.tries < 1) {
-        f.tries++;
-        return this.followPlay(f.idx, true);
-      }
-      /* 遥测快照：ASR settle 晚于下一项开始时，全局 _fStats/_asrRes/curItem 已被新项
-         改写——流水必须带当项闭包快照，否则张冠李戴/丢失（follow_fix 轮询实锤 3/4 条） */
       const snap = {
         char: f.kind === "read" ? (this.readLines[f.idx] || {}).char : this.curItem.char,
         stats: this._fStats || {}, model: this._fModel || {},
       };
-      const finishLog = asr => this.logFollow(heard, f.tries, { ...snap, asr });
-      if (f.kind === "word" && heard === true && this._recBlob) {
-        this.verifyWord().then(finishLog, () => finishLog(null));
-      } else {
-        finishLog(null);                                    /* R5：开口流水（fire-and-forget） */
-      }
+      this.logFollow(heard, 0, snap);                       /* R5：开口流水（fire-and-forget） */
       f.heardAny = f.heardAny || !!heard;
-      if (heard) {                                            /* 读到瞬间 ✓ 爆闪+推进音（反馈可感知） */
-        this.followPop = true;
-        clearTimeout(this._popT); this._popT = setTimeout(() => this.followPop = false, 650);
-        this.playSfx("ok");
-        return this.followAdvance();
-      }
-      this.followAdvance();    /* 认/句/朗读步没读到：直接过（鼓励式）；词步二次失败同路径放行 */
+      this.followPop = true;                                /* ✓ 爆闪：槽窗完成（拍板：无论检测与否） */
+      clearTimeout(this._popT); this._popT = setTimeout(() => this.followPop = false, 650);
+      if (heard) this.playSfx("ok");                        /* 音量快检命中：即时确认音 */
+      this.followAdvance();
     },
     followAdvance() {
       const f = this.follow;
       f.done.push(f.idx);
       if (f.idx + 1 >= this.followItems(f.kind).length) this.followFinish();
-      else { f.tries = 0; this.followPlay(f.idx + 1); }   /* 重试计数按项独立（词步门 tries 语义） */
+      else this.followPlay(f.idx + 1);
     },
     fbHint() {                                         /* 跟读条文案（鼓励式两态：范读/轮到你；无麦降级明示原因） */
       const f = this.follow;
@@ -693,7 +656,7 @@ const root = createApp({
       const char = (snap && snap.char) || (f.kind === "read" ? (this.readLines[f.idx] || {}).char : this.curItem.char);
       if (!char) return;
       const s = (snap && snap.stats) || this._fStats || {}, m = (snap && snap.model) || this._fModel || {};
-      const asr = (snap && snap.asr) || this._asrRes;
+      const asr = snap && snap.asr;               /* ASR 判定已删：恒 null，字段保留兼容旧流水 */
       api("POST", "/api/follow/log", {                        /* 过程量遥测：peak/thr/voiced/dur+范读结果+UA+客户端时刻 */
         char, kind: f.kind, heard, tries,
         peak_rms: s.peak_rms ?? null, noise_base: s.noise_base ?? null,
@@ -711,59 +674,56 @@ const root = createApp({
       const f = this.follow;
       f.state = "all";
       if (f.kind === "char") await this.playFile(this.curItem.char);   /* 确认读 */
-      /* 语音夸奖已删（2026-10-30 用户拍板：音量检测不配下"太棒了"的断言；
-         读到瞬间的 ✓ 爆闪 + ok 短音保留——轻反馈误报成本低于漏报） */
+      if (f.kind === "read") {                                          /* 层3：朗读卡会话录音收尾 */
+        await this._recStop();
+        if (this._recBlob) this.readAudioUrl = URL.createObjectURL(this._recBlob);
+      }
       f.on = false;                                                     /* 转自由点选模式 */
-      this._resolveFollow();
     },
-    _resolveFollow() {
-      if (this._followResolve) { const r = this._followResolve; this._followResolve = null; r(); }
+    playReadAudio() {                                  /* "听听自己读的"（本地 blob，点击手势内播放） */
+      if (!this.readAudioUrl) return;
+      const a = new Audio(this.readAudioUrl);
+      a.play().catch(() => {});
     },
-    followReplay() {                                   /* 留白中点当前对象=重听范读（代际作废旧检测）；
-                                                          noModel 轮也走范读分支——重听是用户主动要的 */
+    followReplay() {                                   /* 留白中点当前对象=重听范读（代际作废旧检测） */
       const f = this.follow;
       if (!f.on || f.state !== "wait") return;
       this.followPlay(f.idx, true);
     },
     skipFollow() {
       this._followGen = (this._followGen || 0) + 1;   /* 作废进行中的检测/播放链 */
-      this._recStop();                                /* 词步录音随链作废（不产判定） */
-      /* 跳过=跟读链音频（范读/确认读/夸奖）立即停。不能用 stopNarration：会置 _narrStop
-         卡掉后续链（认步故事）——跳过跟读≠跳过故事（2026-10-28 叠音检测器抓到确认读×故事） */
-      if (this._narrSrc) { try { this._narrSrc.stop(); } catch { } }
-      if (this._narrAudio) { try { this._narrAudio.pause(); } catch { } }
+      this._recStop();                                /* 槽录音随链作废（不产判定；read 会话录音亦止） */
+      if (this._narrSrc) { try { this._narrSrc.stop(); } catch { } }   /* 只停范读/确认读，不置 _narrStop */
       this.micLvl = 0; this.followPop = false;
-      this.follow = { on: false, kind: "", idx: 0, done: [], state: "off", tries: 0, heardAny: false };
-      this._resolveFollow();                       /* 家长跳过也放行后续链（如认步故事） */
+      this.follow = { on: false, kind: "", idx: 0, done: [], state: "off", heardAny: false };
     },
-    /* 跟读中：点当前对象重听（其余忽略）；自由模式：点对象听音。
-       连听/讲解期（stepBusy）忽略点击：playOne/playChar 会 stopNarration 作废 stepAudio 链，
-       startFollow 永不执行——"这个字没有跟读"的根源（2026-11-01 复现实锤 followOn=false） */
+    /* 跟读槽中：点当前对象重听（其余忽略）；自由模式：点对象听音。
+       环境范读期（narrLock）忽略点击：playOne/playChar 会 stopNarration 作废范读链，
+       槽会开不起来——"这个字没有跟读"的根源（2026-11-01 复现实锤，v37 守卫沿用换载体） */
     followWordClick(i) {
-      if (this.stepBusy) return;
-      if (this.follow.on) { if (i === this.follow.idx) this.followReplay(); return; }
+      if (this.narrLock) return;
       this.playOne(`n_${this.curItem.char}_${i + 1}`);
     },
     followSentClick(i) {
-      if (this.stepBusy) return;
+      if (this.narrLock) return;
       if (this.follow.on) { if (i === this.follow.idx) this.followReplay(); return; }
       this.playOne(`s_${this.curItem.char}_${i + 1}`);
     },
     followReadClick(i) {
-      if (this.stepBusy) return;
+      if (this.narrLock) return;
       if (this.follow.on) { if (i === this.follow.idx) this.followReplay(); return; }
       if (this.readLines[i]) this.playOne(`s_${this.readLines[i].char}_1`);
     },
-    ziClick() {                                    /* 认步大字（同上：讲解期防误触） */
-      if (this.stepBusy) return;
+    ziClick() {                                    /* 认步大字（范读期防误触，同上） */
+      if (this.narrLock) return;
       this.follow.on && this.follow.kind === "char" ? this.followReplay() : this.playChar(this.curItem.char);
     },
     charListen(altTone3) {                         /* 🔊 按钮/多音字（同上） */
-      if (this.stepBusy) return;
+      if (this.narrLock) return;
       this.playChar(this.curItem.char, altTone3);
     },
     etymListen() {                                 /* 字源故事 🔊（同上） */
-      if (this.stepBusy) return;
+      if (this.narrLock) return;
       this.playOne('e_' + this.curItem.char);
     },
     audioDur(name) {
@@ -827,6 +787,7 @@ const root = createApp({
       this._quizCache = {};                       /* 预取缓存随会话作废（防陈旧题跨会话命中） */
       this._contentCache = {};                    /* 内容预取缓存同作废 */
       this.stopNarration(); this.skipFollow(); this.closeMic();
+      if (this.readAudioUrl) { URL.revokeObjectURL(this.readAudioUrl); this.readAudioUrl = ""; }
       this.homeTip = false; this.sessQueue = []; this.sessIdx = 0; this.loadToday();
     },
 
@@ -864,15 +825,13 @@ const root = createApp({
       i >= 0 ? this.confirmPicked.splice(i, 1) : this.confirmPicked.push(id);
     },
     async confirmSubmit() {
-      /* 「跳过剩余/选完了」在任何页都直接提交：剩余批次视为不认识 */
-      if (this.confirmPicked.length) await api("POST", "/api/confirm/submit", { known_ids: this.confirmPicked });
-      this.verifyTotal = this.confirmPicked.length; this.verifyDone = 0;
-      this.phase = "ob-verify"; this.nextVerify();
-    },
-    async nextVerify() {
-      const r = await api("GET", "/api/confirm/verify/first").catch(() => null);   /* 弱网：验证轮可弃（防卡"生成中…"） */
+      /* 「跳过剩余/选完了」在任何页都直接提交：剩余批次视为生词。验证轮已砍
+         （2026-11-03 拍板，wordslearn v4.1.2 同款决策）：已选直接 skipped；
+         池内确认生词不足目标 → more_batch 回摸底表格页（轮次补摸） */
+      const r = await api("POST", "/api/confirm/submit",
+        { known_ids: this.confirmPicked }).catch(() => null);
       if (r && r.more_batch && r.more_batch.length) return this.showMoreConfirm(r.more_batch);
-      this.showVerifyQ(r ? r.next_verify : null);
+      await this.finishOnboard();
     },
     showMoreConfirm(batch) {
       /* 轮次补摸：池内确认生词不足目标 → 再摸一批（后端水位顺延，摸过的字不重复） */
@@ -880,35 +839,7 @@ const root = createApp({
       this.confirmBatches = [batch]; this.confirmPage = 0; this.confirmPicked = [];
       this.phase = "ob-confirm";
     },
-    showVerifyQ(q) {
-      /* 验证题到达：指令每轮验证只播首题（2026-10-31 用户反馈：每题都播 3.5s 指令太啰嗦，
-         对齐主流程玩法指令首题化）；后续题 400ms 后直接播字音（孩子答题后不再补播）
-         局部引用必须从 this 读回（Vue3 代理）：裸 q 与 this.verifyQ 恒 !==，守卫会永久失效（startQuiz 同款） */
-      this.verifyQ = q; this.verifyRevealed = false; this.verifyPick = null;
-      if (!q) return this.finishVerifyStage();
-      const qz = this.verifyQ;
-      const firstTime = this.verifyDone === 0;        /* confirmSubmit 每轮重置 verifyDone */
-      if (firstTime) this.playTts("verify");
-      (async () => {
-        const ms = firstTime ? (await this.audioDur("t_verify") || 2) * 1000 + 300 : 400;
-        setTimeout(() => { if (this.verifyQ === qz && !this.verifyRevealed) this.playChar(qz.hanzi); }, ms);
-      })();
-    },
-    async verifyAnswer(o) {
-      if (this.verifyRevealed) return;
-      this.verifyPick = o; this.verifyRevealed = true;
-      const correct = o === this.verifyQ.answer;
-      this.playSfx(correct ? "ok" : "no");                 /* 对错音效：验证轮与主流程一致 */
-      setTimeout(async () => {
-        const r = await api("POST", "/api/confirm/verify",
-          { hanzi_id: this.verifyQ.hanzi_id || this.verifyQ.id, correct }).catch(() => null);
-        this.verifyDone++;
-        if (r && r.next_verify) this.showVerifyQ(r.next_verify);
-        else if (r && r.more_batch && r.more_batch.length) this.showMoreConfirm(r.more_batch);
-        else this.finishVerifyStage();
-      }, correct ? 700 : 1300);
-    },
-    async finishVerifyStage() {
+    async finishOnboard() {
       const me = await api("GET", "/api/me"); this.progress = me.progress;
       this.obTarget = Math.max(10, Math.min(this.obTarget, me.progress.total_hanzi - me.progress.skipped));
       await this.loadToday();
@@ -1000,7 +931,11 @@ const root = createApp({
       if (!q.length) return this.finishSession();   /* 已答完未结算（最后一题答完即退出） */
       this.enterItem();
     },
-    weeklyKey() { return "weekly_" + (this.today.date || new Date().toISOString().slice(0, 10)); },
+    weeklyKey() {
+      /* 周测进度键=周号（2026-11-03 拍板跨日续做）：未结算不过期——一天内分几次做、
+         或当天没做完次日续做，进度都保留；结算（finishSession）才清键 */
+      return "weekly_w" + (this.today.week_no || 0);
+    },
     weeklyProg() { try { return JSON.parse(localStorage.getItem(this.weeklyKey())) || null; } catch { return null; } },
     weeklyLeft() { const p = this.weeklyProg(); return p && this.today.scope ? this.today.scope.length - p.done.length : null; },
     weeklySave() {
@@ -1011,6 +946,7 @@ const root = createApp({
     /* ---------- 会话推进 ---------- */
     enterItem() {
       const it = this.curItem;
+      if (this.readAudioUrl) { URL.revokeObjectURL(this.readAudioUrl); this.readAudioUrl = ""; }
       this.curQuiz = null; this.quizRevealed = false; this.quizCorrect = false; this.curContent = null;
       this.tracing = false; this.traceDone = false; this.traceFallback = false; this.traceWatched = false;
       this.traceMsg = "✏️ 点米字格，跟着橙色笔顺写一写";
@@ -1031,11 +967,10 @@ const root = createApp({
         const item = it;
         this.loadReadLines().then(async () => {
           if (this.curItem !== item) return;
-          this._narrStop = false;
-          this.stepBusy = true;                     /* 指令播放期点行不作废跟读启动（同四步卡连听守卫） */
+          this._beginNarr(9000);                     /* 指令播放期点行不作废跟读启动（定时器锁） */
           await this.playFile("t_readcard");
-          this.stepBusy = false;
-          if (!this._narrStop) await this.startFollow("read");   /* 逐句跟读 */
+          this._endNarr();
+          if (this.curItem === item) this.startReadSession();   /* 会话录音 + 逐句跟读槽 */
         });
       } else if (it.type.endsWith("quiz")) {
         this.startQuiz(it);
@@ -1065,7 +1000,10 @@ const root = createApp({
     mountTracer(char) {
       this._stopHw();
       this.traceDone = false; this.traceFallback = false;   /* 写步门槛（v32）：写对才放行，重挂即重置 */
-      this.traceWatched = false;                             /* v36：先看完一遍笔顺才可开写，重挂即重置 */
+      /* 首见强制看笔顺一遍，复见直写（2026-11-03 拍板）：stroke_seen 服务端持久化，
+         中途退出重进/跨会话都不会再强制重看 */
+      const seen = !!(this.curItem && this.curItem.stroke_seen);
+      this.traceWatched = seen;
       const el = document.getElementById("hw-" + this.curItem.id);
       if (!el || !window.HanziWriter) { this.traceFallback = true; return; }
       try {
@@ -1079,20 +1017,32 @@ const root = createApp({
               .catch(() => { this.traceFallback = true; done(null); }),   /* 笔画数据缺失：门槛降级放行 */
         });
         this._hw = w;
-        /* 完整笔顺演示一遍（v36 用户拍板：强制看完才开写）；完毕转循环演示供开写后对照，
-           quiz 启动会自动接管渲染。换卡/跳步后旧实例的回调以 _hw 引用守卫拦下 */
-        this.traceMsg = "👀 先看一遍笔顺演示…";
-        w.animateCharacter({ onComplete: () => {
-          if (this._hw !== w) return;
-          this.traceWatched = true;
-          this.traceMsg = "✏️ 看完啦，点米字格跟着写一写";
-          w.loopCharacterAnimation();
-        } });
+        if (seen) {
+          this.traceMsg = "✏️ 点米字格跟着写一写";
+          w.loopCharacterAnimation();              /* 复见：循环演示供对照，不强制 */
+        } else {
+          /* 完整笔顺演示一遍（v36 拍板沿用）；完毕置服务端标记+转循环演示。
+             换卡/跳步后旧实例的回调以 _hw 引用守卫拦下 */
+          this.traceMsg = "👀 先看一遍笔顺演示…";
+          w.animateCharacter({ onComplete: () => {
+            if (this._hw !== w) return;
+            this.traceWatched = true;
+            this.traceMsg = "✏️ 看完啦，点米字格跟着写一写";
+            api("POST", `/api/hanzi/${this.curItem.id}/stroke_seen`).catch(() => {});
+            w.loopCharacterAnimation();
+          } });
+        }
         el.onclick = () => {
           if (!this.traceWatched) { this.holdTip("先看完一遍笔顺演示哦 👀"); return; }
           this.startTrace(el, w, char);
         };
       } catch (e) { this.traceFallback = true; }   /* 描红失败不阻塞学习流：门槛降级放行 */
+    },
+    replayStrokes() {                              /* 复见场景想再看：可点重播（不强制） */
+      const w = this._hw;
+      if (!w || this.tracing) return;
+      this.traceWatched = true;
+      w.animateCharacter({ onComplete: () => { if (this._hw === w) w.loopCharacterAnimation(); } });
     },
     startTrace(el, w, char) {
       if (this.tracing) return;
@@ -1131,7 +1081,7 @@ const root = createApp({
       return out;
     },
     readPlayAll() {
-      if (this.stepBusy) return;                       /* 指令播放期点连读会作废跟读启动（同点行守卫） */
+      if (this.narrLock) return;                       /* 指令播放期点连读会作废跟读启动（同点行守卫） */
       if (this.readPlaying) { this.stopNarration(); this.readPlaying = false; this.readCur = ""; return; }
       this.readPlaying = true;
       this._narrStop = false;

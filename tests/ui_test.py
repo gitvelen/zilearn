@@ -87,9 +87,14 @@ def follow_wait(page, state, timeout=60000):
     page.wait_for_function(f"window.ziapp.follow.on==={'true' if state else 'false'}", timeout=timeout)
 
 
-def follow_skip(page):
-    """v24 鼓励式跟读：不锁流程，跟读中直接点"下一步"即可越过（无需长按跳过）"""
-    page.click(".learn-card > button.btn.big")
+def parent_skip_step(page, idx):
+    """家长长按步指示器跳步（跟读槽是强制窗：孩子点"下一步"不再越步，2026-11-03 拍板；
+    越步唯一出口=长按步指示器 ncGo，真实事件路径）"""
+    dot = page.locator(".nc-dot").nth(idx)
+    dot.dispatch_event("pointerdown")
+    page.wait_for_timeout(900)
+    dot.dispatch_event("pointerup")
+    page.wait_for_timeout(400)
 
 
 def answer_quiz(page):
@@ -130,9 +135,10 @@ def answer_quiz(page):
 
 
 def reset_test_user():
-    """幂等：每轮走查前清 test 用户状态（同 e2e reset_user 模式）"""
+    """幂等：每轮走查前清 test 用户状态（同 e2e reset_user 模式）。
+    DB 路径相对测试文件解析——仓库与隔离副本（/tmp 实例）两用，勿写绝对路径"""
     import sqlite3
-    conn = sqlite3.connect("/root/zilearn/app/data/zilearn.db")
+    conn = sqlite3.connect(str(Path(__file__).parent.parent / "app" / "data" / "zilearn.db"))
     uid = conn.execute("SELECT id FROM users WHERE username='test'").fetchone()[0]
     conn.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL,
                     plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0,
@@ -197,26 +203,11 @@ def run(page):
     check("摸底分批表格", page.locator(".char-chip").count() >= 50)
     shot(page, "02-confirm")
 
-    # ---- 摸底：选前 2 个字（天地） ----
+    # ---- 摸底：选前 2 个字（天地）；验证轮已砍——提交直达今日 ----
     page.locator(".char-chip").nth(0).click()
     page.locator(".char-chip").nth(1).click()
-    page.wait_for_function("window.ziapp.confirmPicked.length===2", timeout=5000)   # 点击落空防进验证轮
-    page.click("button.btn.big")                 # 选完了去验证
-    page.wait_for_selector(".quiz-box", timeout=10000)
-
-    # ---- 验证 2 题（答案从 app 状态取；等指令音后自动播字音再作答，防 Q2 指令叠 Q1 字音尾） ----
-    for k in range(2):
-        ans = page.evaluate("() => window.ziapp.verifyQ && window.ziapp.verifyQ.answer")
-        check(f"验证题 {k + 1} 生成", bool(ans))
-        ch = page.evaluate("() => window.ziapp.verifyQ.hanzi")
-        page.wait_for_function(f"window.__audioEvents.some(e => e.name === {ch!r})", timeout=8000)
-        page.wait_for_timeout(500)
-        btns = page.locator(".opts .char-opt")
-        for i in range(btns.count()):
-            if btns.nth(i).inner_text().strip() == ans:
-                btns.nth(i).click()
-                break
-        page.wait_for_timeout(1600)              # 700ms 提交 + 换题
+    page.wait_for_function("window.ziapp.confirmPicked.length===2", timeout=5000)   # 点击落空防直接提交
+    page.click("button.btn.big")                 # 选完了，开始学
     page.wait_for_selector(".day-card", timeout=10000)
 
     # ---- 今日开始页 ----
@@ -234,19 +225,18 @@ def run(page):
     check("多音字区隐藏/正常", page.locator(".learn-card .zi-big").inner_text().strip()[0] in ("天", "地", "人"))
     shot(page, "04-nc1-recite")
 
-    # ---- 跟读（认步·v45 跟读门全步）：字音→故事→范读(叮)→留白听读→✓；有麦锁按钮 ----
+    # ---- 跟读槽（认步·三层槽）：字音→故事→范读(叮)→留白窗→✓；槽窗=强制（按钮锁） ----
     follow_wait(page, True, timeout=20000)       # v32：跟读前多一段字源故事（~5s）
     page.wait_for_function("window.ziapp.follow.state==='wait'", timeout=20000)
-    check("跟读中(认·大字高亮+聆听指示器+按钮锁)", page.locator(".zi-big.follow-cur").count() == 1
+    check("跟读槽中(认·大字高亮+聆听指示器+按钮锁)", page.locator(".zi-big.follow-cur").count() == 1
           and page.locator(".listen-orb.wait").count() == 1
-          and (page.evaluate("() => window.ziapp.micDenied")
-               or page.locator(".learn-card > button.btn.big").is_disabled()))
+          and page.locator(".learn-card > button.btn.big").is_disabled())
     shot(page, "04b-follow-wait")
-    follow_wait(page, False, timeout=20000)      # 留白+确认读+夸奖
-    check("跟读完成后按钮仍可点(认)", not page.locator(".learn-card > button.btn.big").is_disabled())
+    follow_wait(page, False, timeout=20000)      # 留白+确认读
+    check("跟读槽完成后按钮仍可点(认)", not page.locator(".learn-card > button.btn.big").is_disabled())
     shot(page, "04c-follow-done")
     import sqlite3 as _s
-    _c = _s.connect("/root/zilearn/app/data/zilearn.db")
+    _c = _s.connect(str(Path(__file__).parent.parent / "app" / "data" / "zilearn.db"))
     _n = _c.execute("SELECT COUNT(*) FROM follow_log WHERE user_id="
                     "(SELECT id FROM users WHERE username='test')").fetchone()[0]
     _c.close()
@@ -254,32 +244,31 @@ def run(page):
     ch1 = page.evaluate("() => window.ziapp.curItem.char")
     seq = page.evaluate("() => window.__audioEvents.map(e => e.name)")
     seqf = [n for n in seq if not n.startswith("sfx_")]
-    check("验证轮音频链(指令首题化:指令→字音→字音)", seqf[:3] == ["t_verify", "天", "地"], seqf[:6])
     expect = [ch1, "e_" + ch1, ch1, ch1]            # 字音→故事→范读→(叮)确认读（v32：讲解挪到跟读前；sfx 已滤）
-    i0 = seqf.index(ch1)                              # 认步字音起点（跳过摸底验证轮音频）
+    i0 = seqf.index(ch1)                              # 认步字音起点
     check("认步音频链(字音→故事→范读→确认)", seqf[i0:i0 + 4] == expect, seqf[i0:i0 + 5])
 
-    # v32 词步：整体连听后直接逐词跟读（无逐词范读）——stub 放慢到 700ms 留观察窗
-    page.evaluate("() => { window.ziapp.followHeard = (ms, gen) => "
-                  "new Promise(r => setTimeout(() => r(true), 700)); }")
+    # 词步（2026-11-03 拍板"词步回自由"）：连听（narrLock 定时器锁）→ 自由点选，无跟读槽
     i_w = page.evaluate("() => window.__audioEvents.length")   # 词步音频窗起点（须在 click 前：
-    page.click(".learn-card > button.btn.big")   # w_ 事件在点击派发内同步入列）→ 词（连听→逐词直接跟读）
-    page.wait_for_function("window.ziapp.follow.on===true && window.ziapp.follow.idx===0 "
-                           "&& window.ziapp.follow.state==='wait'", timeout=20000, polling=50)
+    page.click(".learn-card > button.btn.big")   # w_ 事件在点击派发内同步入列）→ 词（连听）
+    page.wait_for_function("window.ziapp.ncStep===2 && window.ziapp.narrLock===true",
+                           timeout=5000, polling=50)
+    check("词步连听期按钮锁(定时器)", page.locator(".learn-card > button.btn.big").is_disabled())
     check("步2(词)词卡≥2", page.locator(".word-chip.big").count() >= 2)
     check("词内目标字高亮", page.locator(".word-chip.big b").count() >= 2)
-    check("词跟读当前词高亮其余变暗", page.locator(".word-chip.big.cur").count() == 1
-          and page.locator(".word-chip.big.dim").count() >= 1)
-    check("词跟读无范读态(连听后直进wait)", page.evaluate("() => window.ziapp.follow.noModel") is True)
     shot(page, "05-nc2-words")
-    follow_wait(page, False, timeout=60000)      # 逐词全部完成
+    page.wait_for_function("window.ziapp.ncStep===2 && window.ziapp.narrLock===false",
+                           timeout=12000, polling=100)
+    check("连听毕按钮解禁(定时器解锁)", not page.locator(".learn-card > button.btn.big").is_disabled())
+    page.locator(".word-chip.big").first.click()     # 自由点选听词
+    page.wait_for_function(
+        "window.__audioEvents.slice(" + str(i_w) + ").some(e => e.name && e.name.startsWith('n_'))",
+        timeout=5000)
     wseq = [n for n in page.evaluate("() => window.__audioEvents.map(e => e.name)")[i_w:]
             if not n.startswith("sfx_")]
-    check("词步音频=整体连听一遍(v32 不再逐词范读)", ("w_" + ch1) in wseq
-          and not any(n.startswith("n_") for n in wseq), wseq)
-    page.evaluate("() => { window.ziapp.followHeard = (ms, gen) => "   # 恢复快速 stub
-                  "new Promise(r => setTimeout(() => r(true), 300)); }")
-    page.click(".learn-card > button.btn.big")   # → 句（逐句跟读）
+    check("词步音频=连听一遍+自由点选(无逐词槽)", ("w_" + ch1) in wseq
+          and any(n.startswith("n_") for n in wseq), wseq)
+    page.click(".learn-card > button.btn.big")   # → 句（逐句跟读槽）
 
     follow_wait(page, True, timeout=10000)
     check("步3(句)例句≥2", page.locator(".sentence.pick").count() >= 2)
@@ -315,17 +304,23 @@ def run(page):
     check("写步解锁文案(还有下一字→'下一个')", "下一个" in page.locator(".learn-card > button.btn.big").inner_text(),
           page.locator(".learn-card > button.btn.big").inner_text())
 
-    # ---- 新字2：跟读中直接点"下一步"越步（v24 鼓励式，无需长按）→ while 循环内跳步直达写 ----
-    page.click(".learn-card > button.btn.big")   # 新字1 步4 完成 → 新字2
-    follow_wait(page, True, timeout=20000)       # v32：跟读前有字源故事
-    follow_skip(page)                            # 跟读 wait 态直接点走
-    check("跟读中点下一步即越步(新字2认→词)", app(page)["nc"] == 2)
+    # ---- 新字2：跟读槽为强制窗——孩子点"下一步"不再越步（拍板：读的时机不可跳过）；
+    # 越步唯一出口=家长长按步指示器 ncGo → while 循环内跳步直达写 ----
+    page.click(".learn-card > button.btn.big")   # 新字1 步4 完成 → 新字2 认步
+    page.wait_for_function("window.ziapp.ncStep===1 && window.ziapp.narrLock===true", timeout=8000)
+    check("新字2范读期按钮锁", page.locator(".learn-card > button.btn.big").is_disabled())
+    parent_skip_step(page, 1)                    # 长按"词"步指示器 → 认→词（家长快进真实路径）
+    check("家长长按步指示器越步(新字2认→词)", app(page)["nc"] == 2)
     follow_wait(page, False, timeout=5000)       # 点走后跟读链终止
     quiz_seq, gates_seen = [], 0
     while gates_seen < 5:
         st = app(page)
         if st["type"] == "newcard":
-            # 新字2：长按跳步直达"写"（家长快进；nc-dot 长按化防孩子误触）
+            # 新字2：预标 stroke_seen（复见场景）+ 长按跳步直达"写"（家长快进）
+            page.evaluate("""async () => {   /* 模拟此前已看过一遍笔顺（重进/跨会话场景） */
+              await fetch('/api/hanzi/' + ziapp.curItem.id + '/stroke_seen', {method: 'POST'});
+              ziapp.curItem.stroke_seen = 1;
+            }""")
             dot = page.locator(".nc-dot").nth(3)
             dot.dispatch_event("pointerdown")
             page.wait_for_timeout(900)
@@ -333,6 +328,9 @@ def run(page):
             page.wait_for_timeout(1200)
             check("跳步直达写(描红挂载)", page.locator(".hanzi-wrap svg").count() >= 1
                   and app(page)["nc"] == 4)
+            check("复见免看笔顺(直写态·无强制演示)", page.evaluate("() => window.ziapp.traceWatched") is True
+                  and "先看一遍" not in page.locator(".trace-tip").inner_text(),
+                  page.locator(".trace-tip").inner_text())
             check("末字写步按钮锁(v32)", page.locator(".learn-card > button.btn.big").is_disabled())
             shot(page, "09-nc-skip-trace")
             skip = page.locator(".learn-card .skip-link")   # 家长长按跳过（真实路径）
@@ -379,6 +377,11 @@ def run(page):
     shot(page, "11-readcard")
     follow_wait(page, False, timeout=90000)     # 逐句全部完成
     check("朗读完成转自由模式(连读出现)", "连读" in page.locator(".btn.ghost").first.inner_text())
+    check("朗读卡生成回放URL(层3会话录音)", page.evaluate("() => !!window.ziapp.readAudioUrl"))
+    replay = page.locator(".btn.ghost", has_text="听听自己读的")
+    check("回放入口可见(听听自己读的)", replay.count() == 1)
+    replay.click()                               # 播放自己的录音（本地 blob）
+    page.wait_for_timeout(400)
     page.locator(".btn.big").last.click()
 
     # ---- 完成页 → 家长页 ----
@@ -398,7 +401,7 @@ def run_weekly(page):
     """插 6 个历史活动日流水（调度为学习日驱动）→ 今天为第 7 个学习日=周测日；走周测+错题半卡"""
     import sqlite3
     from datetime import date, timedelta
-    db = sqlite3.connect("/root/zilearn/app/data/zilearn.db")
+    db = sqlite3.connect(str(Path(__file__).parent.parent / "app" / "data" / "zilearn.db"))
     uid = db.execute("SELECT id FROM users WHERE username='test'").fetchone()[0]
     # 用当日已学字插过去 6 个活动日的流水（correct=1 不进周测错题 scope，已学字不进新字池）
     hid = db.execute("""SELECT q.hanzi_id FROM quiz_log q

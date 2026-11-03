@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
-"""2026-10-28 跟读卡死修复回归（四场景，直测 followHeard 真实现，不 stub）
-[2026-10-31 起过时：T1 断言 v24 前的两轮重试逻辑（鼓励式已删重试），勿作跟读验证依据；灵敏度验证用注入式探针（progress 记忆 v33）
+"""跟读节奏槽回归（2026-11-03 两轮拍板重写；直测 followHeard 真实现，不 stub）
 
-T1 静音流=线上故障复现（4 词×2 轮全超时）：超时→"没听到你读哦"重试文案→放行；
-   单轮兜底 1.5s（wait→retry 间隔应 ~5.5s 而非旧 7.5s）——认步 char 跟读
-T0 间歇声源(300ms 声/700ms 静≈说话节律)：读到→✓爆闪→流水 heard=1——词步 word 跟读
-   （注：--use-file-for-fake-audio-cycles 的持续声会被动态阈值当本底，测不了这条路径）
-T2 getUserMedia 永久挂起（权限弹窗未决=原硬卡死路径）：3s 超时→micDenied 降级，
-   30s 失败记忆使后续项立即降级，全程推进不卡死，流水 heard=NULL——句步 sent 跟读
-T3 /app.js?v=19 加载 200 + 全程无 JS pageerror
+槽语义（音频时钟化）：范读→"叮"→留白窗（定时器上限）——窗必经、结束必放行；
+音量检测只做可视化/提前收窗/遥测，永不 gate；**不做正确性判定**（ASR 已删：
+无录音上传，槽走完即完成；朗读卡会话录音回放保留）。
+  T1 静音流（认步 char 槽）：超时 ~6.5s → ✓ 爆闪（无论检测）→ 推进；heard=0；零 ASR 请求
+  T0 间歇声源（句步 sent 槽）：读到 → 提前收窗 + 确认音；heard=1
+  T2 挂起的 getUserMedia（原硬卡死路径）：heard=NULL 降级，槽窗照常走完推进
+  T3 /app.js?v=48 加载 200 + 全程无 JS pageerror
 
 用法: python3 tests/follow_fix_test.py [base_url]   # 需本地服务已起
 """
-import json
 import sqlite3
 import sys
 import time
@@ -22,7 +20,7 @@ from playwright.sync_api import sync_playwright
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8100"
 DB = Path(__file__).parent.parent / "app" / "data" / "zilearn.db"
-SHOTS = Path(__file__).parent / "shots"
+SHOTS = Path(__file__).parent.parent / "tests" / "shots"
 SHOTS.mkdir(exist_ok=True)
 PASS_N = FAIL_N = 0
 
@@ -44,13 +42,28 @@ def db_exec(sql, args=()):
     conn.close()
 
 
-def follow_rows():
+def follow_rows(kind=None):
     conn = sqlite3.connect(DB)
-    rows = conn.execute(
-        "SELECT char,kind,heard,tries FROM follow_log WHERE user_id="
-        "(SELECT id FROM users WHERE username='test') ORDER BY rowid").fetchall()
+    q = ("SELECT char,kind,heard,asr_pass FROM follow_log WHERE user_id="
+         "(SELECT id FROM users WHERE username='test')")
+    if kind:
+        q += f" AND kind='{kind}'"
+    rows = conn.execute(q + " ORDER BY rowid").fetchall()
     conn.close()
     return rows
+
+
+def reset_test_user():
+    conn = sqlite3.connect(DB)
+    uid = conn.execute("SELECT id FROM users WHERE username='test'").fetchone()[0]
+    conn.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL,
+                    plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0,
+                    day_offset=0 WHERE id=?""", (uid,))
+    for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports",
+              "follow_log", "daily_mail"):
+        conn.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
+    conn.commit()
+    conn.close()
 
 
 # WebAudio 构造 MediaStream 预设到 app（followHeard 真跑）：
@@ -78,88 +91,87 @@ def inject_stream(voice):
 
 
 def run(page):
-    db_exec("DELETE FROM follow_log WHERE user_id=(SELECT id FROM users WHERE username='test')")
-
-    # ---- 登录（test 已 onboard，直达今日页）----
+    reset_test_user()
+    verify_reqs = []
+    page.on("request", lambda r: verify_reqs.append(r.url) if "/api/follow/verify" in r.url else None)
+    # ---- 登录 → 引导（验证轮已砍）→ 首张新字卡认步 ----
     page.goto(BASE, wait_until="networkidle")
     page.fill("input[autocomplete=username]", "test")
     page.fill("input[type=password]", "test123")
     page.click("button.btn.big")
-    page.wait_for_selector(".day-card", timeout=10000)
-    page.click("button.btn.pulse", force=True)
+    page.wait_for_selector(".wizard", timeout=10000)
+    page.click(".grade:first-child")
+    page.click("button.btn.big")
+    page.wait_for_timeout(400)
+    page.fill("input[type=number]", "52")
+    page.locator(".chip", has_text="30 天").click()
+    page.click("button.btn.big")
+    page.wait_for_selector(".char-grid", timeout=10000)
+    page.click("button.btn.big")
+    page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=10000)
+    page.evaluate("() => document.querySelector('button.btn.pulse').click()")
     page.wait_for_function(
         "window.ziapp && window.ziapp.curItem && window.ziapp.curItem.type==='newcard'"
         " && window.ziapp.ncStep===1", timeout=15000, polling=100)
 
-    # ---- T1 静音流（认步 char）：线上故障复现 ----
+    # ---- T1 静音流（认步 char 槽）：线上故障复现（超时=结构完成，✓ 后放行） ----
     ch = page.evaluate(inject_stream(voice=False))
     print(f"  [T1] 新字: {ch}")
     page.wait_for_function("window.ziapp.follow.state==='wait'", timeout=15000, polling=100)
     check("T1 wait 态提示轮到你", "轮到你啦" in page.locator(".fb-hint").inner_text())
-    # v24 删 char 重试/v38 词步门后：char 超时=直接放行（不再有重试轮）——T1 断言放行语义
     t_wait = time.time()
     page.wait_for_function("window.ziapp.follow.on===false", timeout=20000, polling=100)
     gap1 = time.time() - t_wait
-    check("T1 超时~6.5s 后直接放行", 5.5 <= gap1 <= 10, f"{gap1:.1f}s")  # v45 EXCL 800→1500（叮直耦串扰）：超时=留白+EXCL+兜底 6.5s
-    check("T1 按钮解禁", not page.locator(".learn-card > button.btn.big").is_disabled())
-    rows = follow_rows()
-    check("T1 流水 heard=0/tries=0", rows == [(ch, "char", 0, 0)], rows)
-    import sqlite3 as _s
-    _c = _s.connect(DB); _t = _c.execute("SELECT peak_rms,thr_used,dur_ms,ua FROM follow_log WHERE kind='char' AND char=? ORDER BY rowid DESC LIMIT 1", (ch,)).fetchone(); _c.close()
-    check("T1 遥测落库(peak≈0/dur>4s)", _t and _t[0] is not None and _t[0] <= 0.05 and _t[2] > 4000, _t)
+    check("T1 超时窗后放行(5.5-10s)", 5.5 <= gap1 <= 10, f"{gap1:.1f}s")
+    check("T1 槽后按钮解禁", not page.locator(".learn-card > button.btn.big").is_disabled())
+    page.wait_for_timeout(800)                       # 流水 fire-and-forget settle
+    rows = [r for r in follow_rows() if r[1] == "char"]
+    check("T1 char 槽流水 heard=0", rows and rows[-1][2] == 0, rows)
+    check("T1 零 ASR 请求（正确性判定已删）", not verify_reqs, verify_reqs[:2])
 
-    # ---- T0 间歇声源（词步 word）：读到路径 ----
+    # ---- 词步回自由：连听(narrLock)后无槽，直接可推进 ----
     page.click(".learn-card > button.btn.big")
-    page.wait_for_function("window.ziapp.ncStep===2", timeout=8000, polling=100)
-    page.evaluate(inject_stream(voice=True))       # 覆盖静音流
-    t_word = time.time()
-    page.wait_for_function("window.ziapp.followPop===true", timeout=25000, polling=50)
-    check("T0 读到→✓爆闪", True, f"{time.time()-t_word:.1f}s")
-    page.wait_for_function("window.ziapp.follow.on===false", timeout=40000, polling=100)
-    total = time.time() - t_word
-    check("T0 词跟读全部读到推进", total < 40, f"{total:.1f}s")
-    for _ in range(60):                  # v41：ASR 异步判定 settle 后才 logFollow，轮询等齐
-                                         # （间歇流 350ms 切换与 voiced 80ms 博弈，末词二轮可拖 10s+）
-        w = [r for r in follow_rows() if r[1] == "word"]
-        if len(w) >= 4: break
-        page.wait_for_timeout(200)
-    n_want = len(json.loads(_s.connect(DB).execute(
-        "SELECT c.words FROM zi_content c JOIN hanzi h ON h.id=c.hanzi_id WHERE h.char=?", (ch,)
-    ).fetchone()[0]))
-    check(f"T0 流水 word×{n_want} heard=1/tries=0", len(w) == n_want and all(r[2] == 1 and r[3] == 0 for r in w), w)
-    st = page.evaluate("() => window.ziapp._fStats")
-    check("T0 遥测 peak_rms>0.1(读到)", st and st["peak_rms"] > 0.1, st)
-    import sqlite3 as _s2
-    _c2 = _s2.connect(DB); _t2 = _c2.execute("SELECT played, model_ms FROM follow_log WHERE kind='word' AND heard=1 ORDER BY id DESC LIMIT 1").fetchone(); _c2.close()
-    check("T0 无范读轮 played=None（noModel 语义）", _t2 is not None and _t2[0] is None, _t2)
-    page.screenshot(path=str(SHOTS / "fix-t0-word-done.png"), full_page=True)
+    page.wait_for_function("window.ziapp.ncStep===2 && window.ziapp.narrLock===false",
+                           timeout=12000, polling=100)
+    check("T1b 词步无跟读槽(连听后自由)", not page.evaluate("() => window.ziapp.follow.on"))
 
-    # ---- T2 挂起的 getUserMedia（句步 sent）：原硬卡死路径 ----
-    page.evaluate("""() => {   // 废掉声源流→ensureMic 必须走 getUserMedia(已 wrap 成永久挂起)
+    # ---- T0 间歇声源（句步 sent 槽）：读到路径 ----
+    page.evaluate(inject_stream(voice=True))         # 覆盖静音流
+    page.click(".learn-card > button.btn.big")       # → 句
+    t_sent = time.time()
+    page.wait_for_function("window.ziapp.followPop===true", timeout=25000, polling=50)
+    check("T0 读到→✓爆闪", True, f"{time.time()-t_sent:.1f}s")
+    page.wait_for_function("window.ziapp.follow.on===false", timeout=60000, polling=100)
+    check("T0 句槽读到后推进", True, f"{time.time()-t_sent:.1f}s")
+    page.wait_for_timeout(800)
+    s_rows = [r for r in follow_rows("sent")]
+    check("T0 句槽流水 heard=1", s_rows and all(r[2] == 1 for r in s_rows[:1]), s_rows)
+
+    # ---- T2 挂起的 getUserMedia（原硬卡死路径的槽语义复验） ----
+    # 已在句步自由态（follow.on=false）：ncGo(1) 重进认步复现取麦挂起
+    page.evaluate("""() => {
       const app = window.ziapp;
       if (app._micStream) app._micStream.getTracks().forEach(t => t.stop());
       app._micStream = null; app._micCtx = null; app._micFailUntil = 0; app.micDenied = false;
-      app._micEnsuring = null;   // 清 T0 残留的 in-flight（resolve(true) 旧 promise 会被复用，污染挂起场景）
+      app._micEnsuring = null;
+      navigator.mediaDevices.getUserMedia = () => new Promise(() => {});
     }""")
-    page.click(".learn-card > button.btn.big")
-    page.wait_for_function("window.ziapp.ncStep===3", timeout=8000, polling=100)
-    t_sent = time.time()
-    page.wait_for_function("window.ziapp.follow.on===true", timeout=20000, polling=100)
+    page.evaluate("() => ziapp.ncGo(1)")
+    t2 = time.time()
+    page.wait_for_function("window.ziapp.follow.on===true", timeout=15000, polling=100)
     page.wait_for_function("window.ziapp.micDenied===true", timeout=10000, polling=100)
-    check("T2 挂起 getUserMedia 3s 超时→micDenied", True, f"{time.time()-t_sent:.1f}s")
-    check("T2 失败分流 pending", page.evaluate("() => window.ziapp.micState") == "pending")
-    page.wait_for_selector(".fb-hint.pending", timeout=10000)   # 范读期间持续显示（曾只闪现<100ms）
-    check("T2 pending 文案引导点允许", "允许" in page.locator(".fb-hint.pending").inner_text())
-    page.wait_for_function("window.ziapp.follow.on===false", timeout=40000, polling=100)
-    total = time.time() - t_sent
-    check("T2 句跟读全部降级推进不卡死", total < 40, f"{total:.1f}s")
-    s = [r for r in follow_rows() if r[1] == "sent"]
-    check("T2 流水 sent heard=NULL(降级三态)", len(s) >= 1 and all(r[2] is None for r in s), s)
-    page.screenshot(path=str(SHOTS / "fix-t2-after-sent.png"), full_page=True)
+    check("T2 挂起 gUM 3s 超时→micDenied", True, f"{time.time()-t2:.1f}s")
+    page.wait_for_function("window.ziapp.follow.on===false", timeout=20000, polling=100)
+    total = time.time() - t2
+    check("T2 无麦槽窗照常走完不卡死", total < 20, f"{total:.1f}s")
+    page.wait_for_timeout(800)
+    c2 = [r for r in follow_rows("char")]
+    check("T2 降级流水 heard=NULL(三态保留)", c2 and c2[-1][2] is None, c2)
+    page.screenshot(path=str(SHOTS / "fix-t2-degraded-slot.png"), full_page=True)
 
 
 if __name__ == "__main__":
-    errors, v18 = [], []
+    errors, v47 = [], []
     with sync_playwright() as p:
         browser = p.chromium.launch(
             executable_path="/root/.cache/ms-playwright/chromium-1228/chrome-linux64/chrome",
@@ -169,12 +181,13 @@ if __name__ == "__main__":
                   "--use-fake-ui-for-media-stream"])
         page = browser.new_page(viewport={"width": 820, "height": 1100})
         page.on("pageerror", lambda e: errors.append(str(e)))
-        page.on("response", lambda r: v18.append(r.status) if "app.js?v=45" in r.url else None)
+        page.on("response", lambda r: v47.append(r.status) if "app.js?v=48" in r.url else None)
         try:
             run(page)
         finally:
             browser.close()
-    check("T3 app.js?v=45 加载 200", v18 == [200], v18)
+    check("T3 app.js?v=48 加载 200", v47 == [200], v47)
     check("T3 无 JS pageerror", not errors, errors[:3])
+    reset_test_user()   # teardown
     print(f"\n{PASS_N} pass / {FAIL_N} fail  （截图: tests/shots/fix-*.png）")
     sys.exit(1 if FAIL_N else 0)

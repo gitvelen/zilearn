@@ -52,7 +52,10 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems,
     干扰——avoid=内容层标注的义近禁扰字，形近优先（听义辨形正是教学点）；
     同音不排除（考义不考音，与 listen 的异音约束不同源）。
     """
-    ds = scheduler._distractors(db, h, h["book"])
+    rng = random.Random(f"q-{h['char']}")   # 确定性干扰（2026-11-03 拍板）：同字同种子重跑
+                                             # 产出一致——regen/重灌不换血，人工审查结论持久；
+                                             # 素材（词/句/释义）变化仍会如实反映到题面
+    ds = scheduler._distractors(db, h, h["book"], rng=rng)
     out = {}
 
     # defi 听释义选字：无 mean 的字不生成（运行时 defi 退化 listen，不排哑巴题）
@@ -67,17 +70,18 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems,
         dr = [d["char"] for d in ds
               if d["char"] not in avoid and d["char"] not in in_mean
               and d["char"] not in sur_bad]
-        if len(dr) < 3:                      # 形近池耗尽 → 随机同册补足（仍排 avoid）
-            for r in db.execute("SELECT char FROM hanzi WHERE book=? AND char != ? "
-                                "ORDER BY RANDOM() LIMIT 20", (h["book"], h["char"])):
-                if r["char"] not in avoid and r["char"] not in dr and r["char"] not in in_mean \
-                        and r["char"] not in sur_bad:
-                    dr.append(r["char"])
+        if len(dr) < 3:                      # 形近池耗尽 → 同册补足（仍排 avoid；rng 确定性洗牌）
+            fill = [r["char"] for r in db.execute(
+                "SELECT char FROM hanzi WHERE book=? AND char != ?", (h["book"], h["char"]))]
+            rng.shuffle(fill)
+            for ch in fill:
+                if ch not in avoid and ch not in dr and ch not in in_mean and ch not in sur_bad:
+                    dr.append(ch)
                 if len(dr) >= 3:
                     break
         if len(dr) >= 3:
             opts = [h["char"]] + dr[:3]
-            random.shuffle(opts)
+            rng.shuffle(opts)
             out["defi"] = {"quiz_type": "defi", "hanzi_id": h["id"], "hanzi": h["char"],
                            "tone3": h["tone3"], "stem": "", "mean": content_mean,
                            "audio": f"m_{h['char']}", "options": opts, "answer": h["char"]}
@@ -102,7 +106,7 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems,
               and not scheduler._sent_window_bad(s, h["char"], d["char"], valid_words)][:3]
         if len(dr) >= 3:
             opts = [h["char"]] + dr[:3]
-            random.shuffle(opts)
+            rng.shuffle(opts)
             out["sent"] = {"quiz_type": "sent", "hanzi_id": h["id"], "hanzi": h["char"],
                            "tone3": h["tone3"], "stem": stem,
                            "sentence": s, "options": opts, "answer": h["char"]}
@@ -126,7 +130,7 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems,
                 break
         if len(dr) >= 3:
             opts = [h["char"]] + dr
-            random.shuffle(opts)
+            rng.shuffle(opts)
             out["mean"] = {"quiz_type": "mean", "hanzi_id": h["id"], "hanzi": h["char"],
                            "tone3": h["tone3"], "stem": w.replace(h["char"], "＿", 1),
                            "hint_word": w, "options": opts, "answer": h["char"]}
@@ -141,9 +145,10 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems,
             dr.append(d)
             seen_t.add(d["tone3"])
     if len(dr) < 3:
-        for r in db.execute("SELECT char, tone3 FROM hanzi WHERE book=? AND char != ? "
-                            "ORDER BY RANDOM() LIMIT 12",
-                            (h["book"], h["char"])):
+        fill = [dict(r) for r in db.execute(
+            "SELECT char, tone3 FROM hanzi WHERE book=? AND char != ?", (h["book"], h["char"]))]
+        rng.shuffle(fill)
+        for r in fill:
             if r["tone3"] not in seen_t:
                 dr.append(dict(r))
                 seen_t.add(r["tone3"])
@@ -151,7 +156,7 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems,
                 break
     if len(dr) >= 3:
         opts = [h["char"]] + [d["char"] for d in dr[:3]]
-        random.shuffle(opts)
+        rng.shuffle(opts)
         out["listen"] = {"quiz_type": "listen", "hanzi_id": h["id"], "hanzi": h["char"],
                          "tone3": h["tone3"], "stem": "", "options": opts, "answer": h["char"]}
 
@@ -159,7 +164,7 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems,
     pin_dr = dr[3:6] if len(dr) >= 6 else dr[:3]
     if len(pin_dr) >= 3:
         opts = [h["char"]] + [d["char"] for d in pin_dr]
-        random.shuffle(opts)
+        rng.shuffle(opts)
         out["pin"] = {"quiz_type": "pin", "hanzi_id": h["id"], "hanzi": h["char"],
                       "tone3": h["tone3"], "stem": h["pinyin"], "options": opts, "answer": h["char"]}
 
@@ -171,7 +176,7 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems,
         rdr = [d for d in dr if d["char"] not in in_word][:3]
         if len(rdr) >= 3:
             opts = [h["char"]] + [d["char"] for d in rdr]
-            random.shuffle(opts)
+            rng.shuffle(opts)
             out["rev"] = {"quiz_type": "rev", "hanzi_id": h["id"], "hanzi": h["char"],
                           "tone3": h["tone3"], "stem": "", "word": w,
                           "audio": f"n_{h['char']}_{i + 1}", "options": opts, "answer": h["char"]}
@@ -301,7 +306,8 @@ def regen():
         bl = set(REGEN_BLACKLIST.get(q["id"], []))
         # 历史打回题干（同字反复 regen 不绕回已 F 的模式）
         bl_stems = SKIP_STEMS.get(h["char"], []) + ([old.get("stem")] if old.get("stem") else [])
-        ds = [d for d in scheduler._distractors(db, h, h["book"]) if d["char"] not in bl]
+        rng = random.Random(f"q-{h['char']}-v2")   # 确定性（2026-11-03）：regen 重跑同字同题稳定复现
+        ds = [d for d in scheduler._distractors(db, h, h["book"], rng=rng) if d["char"] not in bl]
         payload = None
         if q["quiz_type"] == "mean":
             for w in words:
@@ -312,7 +318,7 @@ def regen():
                       and w.replace(h["char"], d["char"], 1) not in valid_words][:3]
                 if len(dr) >= 3:
                     opts = [h["char"]] + dr
-                    random.shuffle(opts)
+                    rng.shuffle(opts)
                     payload = {"quiz_type": "mean", "hanzi_id": h["id"], "hanzi": h["char"],
                                "tone3": h["tone3"], "stem": w.replace(h["char"], "＿", 1),
                                "hint_word": w, "options": opts, "answer": h["char"]}
@@ -330,7 +336,7 @@ def regen():
                       and not scheduler._sent_window_bad(s, h["char"], d["char"], valid_words)][:3]
                 if len(dr) >= 3:
                     opts = [h["char"]] + dr
-                    random.shuffle(opts)
+                    rng.shuffle(opts)
                     payload = {"quiz_type": "sent", "hanzi_id": h["id"], "hanzi": h["char"],
                                "tone3": h["tone3"], "stem": stem,
                                "sentence": s, "options": opts, "answer": h["char"]}

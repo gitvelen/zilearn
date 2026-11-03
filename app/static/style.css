@@ -234,6 +234,7 @@ input:focus { outline: none; border-color: #ffb74d; }
            background: #ef6c00; transition: width .08s linear; }   /* 聆听音量条：声音越大条越长 */
 @keyframes fbPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
 .skip-link { border: none; background: none; color: #bcaaa4; font-size: 12px; padding: 4px 8px; }
+.trace-replay { border: none; background: none; color: #1e88e5; font-size: 13px; padding: 4px 8px; }
 
 /* 聆听指示器：大麦克风+声波环——"正在听你说话"必须一眼可见（幼儿不读字也能懂） */
 .follow-visual { position: relative; width: 96px; height: 96px; display: flex;

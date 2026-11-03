@@ -62,10 +62,10 @@
   </div>
 </div>
 
-<!-- ============ 引导：摸底速选（首批 + 生词不足时轮次补摸） ============ -->
+<!-- ============ 引导：摸底速选（首批 + 生词不足时轮次补摸；验证轮已砍 2026-11-03） ============ -->
 <div v-else-if="phase==='ob-confirm'" class="wizard wide">
   <h2>{{moreRound ? '再看一批，这些字认识吗？' : '哪些字你已经认识啦？'}}</h2>
-  <p class="sub">爸爸妈妈帮着一起选，认识就点亮它 ✨（选完会出小题验证哦）</p>
+  <p class="sub">爸爸妈妈帮着一起选，认识就点亮它 ✨（点亮的字以后就不再学啦，想好再点哦）</p>
   <div class="progress-bar"><i :style="{width: (confirmPage+1)/confirmBatches.length*100+'%'}"></i></div>
   <div class="char-grid">
     <button v-for="c in confirmBatches[confirmPage]" :key="c.id"
@@ -76,23 +76,8 @@
   <div class="row">
     <button class="btn ghost" v-if="confirmPage>0" @click="confirmPage--">← 上一页</button>
     <button class="btn ghost" v-if="confirmBatches.length-1 > confirmPage" @click="confirmPage++">下一页 →</button>
-    <button class="btn big" @click="confirmSubmit">{{confirmBatches.length-1 > confirmPage?'跳过剩余':'选完了，去验证 →'}}</button>
+    <button class="btn big" @click="confirmSubmit">{{confirmBatches.length-1 > confirmPage?'跳过剩余':'选完了，开始学 →'}}</button>
   </div>
-</div>
-
-<!-- ============ 引导：验证轮 ============ -->
-<div v-else-if="phase==='ob-verify'" class="wizard wide">
-  <h2>小考验来啦 👀</h2>
-  <p class="sub">听一听，选出正确的字（第 {{verifyDone+1}} / {{verifyTotal}} 题）</p>
-  <div v-if="verifyQ" class="quiz-box">
-    <button class="speak-xl" @click="playChar(verifyQ.hanzi)">🔊</button>
-    <div class="opts">
-      <button v-for="(o,i) in verifyQ.options" :key="i" class="opt char-opt"
-              :class="{good: verifyRevealed && o===verifyQ.answer, bad: verifyRevealed && o!==verifyQ.answer && verifyPick===o}"
-              @click="verifyAnswer(o)">{{o}}</button>
-    </div>
-  </div>
-  <div v-else class="loading">生成中…</div>
 </div>
 
 <!-- ============ 今日：开始页 ============ -->
@@ -167,7 +152,7 @@
                        ? {transform: 'scale(' + (1 + micLvl * 0.18) + ')'} : null"
                @click="ziClick">
             {{curItem.char}}
-            <span v-if="!follow.on && !stepBusy" class="tap-hint">👆</span>
+            <span v-if="!follow.on && !narrLock" class="tap-hint">👆</span>
           </div>
         </div>
         <div class="zi-side">
@@ -185,16 +170,14 @@
       </div>
     </template>
 
-    <!-- ② 词：整体连听 → 直接逐词跟读（不逐词范读，当前词高亮）→ 自由点选 -->
+    <!-- ② 词：整体连听（环境音）→ 自由点选（逐词跟读槽已删，2026-11-03 拍板"词步回自由"） -->
     <template v-else-if="ncStep===2">
-      <div class="nc-title">{{follow.on ? '轮到这个词，大声读 🎤' : '「'+curItem.char+'」和好朋友手拉手，点一点听一听'}}</div>
+      <div class="nc-title">{{narrLock ? '先听一听这些词 🔊' : '「'+curItem.char+'」和好朋友手拉手，点一点听一听'}}</div>
       <div v-if="curContent && curContent.words && curContent.words.length" class="words-row big">
         <button v-for="(w,i) in curContent.words" :key="w" class="word-chip big"
-                :class="{cur: follow.on && follow.idx===i, ok: follow.on && follow.done.includes(i),
-                         dim: follow.on && follow.idx!==i && !follow.done.includes(i)}"
                 @click="followWordClick(i)" v-html="wordHtml(w)"></button>
       </div>
-      <button v-if="!follow.on && !stepBusy" class="speak" @click="playOne('w_'+curItem.char)">🔊 全部读一遍</button>
+      <button v-if="!narrLock" class="speak" @click="playOne('w_'+curItem.char)">🔊 全部读一遍</button>
     </template>
 
     <!-- ③ 句：逐句跟读（当前句高亮）→ 自由点选 -->
@@ -206,13 +189,14 @@
            @click="followSentClick(i)" v-html="sentHtml(s)"></div>
     </template>
 
-    <!-- ④ 写：描红（写对才放行；家长长按跳过防死路） -->
+    <!-- ④ 写：描红（写对才放行；首见强制看笔顺/复见直写 stroke_seen；家长长按跳过防死路） -->
     <template v-else>
       <div class="zi-row">
         <div class="zi-mid">{{curItem.char}}</div>
         <div class="hanzi-wrap" :id="'hw-'+curItem.id"></div>
       </div>
       <div class="trace-tip">{{traceMsg}}</div>
+      <button v-if="traceWatched && !tracing && !traceDone" class="trace-replay" @click="replayStrokes">👀 再看一遍笔顺</button>
       <button v-if="!traceDone && !traceFallback" class="skip-link"
               @pointerdown="skipHold(true)" @pointerup="skipHold(false) && (traceDone = true)"
               @pointerleave="skipHold(false)">⏭ 家长长按跳过</button>
@@ -245,6 +229,7 @@
          @click="followReadClick(i)" v-html="readHtml(l.sent)"></div>
     <div class="row" v-if="!follow.on">
       <button class="btn ghost" @click="readPlayAll">{{readPlaying ? '⏹ 停止' : '▶ 连读全部'}}</button>
+      <button v-if="readAudioUrl" class="btn ghost" @click="playReadAudio">🔊 听听自己读的</button>
     </div>
     <div v-if="follow.on" class="follow-bar">
       <div class="follow-visual">
@@ -258,7 +243,7 @@
       </div>
       <span class="fb-hint" :class="fbHintCls()">{{ fbHint() }}</span>
     </div>
-    <button class="btn big" @click="advance">读完了，继续 →</button>
+    <button class="btn big" :disabled="follow.on" @click="advance">读完了，继续 →</button>
   </div>
 
   <!-- 四选一题 -->
@@ -442,6 +427,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=46"></script>
+<script src="/app.js?v=48"></script>
 </body>
 </html>

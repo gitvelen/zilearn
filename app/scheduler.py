@@ -25,6 +25,8 @@ INTERVALS = [1, 3, 7, 14]     # stage0→1 / 1→2 / 2→3 / 3→mastered 的间
 AUDIT_N = 3                   # 掌握词每日抽检数
 CONFIRM_BATCH = 50            # 摸底速选表格每批字数
 MIN_PLAN_DAYS = 7             # 计划天数下限（一个完整周循环）
+REVIEW_CAP = 30               # 单日复习供给上限（缺勤积压分日消化，先到期先服务；状态机不动）
+NEW_THROTTLE_AT = 60          # 到期复习积压超此值 → 当日新字减半（先还债再扩新，稳态≈4×daily_new）
 
 # 内容就绪过滤（2026-11-01 线上事故）：zi_content 只建了 1a 全量 281 字，1b+ 册无
 # 词/句/字源素材也无 TTS 音频。选字入口（计划池/摸底/新字/复习/周测范围）一律要求
@@ -84,8 +86,10 @@ def create_plan(user_id, target_chars, days):
         target = min(int(target_chars), pool)
         study_days = days - days // 7            # 每周 1 天周测不投新字
         daily_new = max(1, math.ceil(target / study_days))
+        # onboarded 不在此置位（2026-11-03 补洞）：摸底完成（confirm_submit 无补摸批次）才置 1，
+        # 否则摸底中途刷新会以 stage=study 直接进学习日——速选作废、认识字被当生词学
         db.execute("""UPDATE users SET target_chars=?, plan_days=?, plan_start=?,
-                      plan_base_learned=?, onboarded=1 WHERE id=?""",
+                      plan_base_learned=? WHERE id=?""",
                    (target, days, today_str(), base, user_id))
         db.commit()
         # 预估：新字 2.5min + 稳态复习约 4×daily_new 题 ×0.2min + 昨日重现 3min
@@ -150,42 +154,21 @@ def confirm_more(user):
 
 
 def confirm_submit(user_id, known_ids):
-    """速选认识的字 → 待验证。"""
+    """速选提交（2026-11-03 拍板砍验证轮，wordslearn v4.1.2 同款决策：时间成本>假熟漏学
+    风险，假熟由 D+1 listen 再认 + audit 抽检兜底）：点「认识」直接 skipped 剔除。"""
     db = get_db()
     try:
         db.execute("DELETE FROM confirm_pick WHERE user_id=? AND result IS NULL", (user_id,))
         for hid in known_ids:
-            db.execute("INSERT OR IGNORE INTO confirm_pick(user_id, hanzi_id) VALUES(?,?)",
+            hid = int(hid)
+            db.execute("""INSERT INTO confirm_pick(user_id, hanzi_id, result) VALUES(?,?,'pass')
+                          ON CONFLICT(user_id, hanzi_id) DO UPDATE SET result='pass'""",
                        (user_id, hid))
-        db.commit()
-        return {"pending": len(known_ids)}
-    finally:
-        db.close()
-
-
-def confirm_verify(user_id, hanzi_id, correct):
-    """验证 1 题：对 → 整字 skipped 剔除；错 → 回池（标记 fail，不剔除）。"""
-    db = get_db()
-    try:
-        db.execute("UPDATE confirm_pick SET result=? WHERE user_id=? AND hanzi_id=?",
-                   ("pass" if correct else "fail", user_id, hanzi_id))
-        if correct:
             db.execute("""INSERT INTO user_hanzi(user_id, hanzi_id, status) VALUES(?,?, 'skipped')
                           ON CONFLICT(user_id, hanzi_id) DO UPDATE SET status='skipped'""",
-                       (user_id, hanzi_id))
+                       (user_id, hid))
         db.commit()
-    finally:
-        db.close()
-
-
-def confirm_progress(user_id):
-    db = get_db()
-    try:
-        pend = db.execute("SELECT COUNT(*) n FROM confirm_pick WHERE user_id=? AND result IS NULL",
-                          (user_id,)).fetchone()["n"]
-        passed = db.execute("SELECT COUNT(*) n FROM confirm_pick WHERE user_id=? AND result='pass'",
-                            (user_id,)).fetchone()["n"]
-        return {"pending": pend, "passed": passed}
+        return {"passed": len(known_ids)}
     finally:
         db.close()
 
@@ -218,6 +201,25 @@ def is_weekly_day(user, db=None):
     return di is not None and (di + 1) % 7 == 0
 
 
+def weekly_pending(db, user, di):
+    """跨日续做判定（2026-11-03 拍板：周测可一天内分几次做）：di 已越过常规周测日
+    （(di+1)%7!=0），但刚过去那周的周测开了头未结算 → 仍算周测日（week_no 返回）。
+    完全没做过（缺勤）不在此列——活动日驱动下 di 不会推进，周测日自然顺延到下次打开。"""
+    week_no = di // 7                     # di=7..13 → 刚过去的是第 1 周
+    if week_no < 1:
+        return None
+    if _row(db, "SELECT 1 FROM weekly_reports WHERE user_id=? AND week_no=? AND done=1",
+            (user["id"], week_no)):
+        return None
+    active = _active_days(db, user["id"])
+    if len(active) < (week_no - 1) * 7 + 1:
+        return None
+    week_start = active[(week_no - 1) * 7]
+    started = _row(db, "SELECT 1 FROM quiz_log WHERE user_id=? AND phase='weekly' AND ts>=? LIMIT 1",
+                   (user["id"], week_start))
+    return week_no if started else None
+
+
 def build_today(user_id):
     """当日任务包：learn-day | weekly-day。"""
     db = get_db()
@@ -230,6 +232,11 @@ def build_today(user_id):
 
         if is_weekly_day(user, db):
             week_no = (di + 1) // 7
+        elif weekly_pending(db, user, di):
+            week_no = weekly_pending(db, user, di)   # 跨日续做：上周周测开头未结算 → 仍是周测日
+        else:
+            week_no = None
+        if week_no:
             # 已结算的周测不重开（防退出重进无限刷星/重复推进状态机）
             done = _row(db, """SELECT score, total FROM weekly_reports
                                 WHERE user_id=? AND week_no=? AND done=1""",
@@ -263,6 +270,14 @@ def build_today(user_id):
         # ---- 学习日 ----
         daily_new = math.ceil(user["target_chars"] /
                               (user["plan_days"] - user["plan_days"] // 7))
+        # 积压节流（2026-11-03 拍板）：缺勤堆积（>60 到期）时当日新字减半——先还债再扩新，
+        # 只影响当日供给不动状态机；稳态复习 ≈ 4×daily_new，正常日不触发
+        due_n = db.execute(
+            f"""SELECT COUNT(*) n FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
+                WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=? AND {CONTENT_READY}""",
+            (user_id, t)).fetchone()["n"]
+        if due_n > NEW_THROTTLE_AT:
+            daily_new = max(1, daily_new // 2)
         # 新字：按 seq 补齐（幂等：当日已 learn 的计入 daily_new）
         learned_today = [r["hanzi_id"] for r in db.execute(
             f"""SELECT DISTINCT q.hanzi_id FROM quiz_log q JOIN hanzi h ON h.id=q.hanzi_id
@@ -276,19 +291,22 @@ def build_today(user_id):
                 AND NOT EXISTS (SELECT 1 FROM quiz_log q WHERE q.user_id=? AND q.hanzi_id=h.id AND q.phase='learn')
                 ORDER BY seq LIMIT ?""", (book_of(user), user_id, user_id, daily_new - len(new_ids))):
                 new_ids.append(r["id"])
+        # stroke_seen 随新字下发：写步首见强制看笔顺/复见直写（2026-11-03 拍板）
         new_chars = [dict(r) for r in db.execute(
-            f"SELECT id, char, pinyin, tone3 FROM hanzi WHERE id IN ({','.join('?'*len(new_ids))}) ORDER BY seq",
-            new_ids)] if new_ids else []
+            f"""SELECT h.id, h.char, h.pinyin, h.tone3, COALESCE(uh.stroke_seen, 0) stroke_seen
+                FROM hanzi h LEFT JOIN user_hanzi uh ON uh.hanzi_id=h.id AND uh.user_id=?
+                WHERE h.id IN ({','.join('?'*len(new_ids))}) ORDER BY h.seq""",
+            (user_id, *new_ids))] if new_ids else []
         # new 只含未学字：当日已学字曾混入 new——重进后 intro 误报"还有新字"、点开始
         # 又整卡重学一遍（2026-11-01 实锤）。重进恢复走 learned_today，已完成当日 new 为空。
         done_ids = set(learned_today)
         new_chars = [r for r in new_chars if r["id"] not in done_ids]
-        # 到期复习
+        # 到期复习（单日供给封顶 REVIEW_CAP：缺勤归来日不雪崩，剩余次日续——next_date 不动）
         reviews = [dict(r) for r in db.execute(
             f"""SELECT h.id, h.char, h.pinyin, h.tone3, uh.stage FROM user_hanzi uh
                JOIN hanzi h ON h.id=uh.hanzi_id
                WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=? AND {CONTENT_READY}
-               ORDER BY uh.next_date""", (user_id, t))]  # stage/first_date 已含
+               ORDER BY uh.next_date LIMIT {REVIEW_CAP}""", (user_id, t))]  # stage/first_date 已含
         # 掌握词抽检（带 stage：mastered=4，前端题型分层落深阶池）
         audits = [dict(r) for r in db.execute(
             f"""SELECT h.id, h.char, h.pinyin, h.tone3, uh.stage FROM user_hanzi uh
@@ -532,11 +550,14 @@ def _sent_window_bad(sentence, char, d_char, valid):
     return i + 1 < len(sentence) and d_char + sentence[i + 1] in valid
 
 
-def _distractors(db, h, book, n=12):
+def _distractors(db, h, book, n=12, rng=None):
     """干扰字池（形近 → 同单元 → 随机），返回 [{char, tone3}]，排除目标本身。
     同册池锚定**目标字所在册**（h.book），不用请求方册：请求方 grade 册可能与目标字
     不同（跨册出题/测试），按 unit 匹配时同名单元（"字组1"各册都有）会跨册污染——
-    2026-11-01 实锤：1b 字的题混进 5a 生僻字。"""
+    2026-11-01 实锤：1b 字的题混进 5a 生僻字。
+    rng（可选，离线题库生成用）：确定性干扰——池改 ORDER BY char 后由 rng 洗牌，
+    同字同种子重跑产出一致（重灌不换血，人工审查结论持久，2026-11-03 拍板）；
+    运行时（rng=None）保持 SQL RANDOM 惰性游标，行为不变。"""
     chars, seen = [], {h["char"]}
     conf = CONFUSABLE.get(h["char"], set())
     if conf:
@@ -545,13 +566,17 @@ def _distractors(db, h, book, n=12):
             if r["char"] not in seen:
                 chars.append(r["char"]); seen.add(r["char"])
     bk = h["book"]
-    for sql, args in (
-        ("SELECT char FROM hanzi WHERE book=? AND unit=? ORDER BY RANDOM()", (bk, h["unit"])),
-        ("SELECT char FROM hanzi WHERE book=? ORDER BY RANDOM()", (bk,)),
-    ):
-        for r in db.execute(sql, args):
-            if r["char"] not in seen:
-                chars.append(r["char"]); seen.add(r["char"])
+    for base, args in (("SELECT char FROM hanzi WHERE book=? AND unit=?", (bk, h["unit"])),
+                       ("SELECT char FROM hanzi WHERE book=?", (bk,))):
+        if rng:
+            rows = [r["char"] for r in db.execute(base + " ORDER BY char", args)]
+            rng.shuffle(rows)
+        else:
+            rows = db.execute(base + " ORDER BY RANDOM()", args)   # 游标惰性，够 n 即止
+        for r in rows:
+            ch = r if isinstance(r, str) else r["char"]
+            if ch not in seen:
+                chars.append(ch); seen.add(ch)
             if len(chars) >= n:
                 break
         if len(chars) >= n:
@@ -564,11 +589,16 @@ def _distractors(db, h, book, n=12):
     return [by_char[ch] for ch in chars if ch in by_char]
 
 
-# 题库内退化方向（与运行时生成退化链一致；题库缺该题型时降级取）
+# 题库内退化方向（单一真源）。注意两层退化的分工，勿混：
+# - 本表 = 题库层（bank 缺该题型时取何题型银行题）
+# - gen_quiz 内递归 = 运行时生成层的回退（find→sent→mean、素材尽→listen）
+# lsent 必须为 ()：它整个题库就不存在（v39 设计：机械校验足够，运行时生成）——
+# 若写 ("listen",) 会让每个 lsent 请求都被银行 listen 题截胡，听句关退化成第二关听音关
+# （2026-11-03 险些引入，e2e "lsent 题库缺货仍运行时生成" 断言守此不变量）
 _QB_DEGRADE = {"find": ("sent", "mean", "listen"),
                "sent": ("mean", "listen"), "mean": ("listen",),
                "pin": ("listen",), "rev": ("listen",),
-               # defi 无题库（未创作释义的册）→ 退化 listen（不排哑巴题）
+               # defi 无释义的册无题库 → 退化 listen（不排哑巴题）
                "defi": ("listen",), "lsent": ()}
 
 
@@ -580,7 +610,8 @@ def _qbank(db, hanzi_id, quiz_types):
     for qt in quiz_types:
         row = _row(db, """SELECT payload FROM questions
                           WHERE hanzi_id=? AND quiz_type=? AND verified=1
-                          ORDER BY variant LIMIT 1""", (hanzi_id, qt))
+                          ORDER BY RANDOM() LIMIT 1""", (hanzi_id, qt))   # 变体随机轮换
+                                                                                   # （原 ORDER BY variant 恒取 v1：同字同题型永远同一题，2026-11-03 修正）
         if row:
             q = json.loads(row["payload"])
             if q.get("options"):

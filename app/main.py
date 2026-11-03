@@ -63,10 +63,6 @@ class SubmitIn(BaseModel):
 class ConfirmSubmitIn(BaseModel):
     known_ids: list
 
-class ConfirmVerifyIn(BaseModel):
-    hanzi_id: int
-    correct: bool
-
 class WeeklyFinishIn(BaseModel):
     week_no: int
     score: int
@@ -168,45 +164,39 @@ def confirm_list(request: Request):
 
 @app.post("/api/confirm/submit")
 def confirm_submit(body: ConfirmSubmitIn, request: Request):
+    """速选提交（验证轮已砍，2026-11-03 拍板）：已选直接 skipped；
+    池内确认生词不足目标 → more_batch 供应下一批（前端回摸底表格页）。
+    无补摸批次 = 摸底完成 → 置 onboarded（摸底中途刷新可回摸底页续选，2026-11-03 补洞）"""
     user = auth.current_user(request)
-    scheduler.confirm_submit(user["id"], body.known_ids)
-    return scheduler.confirm_progress(user["id"])
+    r = scheduler.confirm_submit(user["id"], body.known_ids)
+    more = scheduler.confirm_more(user)
+    if not more:
+        db = database.get_db()
+        try:
+            db.execute("UPDATE users SET onboarded=1 WHERE id=?", (user["id"],))
+            db.commit()
+        finally:
+            db.close()
+    r["more_batch"] = more
+    return r
 
 
-@app.post("/api/confirm/verify")
-def confirm_verify(body: ConfirmVerifyIn, request: Request):
-    user = auth.current_user(request)
-    scheduler.confirm_verify(user["id"], body.hanzi_id, body.correct)
-    prog = scheduler.confirm_progress(user["id"])
-    # 下一道验证题（形近干扰：错选概率真实化）
-    db = database.get_db()
-    try:
-        nxt = db.execute("""SELECT p.hanzi_id FROM confirm_pick p
-                            WHERE p.user_id=? AND p.result IS NULL LIMIT 1""",
-                         (user["id"],)).fetchone()
-    finally:
-        db.close()
-    q = scheduler.gen_quiz(nxt["hanzi_id"], "listen", book=scheduler.book_of(user)) if nxt else None
-    # 本轮验证全过 → 池内确认生词不足目标则轮次补摸（more_batch 非空时前端回摸底页）
-    more = scheduler.confirm_more(user) if not nxt else None
-    return {"progress": prog, "next_verify": q, "more_batch": more}
-
-
-@app.get("/api/confirm/verify/first")
-def confirm_first(request: Request):
+@app.post("/api/hanzi/{hanzi_id}/stroke_seen")
+def stroke_seen(hanzi_id: int, request: Request):
+    """写步首见笔顺演示看完标记（服务端持久化跨会话；复见免强制重看，2026-11-03 拍板）。
+    INSERT status='new' 行不挡后续 learn 提交（其 upsert 守卫 WHERE status='new' 恰好匹配），
+    也不把字踢出学习池（池排除条件只认 skipped/learning/mastered）。"""
     user = auth.current_user(request)
     db = database.get_db()
     try:
-        nxt = db.execute("""SELECT p.hanzi_id FROM confirm_pick p
-                            WHERE p.user_id=? AND p.result IS NULL ORDER BY p.hanzi_id LIMIT 1""",
-                         (user["id"],)).fetchone()
+        db.execute("""INSERT INTO user_hanzi(user_id, hanzi_id, status, stroke_seen)
+                      VALUES(?,?, 'new', 1)
+                      ON CONFLICT(user_id, hanzi_id) DO UPDATE SET stroke_seen=1""",
+                   (user["id"], hanzi_id))
+        db.commit()
     finally:
         db.close()
-    if not nxt:
-        # 无待验证题（补摸轮全没选/首轮直接跳过）→ 查轮次补摸
-        return {"next_verify": None, "more_batch": scheduler.confirm_more(user)}
-    return {"next_verify": scheduler.gen_quiz(nxt["hanzi_id"], "listen", book=scheduler.book_of(user)),
-            "more_batch": None}
+    return {"ok": True}
 
 
 @app.get("/api/today")

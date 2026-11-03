@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS user_hanzi (
   last_date   TEXT,
   wrong_count INTEGER DEFAULT 0,
   audit_date  TEXT,                          -- 最近抽检日
+  stroke_seen INTEGER DEFAULT 0,             -- 首见笔顺演示已看完（1=复见免强制重看，2026-11-03 拍板）
   UNIQUE(user_id, hanzi_id)
 );
 
@@ -171,6 +172,11 @@ def init_db():
             db.execute(f"ALTER TABLE zi_content ADD COLUMN {col} {decl}")
         except sqlite3.OperationalError:
             pass
+    # 迁移：写步笔顺首见标记列（新库 SCHEMA 已含）
+    try:
+        db.execute("ALTER TABLE user_hanzi ADD COLUMN stroke_seen INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
     # 迁移：旧库补 follow_log 遥测列（v19，新库 SCHEMA 已含）
     for col, decl in [("peak_rms", "REAL"), ("noise_base", "REAL"), ("thr_used", "REAL"),
                       ("voiced_ms", "INTEGER"), ("dur_ms", "INTEGER"), ("ts_ms", "INTEGER"), ("ua", "TEXT"),

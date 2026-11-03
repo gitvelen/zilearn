@@ -84,24 +84,30 @@ def api_tests():
           ["1A", "1B", "2A", "2B", "3A", "3B", "4A", "4B"], r.get("grades_ready"))
     r = call("POST", "/api/plan/create", {"target_chars": 300, "days": 50})
     check("plan 创建", r.get("daily_new", 0) >= 1, r)
+    r = call("GET", "/api/me")
+    check("计划后未摸底 stage=confirm(刷新回摸底页)", r.get("stage") == "confirm", r.get("stage"))
     r = call("GET", "/api/confirm/batches")
     n_batch = len(r["batches"])
     check(f"摸底分批 {n_batch}", n_batch >= 6 and sum(len(b) for b in r["batches"]) == 281)
-    # 速选前 3 个字为"认识"，验证全对
-    ids = [b[0]["id"] for b in r["batches"][:1] for b in [r["batches"][0]]][:0] or \
-          [x["id"] for x in r["batches"][0][:3]]
+    # 速选前 3 个字为"认识"（验证轮已砍 2026-11-03：已选直接 skipped，无验证题）
+    ids = [x["id"] for x in r["batches"][0][:3]]
     r = call("POST", "/api/confirm/submit", {"known_ids": ids})
-    check("速选提交", r["pending"] == 3, r)
-    r = call("GET", "/api/confirm/verify/first")
-    q = r.get("next_verify")
-    check("验证题 listen 四选一", q and len(q["options"]) == 4 and q["answer"] in q["options"], q)
-    for hid in ids:
-        r = call("POST", "/api/confirm/verify", {"hanzi_id": hid, "correct": True})
-    check("验证通过后 passed=3", r["progress"]["passed"] == 3, r)
+    check("速选提交 → 已选直接跳过", r.get("passed") == 3 and not r.get("more_batch"), r)
+    r = call("GET", "/api/me")
+    check("摸底完成 stage=study", r.get("stage") == "study", r.get("stage"))
     r = call("GET", "/api/today")
     check("today learn 模式", r.get("mode") == "learn" and len(r["new"]) >= 1, {k: r.get(k) for k in ("mode",)})
-    check(f"新字数 = daily_new", len(r["new"]) == r.get("daily_new", len(r["new"])) or True)
+    check("新字带 stroke_seen 字段", all("stroke_seen" in x for x in r["new"]), r["new"][:1])
+    check("已选认识字不入新字池", all(x["id"] not in ids for x in r["new"]),
+          [x["char"] for x in r["new"] if x["id"] in ids])
     new_ids = [x["id"] for x in r["new"]]
+    # 写步首见笔顺标记（stroke_seen）：首见 0 → 标记后 build_today 下发 1
+    check("首见 stroke_seen=0", all(x["stroke_seen"] == 0 for x in r["new"]), r["new"][:1])
+    r = call("POST", f"/api/hanzi/{new_ids[0]}/stroke_seen")
+    check("stroke_seen 标记 ok", r.get("ok"), r)
+    r = call("GET", "/api/today")
+    m = [x for x in r["new"] + r.get("learned_today", []) if x["id"] == new_ids[0]]
+    check("标记后重进(learned_today) stroke_seen=1", not m or m[0]["stroke_seen"] == 1, m)
     # learn 提交 + 出题（新题型矩阵）
     q = call("GET", f"/api/quiz?hanzi_id={new_ids[0]}&quiz_type=mean")
     check("mean 组词补全四选一", q and q.get("quiz_type") == "mean"
@@ -420,8 +426,8 @@ def plan_renew_tests():
 
 
 def confirm_more_tests():
-    """轮次补摸：池内确认生词<目标 → verify 响应 more_batch 续摸；够数开始学；
-    全册摸完仍不足 → target 收敛（目标不悬空）"""
+    """轮次补摸（验证轮已砍：速选直接 skipped）：池内确认生词<目标 → submit 响应
+    more_batch 续摸；够数开始学；全册摸完仍不足 → target 收敛（目标不悬空）"""
     reset_user()
     call("POST", "/api/login", {"username": "mido", "password": MIDO_PASS})
     call("POST", "/api/profile/grade", {"grade": "1A"})
@@ -429,26 +435,22 @@ def confirm_more_tests():
     batches = call("GET", "/api/confirm/batches")["batches"]
     pool = [c for b in batches for c in b]
     check("首轮池 ceil(50*1.3)=65", len(pool) == 65, len(pool))
-    # 标记前 40 个认识（UI 同款时序：先全量提交，再逐题验证）
-    call("POST", "/api/confirm/submit", {"known_ids": [c["id"] for c in pool[:40]]})
-    for c in pool[:40]:
-        r = call("POST", "/api/confirm/verify", {"hanzi_id": c["id"], "correct": True})
+    # 标记前 40 个认识 → 生词 25 < 目标 50 → 补摸
+    r = call("POST", "/api/confirm/submit", {"known_ids": [c["id"] for c in pool[:40]]})
     check("生词25<目标50 → 触发补摸 50 字", r.get("more_batch") and len(r["more_batch"]) == 50,
           len(r["more_batch"]) if r.get("more_batch") else None)
     seen = {c["char"] for c in pool}
-    more1 = r["more_batch"]
-    fresh = [c["char"] for c in more1 if c["char"] not in seen]
+    fresh = [c["char"] for c in r["more_batch"] if c["char"] not in seen]
     check("补摸批不与已摸重复", len(fresh) == 50, len(fresh))
     # 补摸批一个不选（全算生词）→ 生词 75≥50 → 无更多批次，直接开始学
-    call("POST", "/api/confirm/submit", {"known_ids": []})
-    r = call("GET", "/api/confirm/verify/first")
+    r = call("POST", "/api/confirm/submit", {"known_ids": []})
     check("生词够数 → 无更多批次", not r.get("more_batch"), r.get("more_batch"))
     t = call("GET", "/api/today")
     known2 = seen | set(fresh)
     in_pool = all(h["char"] in known2 for h in t["new"])
     check("学习字全部来自已摸底池", in_pool, [h["char"] for h in t["new"]])
 
-    # 全册摸完仍不足：target=280（池=全册），skip 260 → 收敛
+    # 全册摸完仍不足：target=280（池=全册），选 260 → 收敛
     reset_user()
     call("POST", "/api/login", {"username": "mido", "password": MIDO_PASS})
     call("POST", "/api/profile/grade", {"grade": "1A"})
@@ -456,16 +458,55 @@ def confirm_more_tests():
     batches = call("GET", "/api/confirm/batches")["batches"]
     pool = [c for b in batches for c in b]
     check("280 目标池=全册 281", len(pool) == 281, len(pool))
-    call("POST", "/api/confirm/submit", {"known_ids": [c["id"] for c in pool[:260]]})
-    for c in pool[:260]:
-        r = call("POST", "/api/confirm/verify", {"hanzi_id": c["id"], "correct": True})
+    r = call("POST", "/api/confirm/submit", {"known_ids": [c["id"] for c in pool[:260]]})
     check("全册摸完 → 无补摸批次", not r.get("more_batch"), r.get("more_batch"))
-    import sqlite3 as _s
-    conn = _s.connect("/root/zilearn/app/data/zilearn.db")
-    tgt = conn.execute("SELECT target_chars FROM users WHERE username='mido'").fetchone()[0]
-    conn.close()
+    import database as _dbt
+    _c = _dbt.get_db()
+    tgt = _c.execute("SELECT target_chars FROM users WHERE username='mido'").fetchone()[0]
+    _c.close()
     check("目标收敛到实际生词 21", tgt == 21, tgt)
     reset_user()   # 本组自带清理
+
+
+def weekly_resume_tests():
+    """周测跨日续做（2026-11-03 拍板）：部分完成周测后次日仍呈现周测续做（未结算），
+    结算后才恢复学习日；完全没做过（缺勤）则周测日自然顺延（不在此分支）"""
+    print("== 周测跨日续做 ==")
+    import database, scheduler
+    from datetime import date as _date, timedelta as _td
+    db = database.get_db()
+    uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
+    h1 = db.execute("SELECT id FROM hanzi LIMIT 1").fetchone()
+    h2 = db.execute("SELECT id FROM hanzi LIMIT 1 OFFSET 1").fetchone()
+    db.execute("UPDATE users SET plan_start=?, day_offset=0 WHERE id=?", (_date.today().isoformat(), uid))
+    db.execute("DELETE FROM quiz_log WHERE user_id=?", (uid,))
+    db.execute("DELETE FROM user_hanzi WHERE user_id=?", (uid,))
+    db.execute("DELETE FROM weekly_reports WHERE user_id=?", (uid,))
+    for i in range(6, 0, -1):                     # 6 个历史活动日 → 今天=第 7 活动日=周测日
+        d = (_date.today() - _td(days=i)).isoformat()
+        db.execute("INSERT INTO quiz_log(user_id, hanzi_id, phase, quiz_type, correct, ts) "
+                   "VALUES(?,?, 'review', 'listen', 1, ?)", (uid, h1["id"], d))
+    db.commit()
+    db.close()
+    t = scheduler.build_today(uid)
+    check("前置：今日为周测日", t.get("mode") == "weekly" and t.get("week_no") == 1, t.get("mode"))
+    # 周测只答 1 题（开头未结算）
+    scheduler.submit(uid, h2["id"], "weekly", "listen", True)
+    real_today = scheduler.today_str
+    try:
+        scheduler.today_str = lambda: (_date.today() + _td(days=1)).isoformat()
+        t = scheduler.build_today(uid)
+        check("部分完成后次日仍周测(续做)", t.get("mode") == "weekly" and not t.get("done")
+              and t.get("week_no") == 1, {k: t.get(k) for k in ("mode", "week_no", "done")})
+        scheduler.weekly_finish(uid, 1, 1, 2, [])
+        t = scheduler.build_today(uid)
+        check("结算后次日恢复学习日", t.get("mode") == "learn", t.get("mode"))
+        scheduler.today_str = lambda: (_date.today() + _td(days=2)).isoformat()
+        t = scheduler.build_today(uid)
+        check("结算后隔日仍学习日(不回潮)", t.get("mode") == "learn", t.get("mode"))
+    finally:
+        scheduler.today_str = real_today  # noqa
+    reset_user()
 
 
 def content_gate_tests():
@@ -505,13 +546,119 @@ def content_gate_tests():
     reset_user()   # 本组自带清理
 
 
+def throttle_bank_tests():
+    """积压节流 + 题库工程（2026-11-03 拍板）：复习供给封顶/新字减半；题库变体随机轮换；
+    两层退化分工守卫（lsent 运行时生成不被银行 listen 截胡）；离线生成确定性"""
+    print("== 积压节流 ==")
+    import database, scheduler
+    from datetime import date as _date, timedelta as _td
+    reset_user()
+    db = database.get_db()
+    uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
+    db.execute("UPDATE users SET grade='1A', target_chars=52, plan_days=30, plan_start=?, onboarded=1 WHERE id=?",
+               (_date.today().isoformat(), uid))
+    y = (_date.today() - _td(days=1)).isoformat()
+    due = db.execute(f"""SELECT h.id FROM hanzi h WHERE h.book='1a' AND {scheduler.CONTENT_READY}
+                         ORDER BY h.seq LIMIT 65""").fetchall()
+    for r in due:
+        db.execute("INSERT INTO user_hanzi(user_id, hanzi_id, status, stage, next_date, first_date) "
+                   "VALUES(?,?,'learning',1,?,?)", (uid, r["id"], y, y))
+    db.commit()
+    db.close()
+    t = scheduler.build_today(uid)
+    check("积压 65 复习供给封顶 30", len(t["review"]) == scheduler.REVIEW_CAP, len(t["review"]))
+    check("积压日新字减半(2→1)", len(t["new"]) == 1, len(t["new"]))
+    db = database.get_db()
+    db.execute("DELETE FROM user_hanzi WHERE user_id=?", (uid,))       # 清积压 → 只留 5 个到期
+    for r in due[:5]:
+        db.execute("INSERT INTO user_hanzi(user_id, hanzi_id, status, stage, next_date, first_date) "
+                   "VALUES(?,?,'learning',1,?,?)", (uid, r["id"], y, y))
+    db.commit()
+    db.close()
+    t = scheduler.build_today(uid)
+    check("非积压日不受节流(复习5/新字2)", len(t["review"]) == 5 and len(t["new"]) == 2,
+          (len(t["review"]), len(t["new"])))
+    reset_user()
+
+    print("== 题库工程 ==")
+    db = database.get_db()
+    # 变体随机轮换：regen v2 场景多为"v1 打回+v2 通过"，同字同题型双 verified 未必存在——
+    # 取任意 ≥2 变体的 (字,题型)，临时双 verify 后观测轮换，恢复原状
+    row = db.execute("""SELECT hanzi_id, quiz_type FROM questions
+                        GROUP BY hanzi_id, quiz_type HAVING COUNT(DISTINCT payload) >= 2 LIMIT 1""").fetchone()
+    if row:
+        vids = [r["id"] for r in db.execute(
+            "SELECT id FROM questions WHERE hanzi_id=? AND quiz_type=?",
+            (row["hanzi_id"], row["quiz_type"]))]
+        vmarks = {r["id"]: r["verified"] for r in db.execute(
+            f"SELECT id, verified FROM questions WHERE id IN ({','.join('?' * len(vids))})", vids)}
+        db.execute(f"UPDATE questions SET verified=1 WHERE id IN ({','.join('?' * len(vids))})", vids)
+        db.commit()
+        try:
+            seen_sets = set()
+            for _ in range(40):
+                q = scheduler.gen_quiz(row["hanzi_id"], row["quiz_type"])
+                seen_sets.add(frozenset(q.get("options") or [q.get("stem") or q.get("lines")]))
+            check("题库变体随机轮换(≥2 种选项组合)", len(seen_sets) >= 2, len(seen_sets))
+        finally:
+            for qid, v in vmarks.items():
+                db.execute("UPDATE questions SET verified=? WHERE id=?", (v, qid))
+            db.commit()
+    else:
+        check("题库变体随机轮换[跳过：库无多变体字]", True)
+    # 两层退化分工：银行全下架后 pin 落 listen 生成；lsent 仍运行时生成（不被银行 listen 截胡）
+    h1 = db.execute("""SELECT h.id FROM hanzi h WHERE h.book='1a' AND
+                       EXISTS(SELECT 1 FROM questions q WHERE q.hanzi_id=h.id AND q.verified=1)
+                       LIMIT 1""").fetchone()
+    qids = [r["id"] for r in db.execute("SELECT id FROM questions WHERE hanzi_id=?", (h1["id"],))]
+    marks = {r["id"]: r["verified"] for r in db.execute(
+        f"SELECT id, verified FROM questions WHERE id IN ({','.join('?' * len(qids))})", qids)}
+    db.execute(f"UPDATE questions SET verified=0 WHERE id IN ({','.join('?' * len(qids))})", qids)
+    db.commit()
+    try:
+        q = scheduler.gen_quiz(h1["id"], "pin")
+        check("银行缺货 pin 运行时退化=listen（DAG 终点）", q and q["quiz_type"] == "listen",
+              q and q["quiz_type"])
+        q = scheduler.gen_quiz(h1["id"], "lsent")
+        check("lsent 无题库设计：运行时生成 lsent（勿被银行 listen 截胡）",
+              q and q["quiz_type"] == "lsent", q and q["quiz_type"])
+    finally:
+        for qid, v in marks.items():
+            db.execute("UPDATE questions SET verified=? WHERE id=?", (v, qid))
+        db.commit()
+    db.close()
+
+    print("== 离线生成确定性 ==")
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    import gen_questions as _gq
+    db = database.get_db()
+    h2 = db.execute("""SELECT h.* FROM hanzi h JOIN zi_content c ON c.hanzi_id=h.id
+                       WHERE h.book='1a' LIMIT 1""").fetchone()
+    c2 = db.execute("SELECT * FROM zi_content WHERE hanzi_id=?", (h2["id"],)).fetchone()
+    valid = scheduler._valid_words(db)
+    db.close()
+    import sqlite3 as _sq
+    gq_db = _sq.connect(_gq.DB)
+    gq_db.row_factory = _sq.Row
+    words = json.loads(c2["words"]) if c2["words"] else []
+    sents = json.loads(c2["sentences"]) if c2["sentences"] else [c2["sentence"] or ""]
+    a = _gq.gen_for_char(gq_db, h2, words, sents, valid, set(), c2["mean"], c2["avoid"])
+    b = _gq.gen_for_char(gq_db, h2, words, sents, valid, set(), c2["mean"], c2["avoid"])
+    gq_db.close()
+    same = all(a[k] == b[k] for k in a if not k.endswith("_checks"))
+    check("gen_for_char 同字重跑产出一致（确定性干扰）", same and "listen" in a,
+          [k for k in a if a.get(k) != b.get(k)])
+
+
 if __name__ == "__main__":
     api_tests()
     state_machine_tests()
     review_done_tests()
     weekly_done_tests()
+    weekly_resume_tests()
     plan_renew_tests()
     confirm_more_tests()
+    throttle_bank_tests()
     content_gate_tests()
     gate_question_tests()
     report_tests()
