@@ -141,9 +141,9 @@ def set_grade(body: GradeIn, request: Request):
     db = database.get_db()
     try:
         db.execute("UPDATE users SET grade=? WHERE id=?", (body.grade, user["id"]))
-        if (user["grade"] or "") != body.grade:   # 换册：旧册摸底未决项与水位作废
+        if (user["grade"] or "") != body.grade:   # 换册：旧册摸底未决项与水位作废（含跨册水位）
             db.execute("DELETE FROM confirm_pick WHERE user_id=? AND result IS NULL", (user["id"],))
-            db.execute("UPDATE users SET confirm_upto=0 WHERE id=?", (user["id"],))
+            db.execute("UPDATE users SET confirm_upto=0, confirm_book=NULL WHERE id=?", (user["id"],))
         db.commit()
     finally:
         db.close()

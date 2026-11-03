@@ -60,6 +60,13 @@ def ready_books():
         db.close()
 
 
+def _ready_books_from(db, book):
+    """本册及之后的内容就绪册（升序）——摸底补摸与新字供应的跨册边界。"""
+    return [r["book"] for r in db.execute(
+        f"SELECT DISTINCT h.book FROM hanzi h WHERE {CONTENT_READY} AND h.book>=? ORDER BY h.book",
+        (book,))]
+
+
 def _d(s):
     return date.fromisoformat(s)
 
@@ -75,8 +82,9 @@ def create_plan(user_id, target_chars, days):
         days = max(int(days), MIN_PLAN_DAYS)
         user = db.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
         book = book_of(user)
+        # 池边界=本册+后续内容就绪册（跨册补齐）：本册可用不足时不压目标
         pool = db.execute(f"""SELECT COUNT(*) n FROM hanzi h
-            WHERE h.book=? AND {CONTENT_READY} AND NOT EXISTS (SELECT 1 FROM user_hanzi uh
+            WHERE h.book>=? AND {CONTENT_READY} AND NOT EXISTS (SELECT 1 FROM user_hanzi uh
                               WHERE uh.user_id=? AND uh.hanzi_id=h.id
                                 AND uh.status IN ('skipped','learning','mastered'))""",
                           (book, user_id)).fetchone()["n"]
@@ -113,7 +121,10 @@ def confirm_batches(user):
         rows = db.execute(f"""SELECT id, char, pinyin, unit, seq FROM hanzi h
                               WHERE h.book=? AND {CONTENT_READY} ORDER BY seq LIMIT ?""",
                           (book_of(user), n)).fetchall()
-        db.execute("UPDATE users SET confirm_upto=? WHERE id=?", (n, user["id"]))
+        # 水位连同册一起重置：摸底页中途重进再调本函数，跨册残留（confirm_book='2a'）
+        # 会让 confirm_more 的已供应总数口径错乱
+        db.execute("UPDATE users SET confirm_upto=?, confirm_book=NULL WHERE id=?",
+                   (n, user["id"]))
         db.commit()
         out = []
         for i in range(0, len(rows), CONFIRM_BATCH):
@@ -124,29 +135,46 @@ def confirm_batches(user):
 
 
 def confirm_more(user):
-    """轮次补摸：池内确认生词（摸过且未 pass）< 目标且册内还有未摸字时，
-    供应下一批（水位顺延 50/批）。全册摸完仍不足 → target 收敛到实际生词数
-    （消除目标悬空），返回 None 开始学习。"""
+    """轮次补摸（跨册顺延）：池内确认生词（摸过且未 pass）< 目标时供应下一批
+    （水位顺延 50/批）。本册摸尽 → 切下一内容就绪册从头摸（2026-11-03 拍板：
+    识字量优先于教材同步，不告知家长）；所有册摸尽仍不足 → target 收敛到实际
+    生词数（消除目标悬空），返回 None 开始学习。"""
     db = get_db()
     try:
         target = user["target_chars"] or 0
+        cur = user["confirm_book"] or book_of(user)
         upto = user["confirm_upto"] or 0
-        total = db.execute(f"SELECT COUNT(*) n FROM hanzi h WHERE h.book=? AND {CONTENT_READY}",
-                           (book_of(user),)).fetchone()["n"]
-        passed = db.execute("""SELECT COUNT(*) n FROM confirm_pick p JOIN hanzi h ON h.id=p.hanzi_id
-                               WHERE p.user_id=? AND h.book=? AND p.result='pass'""",
-                            (user["id"], book_of(user))).fetchone()["n"]
-        raw = upto - passed                    # 摸过且确认生词（未选+验证 fail 回池）
-        if target <= raw or upto >= total:
-            if target > raw:                   # 全册摸完仍不足：目标收敛（生词全在这了）
+        books = _ready_books_from(db, book_of(user))
+        passed = db.execute("""SELECT COUNT(*) n FROM confirm_pick p
+                               WHERE p.user_id=? AND p.result='pass'""",
+                            (user["id"],)).fetchone()["n"]
+        # 已供应总数 = 已摸尽册字数和 + 当前册水位（摸过的字必属已供应册，passed 全量等价）
+        supplied = upto
+        for b in books[:books.index(cur)]:
+            supplied += db.execute(f"""SELECT COUNT(*) n FROM hanzi h
+                                       WHERE h.book=? AND {CONTENT_READY}""",
+                                   (b,)).fetchone()["n"]
+        raw = supplied - passed                # 摸过且确认生词（未选+验证 fail 回池）
+        total_cur = db.execute(f"""SELECT COUNT(*) n FROM hanzi h
+                                   WHERE h.book=? AND {CONTENT_READY}""",
+                               (cur,)).fetchone()["n"]
+        if target <= raw:
+            return None
+        if upto >= total_cur:                  # 当前册尽
+            if cur == books[-1]:               # 最后一册也尽：目标收敛（生词全在这了）
                 db.execute("UPDATE users SET target_chars=? WHERE id=?", (max(raw, 1), user["id"]))
                 db.commit()
-            return None
-        n2 = min(CONFIRM_BATCH, total - upto)
+                return None
+            cur, upto = books[books.index(cur) + 1], 0
+            total_cur = db.execute(f"""SELECT COUNT(*) n FROM hanzi h
+                                       WHERE h.book=? AND {CONTENT_READY}""",
+                                   (cur,)).fetchone()["n"]
+        n2 = min(CONFIRM_BATCH, total_cur - upto)
         rows = db.execute(f"""SELECT id, char, pinyin, unit, seq FROM hanzi h
                               WHERE h.book=? AND {CONTENT_READY} ORDER BY seq
-                              LIMIT ? OFFSET ?""", (book_of(user), n2, upto)).fetchall()
-        db.execute("UPDATE users SET confirm_upto=? WHERE id=?", (upto + n2, user["id"]))
+                              LIMIT ? OFFSET ?""", (cur, n2, upto)).fetchall()
+        db.execute("UPDATE users SET confirm_book=?, confirm_upto=? WHERE id=?",
+                   (cur, upto + n2, user["id"]))
         db.commit()
         return [dict(r) for r in rows]
     finally:
@@ -286,16 +314,16 @@ def build_today(user_id):
         new_ids = list(learned_today)
         if len(new_ids) < daily_new:
             for r in db.execute(f"""SELECT id, char FROM hanzi h
-                WHERE h.book=? AND {CONTENT_READY} AND NOT EXISTS (SELECT 1 FROM user_hanzi uh WHERE uh.user_id=? AND uh.hanzi_id=h.id
+                WHERE h.book>=? AND {CONTENT_READY} AND NOT EXISTS (SELECT 1 FROM user_hanzi uh WHERE uh.user_id=? AND uh.hanzi_id=h.id
                                   AND uh.status IN ('skipped','learning','mastered'))
                 AND NOT EXISTS (SELECT 1 FROM quiz_log q WHERE q.user_id=? AND q.hanzi_id=h.id AND q.phase='learn')
-                ORDER BY seq LIMIT ?""", (book_of(user), user_id, user_id, daily_new - len(new_ids))):
+                ORDER BY h.book, h.seq LIMIT ?""", (book_of(user), user_id, user_id, daily_new - len(new_ids))):
                 new_ids.append(r["id"])
         # stroke_seen 随新字下发：写步首见强制看笔顺/复见直写（2026-11-03 拍板）
         new_chars = [dict(r) for r in db.execute(
             f"""SELECT h.id, h.char, h.pinyin, h.tone3, COALESCE(uh.stroke_seen, 0) stroke_seen
                 FROM hanzi h LEFT JOIN user_hanzi uh ON uh.hanzi_id=h.id AND uh.user_id=?
-                WHERE h.id IN ({','.join('?'*len(new_ids))}) ORDER BY h.seq""",
+                WHERE h.id IN ({','.join('?'*len(new_ids))}) ORDER BY h.book, h.seq""",
             (user_id, *new_ids))] if new_ids else []
         # new 只含未学字：当日已学字曾混入 new——重进后 intro 误报"还有新字"、点开始
         # 又整卡重学一遍（2026-11-01 实锤）。重进恢复走 learned_today，已完成当日 new 为空。
@@ -318,7 +346,7 @@ def build_today(user_id):
         learned_today_chars = [dict(r) for r in db.execute(
             f"""SELECT DISTINCT h.id, h.char, h.pinyin, h.tone3 FROM quiz_log q
                JOIN hanzi h ON h.id=q.hanzi_id
-               WHERE q.user_id=? AND q.phase='learn' AND q.ts=? AND {CONTENT_READY} ORDER BY h.seq""",
+               WHERE q.user_id=? AND q.phase='learn' AND q.ts=? AND {CONTENT_READY} ORDER BY h.book, h.seq""",
             (user_id, t))]
         # 当日已答复习/抽检数（完成页统计真源：重进后 review 列表只剩未答项，直接取 length 会少计）
         review_done = db.execute(

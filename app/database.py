@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
   plan_start    TEXT,                             -- 计划：起始日（日历日）
   plan_base_learned INTEGER DEFAULT 0,            -- 建计划时的已学数（达成=learned-base>=target，续订增量记账）
   confirm_upto    INTEGER DEFAULT 0,              -- 摸底供应水位：已展示过的字数（按 seq，轮次补摸）
+  confirm_book    TEXT,                           -- 摸底跨册水位：当前供应册（NULL=本册；本册摸尽顺延下一内容就绪册）
   onboarded     INTEGER DEFAULT 0,                -- 1=引导流完成（年级+计划+摸底）
   day_offset    INTEGER DEFAULT 0,                -- TEST 跳日：虚拟日历偏移天（"今天"=真实今天+偏移）
   created_at    TEXT DEFAULT (datetime('now'))
@@ -154,6 +155,11 @@ def init_db():
     # 迁移：旧库补摸底水位列（轮次补摸，新库 SCHEMA 已含）
     try:
         db.execute("ALTER TABLE users ADD COLUMN confirm_upto INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    # 迁移：摸底跨册供应册列（跨册补齐，新库 SCHEMA 已含）
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN confirm_book TEXT")
     except sqlite3.OperationalError:
         pass
     # 迁移：旧库补计划基准列（v29 续订增量记账，新库 SCHEMA 已含）
