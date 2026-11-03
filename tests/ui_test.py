@@ -172,6 +172,11 @@ def run(page):
     reset_test_user()
     # ---- 登录 ----
     page.goto(BASE, wait_until="networkidle")
+    # secure context 自检：容器 IP 直连（http://172.x.x.x）非安全上下文 → mediaDevices
+    # undefined → 朗读卡会话录音/回放断言必挂（环境问题，非产品 bug——2026-11-03 误判教训）。
+    # BASE 必须是 127.0.0.1/localhost 或 https。
+    check("secure context（mediaDevices 可用）", page.evaluate("() => !!navigator.mediaDevices"),
+          BASE)
     patch_playbuf(page)
     patch_playbuf(page)
     check("登录页", page.locator(".login-card").count() == 1)

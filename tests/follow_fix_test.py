@@ -96,6 +96,11 @@ def run(page):
     page.on("request", lambda r: verify_reqs.append(r.url) if "/api/follow/verify" in r.url else None)
     # ---- 登录 → 引导（验证轮已砍）→ 首张新字卡认步 ----
     page.goto(BASE, wait_until="networkidle")
+    # secure context 自检：容器 IP 直连（http://172.x.x.x）非安全上下文 → mediaDevices
+    # undefined → gUM/录音链路全灭，跟读相关断言会以诡异形态挂（2026-11-03 误判"产品
+    # bug"一小时）。BASE 必须是 127.0.0.1/localhost 或 https。
+    check("secure context（mediaDevices 可用）", page.evaluate("() => !!navigator.mediaDevices"),
+          BASE)
     page.fill("input[autocomplete=username]", "test")
     page.fill("input[type=password]", "test123")
     page.click("button.btn.big")
@@ -181,12 +186,12 @@ if __name__ == "__main__":
                   "--use-fake-ui-for-media-stream"])
         page = browser.new_page(viewport={"width": 820, "height": 1100})
         page.on("pageerror", lambda e: errors.append(str(e)))
-        page.on("response", lambda r: v47.append(r.status) if "app.js?v=48" in r.url else None)
+        page.on("response", lambda r: v47.append(r.status) if "app.js?v=" in r.url else None)
         try:
             run(page)
         finally:
             browser.close()
-    check("T3 app.js?v=48 加载 200", v47 == [200], v47)
+    check("T3 app.js?v=N 加载 200（版本 bust 生效）", v47 == [200], v47)
     check("T3 无 JS pageerror", not errors, errors[:3])
     reset_test_user()   # teardown
     print(f"\n{PASS_N} pass / {FAIL_N} fail  （截图: tests/shots/fix-*.png）")
