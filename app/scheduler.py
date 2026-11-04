@@ -111,16 +111,23 @@ def create_plan(user_id, target_chars, days):
 def confirm_batches(user):
     """摸底速选首批：本册按 seq 取目标×1.3 起步（大目标全册），并记供应水位
     confirm_upto——验证轮结束后若池内确认生词 < 目标，confirm_more 按水位
-    轮次补摸（保证"开始学习时生词≥目标"，摸过的字不再重复出现）。"""
+    轮次补摸（保证"开始学习时生词≥目标"，摸过的字不再重复出现）。
+    已有 user_hanzi 记录的字（learning/mastered/skipped）不进摸底表格——
+    2026-11-04 事故恢复配套：confirm_submit 的 ON CONFLICT 会把已学字覆盖成
+    skipped（复习链断），已学字本就不该再摸。水位=过滤后口径，OFFSET 语义不变。"""
     db = get_db()
     try:
         target = user["target_chars"] or 0
-        total = db.execute(f"SELECT COUNT(*) n FROM hanzi h WHERE h.book=? AND {CONTENT_READY}",
-                           (book_of(user),)).fetchone()["n"]
+        uid = user["id"]
+        _nl = ("NOT EXISTS (SELECT 1 FROM user_hanzi uh "
+               "WHERE uh.user_id=? AND uh.hanzi_id=h.id)")
+        total = db.execute(f"SELECT COUNT(*) n FROM hanzi h WHERE h.book=? AND {CONTENT_READY} "
+                           f"AND {_nl}", (book_of(user), uid)).fetchone()["n"]
         n = min(total, math.ceil(target * 1.3)) if target else total
         rows = db.execute(f"""SELECT id, char, pinyin, unit, seq FROM hanzi h
-                              WHERE h.book=? AND {CONTENT_READY} ORDER BY seq LIMIT ?""",
-                          (book_of(user), n)).fetchall()
+                              WHERE h.book=? AND {CONTENT_READY} AND {_nl}
+                              ORDER BY seq LIMIT ?""",
+                          (book_of(user), uid, n)).fetchall()
         # 水位连同册一起重置：摸底页中途重进再调本函数，跨册残留（confirm_book='2a'）
         # 会让 confirm_more 的已供应总数口径错乱
         db.execute("UPDATE users SET confirm_upto=?, confirm_book=NULL WHERE id=?",
@@ -142,22 +149,26 @@ def confirm_more(user):
     db = get_db()
     try:
         target = user["target_chars"] or 0
+        uid = user["id"]
         cur = user["confirm_book"] or book_of(user)
         upto = user["confirm_upto"] or 0
         books = _ready_books_from(db, book_of(user))
+        _nl = ("NOT EXISTS (SELECT 1 FROM user_hanzi uh "
+               "WHERE uh.user_id=? AND uh.hanzi_id=h.id)")
         passed = db.execute("""SELECT COUNT(*) n FROM confirm_pick p
                                WHERE p.user_id=? AND p.result='pass'""",
                             (user["id"],)).fetchone()["n"]
-        # 已供应总数 = 已摸尽册字数和 + 当前册水位（摸过的字必属已供应册，passed 全量等价）
+        # 已供应总数 = 已摸尽册字数和 + 当前册水位（摸过的字必属已供应册，passed 全量等价；
+        # 同 confirm_batches 过滤口径：已学字不占摸底名额）
         supplied = upto
         for b in books[:books.index(cur)]:
             supplied += db.execute(f"""SELECT COUNT(*) n FROM hanzi h
-                                       WHERE h.book=? AND {CONTENT_READY}""",
-                                   (b,)).fetchone()["n"]
+                                       WHERE h.book=? AND {CONTENT_READY} AND {_nl}""",
+                                   (b, uid)).fetchone()["n"]
         raw = supplied - passed                # 摸过且确认生词（未选+验证 fail 回池）
         total_cur = db.execute(f"""SELECT COUNT(*) n FROM hanzi h
-                                   WHERE h.book=? AND {CONTENT_READY}""",
-                               (cur,)).fetchone()["n"]
+                                   WHERE h.book=? AND {CONTENT_READY} AND {_nl}""",
+                               (cur, uid)).fetchone()["n"]
         if target <= raw:
             return None
         if upto >= total_cur:                  # 当前册尽
@@ -167,12 +178,12 @@ def confirm_more(user):
                 return None
             cur, upto = books[books.index(cur) + 1], 0
             total_cur = db.execute(f"""SELECT COUNT(*) n FROM hanzi h
-                                       WHERE h.book=? AND {CONTENT_READY}""",
-                                   (cur,)).fetchone()["n"]
+                                       WHERE h.book=? AND {CONTENT_READY} AND {_nl}""",
+                                   (cur, uid)).fetchone()["n"]
         n2 = min(CONFIRM_BATCH, total_cur - upto)
         rows = db.execute(f"""SELECT id, char, pinyin, unit, seq FROM hanzi h
-                              WHERE h.book=? AND {CONTENT_READY} ORDER BY seq
-                              LIMIT ? OFFSET ?""", (cur, n2, upto)).fetchall()
+                              WHERE h.book=? AND {CONTENT_READY} AND {_nl} ORDER BY seq
+                              LIMIT ? OFFSET ?""", (cur, uid, n2, upto)).fetchall()
         db.execute("UPDATE users SET confirm_book=?, confirm_upto=? WHERE id=?",
                    (cur, upto + n2, user["id"]))
         db.commit()
