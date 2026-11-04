@@ -651,6 +651,18 @@ def throttle_bank_tests():
 
 
 if __name__ == "__main__":
+    # 2026-11-04 事故闸门：e2e 的 reset_user 会清空 mido 全部学习数据，但 mido 已转
+    # 孩子正式账号（report.py 黑名单已移出）——线上库有 mido 数据时一律拒绝运行。
+    # e2e 全面切换 test 账号前，本闸门是唯一的防误清线。检测到数据即退出，不执行任何清理。
+    import database as _db_guard
+    _g = _db_guard.get_db()
+    _n = _g.execute("SELECT COUNT(*) FROM user_hanzi WHERE user_id=("
+                    "SELECT id FROM users WHERE username='mido')").fetchone()[0]
+    _g.close()
+    if _n:
+        print("⛔ 拒绝运行：线上库 mido（孩子正式账号）有学习数据，e2e 会清空它。\n"
+              "   e2e 切换 test 账号前不得对线上库执行。详见 tests/e2e.py 顶部闸门注释。")
+        sys.exit(2)
     api_tests()
     state_machine_tests()
     review_done_tests()
