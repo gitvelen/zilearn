@@ -977,6 +977,12 @@ const root = createApp({
         });
       } else if (it.type === "readcard") {
         const item = it;
+        /* 中途哑声自愈（2026-11-04 遥测实锤：六关约 10min 后 readcard 范读 played=1/
+           model_ms 正常但全程无声、孩子 13 句零跟读）——ctx "running 但输出未开"形态：
+           onended 照常触发，v49 超时自愈（onended 永不来）不覆盖。此处仍在 gate summary
+           点击→advance 的同步栈内（用户激活窗口），弃旧建新借手势 resume，等效每次进
+           朗读卡重启音频。LRU buffer 跨 ctx 复用与 v49 _ctxSus 自愈同模式，不清缓存 */
+        this._resetPlayCtx(); this._ensurePlayCtx();
         this.loadReadLines().then(async () => {
           if (this.curItem !== item) return;
           this._beginNarr(9000);                     /* 指令播放期点行不作废跟读启动（定时器锁） */
