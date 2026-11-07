@@ -858,6 +858,22 @@ const root = createApp({
     },
 
     /* ---------- 今日 ---------- */
+    /* 分关断点（2026-11-07 mido 实报事故）：关进度/当日完成标记存 localStorage（跨标签页、
+       app 被杀存活；原 gateDone 存 sessionStorage，iPad 杀 app 即丢）。键=虚拟日（TEST
+       跳日同语义）。当日完成=finishSession（含朗读卡走完），非"三空"——三空只说明
+       new/review/audit 供给项做完，分关测验+朗读卡是当日任务尾部，不在三项里 */
+    gateKey() { return "gateProg_" + (this.today.date || ""); },
+    gateProg() { try { return JSON.parse(localStorage.getItem(this.gateKey())) || {}; } catch { return {}; } },
+    gateProgAdd(gate, id) {
+      const p = this.gateProg();
+      (p[gate] ||= []).push(id);
+      localStorage.setItem(this.gateKey(), JSON.stringify(p));
+    },
+    dailyDoneKey() { return "dailyDone_" + (this.today.date || ""); },
+    dailyDoneToday() { return localStorage.getItem(this.dailyDoneKey()) === "1"; },
+    todayPendingMore() {                    /* 三空但关/朗读卡未完：重进恢复入口 */
+      return !this.dailyDoneToday() && (this.today.learned_today || []).length > 0;
+    },
     async loadToday() {
       this.today = await api("GET", "/api/today");
       const me = await api("GET", "/api/me"); this.progress = me.progress;
@@ -867,8 +883,10 @@ const root = createApp({
       this.warmMic();                                 /* 手势上下文预热麦克风+AudioContext（跟读校验依赖） */
       this._ensurePlayCtx();                          /* 手势上下文预热播放 ctx（iPad autoplay：解锁一次全程可用） */
       if (this.today.mode === "learn") {
-        if (!this.today.new.length && !this.today.review.length && !this.today.audit.length) {
-          this.goParent(); return;              /* 当日已清空（重进）：直接看成绩，不空转 */
+        if (!this.today.new.length && !this.today.review.length && !this.today.audit.length
+            && (this.dailyDoneToday() || !(this.today.learned_today || []).length)) {
+          this.goParent(); return;              /* 当日真做完（或当日零任务）：直接看成绩。
+                                       学过字但关未完 → 不在此列，走下方重建关队列断点续做 */
         }
         this.phase = "newlearn"; this.buildLearnQueue();
       }
@@ -888,13 +906,24 @@ const root = createApp({
       this.today.new.forEach(h => q.push({ type: "newcard", ...h }));             // 新字连播（纯呈现+跟读）
       gen.forEach(r => q.push({ type: "reviewquiz", phase: "review", ...r }));    // 复习沉淀
       this.today.audit.forEach(r => q.push({ type: "auditquiz", phase: "audit", ...r }));
-      /* 分关：重进恢复——today.new 只含未学字（build_today 已剔除当日已学），关池 =
-         未学字 ∪ 当日已学（关未完成时）；当日全部学完且关已过 → 不重建。
+      /* 分关断点续做（2026-11-07 mido 实报根治）：关池 = 未学字 ∪ 当日已学（当日未走完时）；
+         每关跳过"当日已答字"（真源=服务端流水 today.gate_done，与 localStorage gateProg 取并集：
+         流水覆盖 v50 旧答题/换设备/清缓存，localStorage 覆盖本设备实时断点），答完的关整关跳过。
+         原 gateDone(sessionStorage) 杀 app 即丢；更早版本三空时根本进不来（直接甩成绩页）。
          写字关已删（2026-11-02 拍板）：新字卡第 4 步描红已覆盖写字，测验不重复 */
-      const gateDone = sessionStorage.getItem("gateDone_" + this.today.date) === "1";
+      const dailyDone = this.dailyDoneToday();
+      const prog = this.gateProg();
+      const QT2G = { listen: 1, pin: 2, mean: 3, lsent: 4, defi: 5 };
+      for (const [qt, ids] of Object.entries(this.today.gate_done || {})) {
+        const g = QT2G[qt];
+        if (g) prog[g] = [...new Set([...(prog[g] || []), ...ids])];   /* 并集：任一真源说答过即不重做 */
+      }
+      const srvScore = {};
+      for (const [qt, ids] of Object.entries(this.today.gate_correct || {}))
+        if (QT2G[qt]) srvScore[QT2G[qt]] = ids.length;
       const seenIds = new Set(this.today.new.map(h => h.id));
       const news = [...this.today.new,
-        ...(!gateDone ? (this.today.learned_today || []).filter(l => !seenIds.has(l.id)) : [])];
+        ...(dailyDone ? [] : (this.today.learned_today || []).filter(l => !seenIds.has(l.id)))];
       if (news.length) {
         const gates = [
           { gate: 1, label: "听音关", qt: "listen", icon: "👂" },
@@ -905,13 +934,16 @@ const root = createApp({
         ];
         const lastGate = gates[gates.length - 1].gate;
         gates.forEach(g => {
-          const chars = [...news].sort(() => Math.random() - 0.5);   // 各关独立乱序
+          const doneIds = new Set(prog[g.gate] || []);
+          const chars = [...news].filter(h => !doneIds.has(h.id))
+            .sort(() => Math.random() - 0.5);   // 各关独立乱序
+          if (!chars.length) return;            // 该关当日已答完（重进）：整关跳过
           chars.forEach(h => q.push({ type: "gatequiz", phase: "learn",
             gate: g.gate, quiz_type: g.qt, ...h }));
           q.push({ type: "gatesummary", gate: g.gate, label: g.label, icon: g.icon,
-                   total: chars.length, isLast: g.gate === lastGate });
+                   total: news.length, isLast: g.gate === lastGate });   /* 关分母=关池全量（重进含服务端起底分） */
         });
-        this.gateScores = Object.fromEntries(gates.map(g => [g.gate, 0]));
+        this.gateScores = Object.fromEntries(gates.map(g => [g.gate, srvScore[g.gate] || 0]));
         this.gateWrong = Object.fromEntries(gates.map(g => [g.gate, []]));
         q.push({ type: "readcard" });              // 朗读收尾
         this.readNews = news;                      // readcard 行=本次关池字
@@ -1290,6 +1322,7 @@ const root = createApp({
         await send({ hanzi_id: it.id, phase: "learn",
           quiz_type: this.curQuiz.quiz_type, correct });
         if (first) {
+          this.gateProgAdd(it.gate, it.id);      /* 关进度落 localStorage：中途退出重进不重做已答字 */
           if (correct) this.gateScores[it.gate]++;
           else this.gateWrong[it.gate].push(this.curQuiz.hanzi);
         }
@@ -1360,9 +1393,8 @@ const root = createApp({
         api("POST", "/api/submit", { hanzi_id: done.id, phase: "learn",
           quiz_type: "card", correct: true });
       }
-      /* 全部关过完 → 标记当日关完成（重进不重建关队列；键=虚拟日，跳日后同一天不误判已过） */
-      if (done && done.type === "gatesummary" && done.isLast)
-        sessionStorage.setItem("gateDone_" + this.today.date, "1");
+      /* 当日完成标记已挪 finishSession（2026-11-07）：gateDone(sessionStorage) 杀 app 即丢，
+         且"最后一关过完"≠当日完成（还有朗读卡），重进误判两头的根源 */
       this.stopNarration();
       this.sessIdx++;
       this.enterItem();
@@ -1376,6 +1408,8 @@ const root = createApp({
         localStorage.removeItem(this.weeklyKey());   /* 已结算，清断点 */
         this.phase = "weekly-done";
       } else {
+        localStorage.setItem(this.dailyDoneKey(), "1");   /* 当日真完成（含朗读卡）：此后重进直接看成绩 */
+        localStorage.removeItem(this.gateKey());          /* 关进度随日结清（残键日积无害，顺手清） */
         this.doneStats.new = this.today.new.length || (this.today.learned_today || []).length;   /* 重进恢复场景 new 为空 */
         this.doneStats.review = this.today.review_done != null ? this.today.review_done
           : this.today.review.length + this.today.audit.length;   /* 重进后 review 只剩未答项，取当日已答真源（scheduler review_done） */

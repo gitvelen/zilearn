@@ -364,9 +364,26 @@ def build_today(user_id):
             """SELECT COUNT(DISTINCT hanzi_id) n FROM quiz_log
                WHERE user_id=? AND ts>=? AND phase IN ('review','audit')""",
             (user_id, t)).fetchone()["n"]
+        # 当日分关进度（2026-11-07 mido 实报事故）：关题流水按题型分组（题型↔关固定映射
+        # listen→1 pin→2 mean→3 lsent→4 defi→5）。真源=服务端流水——v50 及更早答题无前端
+        # gateProg、换设备/清缓存同此，已答字不重做（做题数据不丢）。退化（pin 题库缺货
+        # 落 listen）会把该字记入 listen 组，前端与 localStorage 并集后至多"某字某关少答
+        # 一次"，不卡流程。done=答过(含错，错字 D+1 复习兜底)；correct=答对(关分起底)。
+        gate_done, gate_correct = {}, {}
+        for r in db.execute("""SELECT quiz_type, hanzi_id, correct FROM quiz_log
+                               WHERE user_id=? AND ts>=? AND phase='learn' AND quiz_type!='card'
+                               ORDER BY rowid""", (user_id, t)):
+            gate_done.setdefault(r["quiz_type"], [])
+            if r["hanzi_id"] not in gate_done[r["quiz_type"]]:
+                gate_done[r["quiz_type"]].append(r["hanzi_id"])
+            if r["correct"]:
+                gate_correct.setdefault(r["quiz_type"], [])
+                if r["hanzi_id"] not in gate_correct[r["quiz_type"]]:
+                    gate_correct[r["quiz_type"]].append(r["hanzi_id"])
         return {"mode": "learn", "day_index": di, "new": new_chars,
                 "review": reviews, "audit": audits,
                 "learned_today": learned_today_chars, "review_done": review_done,
+                "gate_done": gate_done, "gate_correct": gate_correct,
                 "date": t}
     finally:
         db.close()

@@ -93,6 +93,11 @@
         </div>
         <div class="hint">大概 {{estToday}} 分钟</div>
       </template>
+      <template v-else-if="todayPendingMore()">
+        <div class="big-emoji">🚪</div>
+        <div class="row-of-stats"><span>还有闯关小测验没做完哦</span></div>
+        <div class="hint">继续闯完关，就是今天的小冠军！</div>
+      </template>
       <template v-else>
         <div class="big-emoji">🌞</div>
         <div class="row-of-stats"><span>今天的任务都完成啦！</span></div>
@@ -114,12 +119,12 @@
     </template>
     <div v-else class="hint">计划信息丢失了，退出重新登录试试</div>
   </div>
-  <button class="btn big pulse" v-if="today.mode && !today.done && (today.mode!=='learn' || today.new.length || today.review.length || today.audit.length)"
-          @click="startToday">开始学习 🚀</button>
+  <button class="btn big pulse" v-if="today.mode && !today.done && (today.mode!=='learn' || today.new.length || today.review.length || today.audit.length || todayPendingMore())"
+          @click="startToday">{{todayPendingMore() && !today.new.length ? '继续闯关 🚀' : '开始学习 🚀'}}</button>
   <div class="hint mic-hint" v-if="today.mode==='learn' && !today.done && (today.new.length || today.review.length || today.audit.length)"
        >🎤 跟读要用麦克风：第一次使用，弹出的小窗请点"允许"</div>
   <button class="btn ghost" v-if="isTest && today.mode" @click="skipDay">⏭️ 直接学下一天</button>
-  <button class="btn ghost" v-if="today.done || (today.mode==='learn' && !today.new.length && !today.review.length && !today.audit.length)"
+  <button class="btn ghost" v-if="today.done || (today.mode==='learn' && !today.new.length && !today.review.length && !today.audit.length && !todayPendingMore())"
           @click="goParent">看看成绩 📊</button>
 </div>
 
@@ -427,6 +432,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=50"></script>
+<script src="/app.js?v=52"></script>
 </body>
 </html>
