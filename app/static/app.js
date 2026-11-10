@@ -1297,8 +1297,8 @@ const root = createApp({
       this.playSfx(this.quizCorrect ? "ok" : "no");
       if (this.quizCorrect) {
         this.burst();                             /* 答对星星迸发：夸奖要看得见 */
-        if (qz.quiz_type === "sent")
-          setTimeout(() => this.playFile(`s_${qz.hanzi}_1`), 450);   /* 音效后再听整句 */
+        /* sent 答对不播整句（2026-11-10 拍板）：目标是选字，900ms advance 掐断整句
+           只剩 0.45s 断头音；语境回听已在答错半卡（手点句子） */
       } else {
         setTimeout(() => {                        /* 答错 600ms 后自动讲解：字音→题型语境音频 */
           if (this.curQuiz === qz && this.quizRevealed) this._wrongAudio(qz);
