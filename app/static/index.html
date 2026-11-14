@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>字乐 zilearn</title>
-<link rel="stylesheet" href="/style.css?v=13">
+<link rel="stylesheet" href="/style.css?v=14">
 </head>
 <body>
 <div id="app" v-cloak>
@@ -175,10 +175,29 @@
       </div>
     </template>
 
-    <!-- ② 词：整体连听（环境音）→ 自由点选（逐词跟读槽已删，2026-11-03 拍板"词步回自由"） -->
+    <!-- ② 词：整体连听（环境音）→ 字找朋友（v55 组词产出练习，无门槛）→ 自由点选
+         （逐词跟读槽已删，2026-11-03 拍板"词步回自由"；互动期藏词块防照抄，完成后回显） -->
     <template v-else-if="ncStep===2">
-      <div class="nc-title">{{narrLock ? '先听一听这些词 🔊' : '「'+curItem.char+'」和好朋友手拉手，点一点听一听'}}</div>
-      <div v-if="curContent && curContent.words && curContent.words.length" class="words-row big">
+      <div v-if="quizBurst" class="burst">
+        <span v-for="(d,k) in BURST_DIRS" :key="k" :style="{'--dx': d[0], '--dy': d[1]}">⭐</span>
+      </div>
+      <div class="nc-title">{{narrLock ? '先听一听这些词 🔊'
+        : (wf && !wf.allDone ? '「'+curItem.char+'」的好朋友藏在下面，点一点找出来 🔍'
+                             : '「'+curItem.char+'」和好朋友手拉手，点一点听一听')}}</div>
+      <div v-if="!narrLock && wf" class="wf-zone">
+        <div class="wf-combos">
+          <span v-for="p in wf.parts" :key="p.ch" class="wf-combo"
+                :class="{done: p.done}">{{ p.done ? p.word : '？＿' }}</span>
+        </div>
+        <div class="wf-tiles">
+          <button v-for="t in wf.tiles" :key="t" class="wf-tile"
+                  :class="{done: wfDoneCh(t), shake: wf.wrong===t}"
+                  :disabled="wf.allDone" @click="wfTap(t)">{{t}}</button>
+        </div>
+        <div v-if="wf.allDone" class="wf-cheer">🎉 全部找到啦！点上面的词，再听一听</div>
+      </div>
+      <div v-if="curContent && curContent.words && curContent.words.length
+                 && (narrLock || !wf || wf.allDone)" class="words-row big">
         <button v-for="(w,i) in curContent.words" :key="w" class="word-chip big"
                 @click="followWordClick(i)" v-html="wordHtml(w)"></button>
       </div>
@@ -262,10 +281,12 @@
         <button class="speak-xl" @click="playChar(curQuiz.hanzi)">🔊</button>
         <div class="hint">听一听，是哪个字？</div>
       </div>
-      <!-- mean: 组词补全 -->
+      <!-- mean: 组词补全（v55 读题音频：听词看挖空选字，考察口语词汇→字形映射；
+           原纯视觉默读书面词形对一年级超纲——mido 组词题 65% 根因之一） -->
       <div v-else-if="curQuiz.quiz_type==='mean'" class="quiz-stem">
         <div class="cloze-xl">{{curQuiz.stem}}</div>
-        <div class="hint">想一想，空格里是哪个字？</div>
+        <button class="speak-xl" v-if="curQuiz.hint_word" @click="meanAudioPlay(curQuiz)">🔊</button>
+        <div class="hint">听一听词语，空格里是哪个字？</div>
       </div>
       <!-- sent: 句子填空 -->
       <div v-else-if="curQuiz.quiz_type==='sent'" class="quiz-stem">
@@ -310,6 +331,16 @@
       <div v-if="quizRevealed && !quizCorrect" class="wrong-note">
         <template v-if="curQuiz.quiz_type==='find'">「{{curQuiz.hanzi}}」一共有 {{curQuiz.count}} 个，都点亮给你看啦</template>
         <template v-else>正确答案：<b>{{curQuiz.answer}}</b></template>
+        <!-- v55 对比教学：错字代入挖空（不是词）vs 正确词并排可见——原反馈"再听一遍"无新信息，
+             重考通过率仅 50%；对比行给可区分的视觉证据（quizPick 已守 reveal 域，find 无此变量不进） -->
+        <template v-if="curQuiz.quiz_type==='mean' && curQuiz.stem && curQuiz.hint_word
+                        && quizPick && quizPick!==curQuiz.answer">
+          <div class="wc-compare">
+            <div class="wc-bad">{{curQuiz.stem.replace('＿', quizPick)}} ✗ 不是词</div>
+            <div class="wc-good">{{curQuiz.hint_word}} ✓ <button class="speak-sm"
+                     @click="meanAudioPlay(curQuiz)">🔊</button></div>
+          </div>
+        </template>
         <div v-if="curContent && curContent.words" class="wrong-card">
           <div class="wc-line">
             <span v-for="w in curContent.words" :key="w" class="word-chip">{{w}}</span>
@@ -432,6 +463,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=53"></script>
+<script src="/app.js?v=55"></script>
 </body>
 </html>

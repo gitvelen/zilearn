@@ -26,11 +26,14 @@ const root = createApp({
   data() {
     return {
       phase: "boot", loginForm: { u: "", p: "" }, loginErr: "", userName: "", isTest: false,
-      progress: {}, obGrade: "", obTarget: 300, obDays: 50, planEst: null, gradesReady: [], obKick: false,
+      progress: {}, obGrade: "", obTarget: 300, obDays: 30, planEst: null, gradesReady: [], obKick: false,
+      /* obDays 默认必须在 chips [7,14,30,60,90] 内：曾是 50（不在选项里），
+         无 chip 高亮、不点选直接提交就落一个 50 天计划（mido 11-10 续订实锤） */
       confirmBatches: [], confirmPage: 0, confirmPicked: [],
       today: {}, sessQueue: [], sessIdx: 0,
       ncStep: 1, readLines: [], readPlaying: false, readCur: "",
       curQuiz: null, quizPick: null, quizRevealed: false, quizCorrect: false, quizPending: null,
+      wf: null,                                       /* v55 词步字找朋友（组词产出练习）状态 */
       weeklyDoneIds: [],
       curContent: null, weeklyScore: 0, weeklyTotal: 0, weeklyWrong: [], weeklyWrongIds: [],
       traceMsg: "", tracing: false, traceDone: false, traceFallback: false, traceWatched: false,
@@ -338,6 +341,7 @@ const root = createApp({
         this._endNarr();
         this.startFollow("char");                /* 认步读字槽（强制窗） */
       } else if (this.ncStep === 2) {
+        this.wf = this._buildWF();               /* v55 字找朋友：每次进词步重建（ncGo 跳回也重置重听） */
         this._beginNarr(10000);
         await this.playFile(`w_${ch}`);          /* 整体连听（环境音），完毕转自由点选 */
         if (stale()) return;
@@ -716,6 +720,53 @@ const root = createApp({
       if (this.narrLock) return;
       this.playOne(`n_${this.curItem.char}_${i + 1}`);
     },
+    /* ---------- v55 词步字找朋友（组词产出练习） ----------
+       根因：组词知识此前只有"呈现"（连听+自由点选）没有"教学"，从见过词直接跳四选一
+       挖空——mido 组词题 65%/错题字其他题型 83% 的分裂即此（语素组合知识需专门练习，
+       中大词素组合游戏研究）。互动是增强非门槛：无锁无判错，与 2026-11-03 拍板
+       "词步回自由"（删强制跟读）精神一致 */
+    _buildWF() {
+      const ch = this.curItem && this.curItem.char;
+      const ws = this.curContent && this.curContent.words;
+      if (!ch || !ws || !ws.length) return null;
+      const parts = [], seen = new Set([ch]);
+      for (let i = 0; i < ws.length && parts.length < 4; i++) {
+        const w = ws[i];
+        if (w.length !== 2 || w[0] === w[1]) continue;      // 只取二字词，排除叠字（爸爸→伙伴是自己）
+        const other = w[0] === ch ? w[1] : (w[1] === ch ? w[0] : null);
+        if (!other || seen.has(other)) continue;            // 词不含目标字 / 伙伴字去重
+        seen.add(other);
+        parts.push({ ch: other, word: w, i, done: false });
+      }
+      if (!parts.length) return null;
+      /* 干扰池 = 本会话已过字（昨日重现+今日已学新字，四五快读"用已学字组词"） */
+      const pool = [];
+      for (let k = 0; k < this.sessIdx; k++) {
+        const it = this.sessQueue[k];
+        if (it && it.char && !seen.has(it.char) && !pool.includes(it.char)
+          && (it.type === "newcard" || it.type === "reviewquiz" || it.type === "auditquiz"))
+          pool.push(it.char);
+      }
+      const nDis = Math.min(4, 8 - parts.length, pool.length);
+      if (nDis < 2) return null;                            // 首日首字等池不足：跳过互动（增强非门槛）
+      const tiles = [...parts.map(p => p.ch), ...pool.slice(0, nDis)]
+        .sort(() => Math.random() - 0.5);
+      return { parts, tiles, wrong: "", allDone: false };
+    },
+    wfDoneCh(t) { return !!(this.wf && this.wf.parts.some(p => p.ch === t && p.done)); },
+    wfTap(t) {
+      if (!this.wf || this.wf.allDone) return;
+      const p = this.wf.parts.find(x => x.ch === t && !x.done);
+      if (p) {
+        p.done = true;
+        this.playOne(`n_${this.curItem.char}_${p.i + 1}`);   // 点对：该词单词音即奖励（不叠 sfx 盖词音）
+        if (this.wf.parts.every(x => x.done)) { this.wf.allDone = true; this.burst(); }
+      } else if (!this.wfDoneCh(t)) {                       // 干扰字：摇头轻音，不判错不计数
+        this.wf.wrong = t;
+        this.playSfx("no", 0.3);
+        setTimeout(() => { if (this.wf) this.wf.wrong = ""; }, 400);
+      }
+    },
     followSentClick(i) {
       if (this.narrLock) return;
       if (this.follow.on) { if (i === this.follow.idx) this.followReplay(); return; }
@@ -992,6 +1043,7 @@ const root = createApp({
       const it = this.curItem;
       if (this.readAudioUrl) { URL.revokeObjectURL(this.readAudioUrl); this.readAudioUrl = ""; }
       this.curQuiz = null; this.quizRevealed = false; this.quizCorrect = false; this.curContent = null;
+      this.wf = null;
       this.tracing = false; this.traceDone = false; this.traceFallback = false; this.traceWatched = false;
       this.traceMsg = "✏️ 点米字格，跟着橙色笔顺写一写";
       this.findFound = []; this.findMisses = 0; this.findMiss = "";
@@ -1158,6 +1210,7 @@ const root = createApp({
       if (t === "listen" || t === "find") this._preload(q.hanzi);
       else if (t === "rev" || t === "lsent" || t === "defi") this._preload(q.audio);
       else if (t === "sent") this._preload(`s_${q.hanzi}_1`);
+      else if (t === "mean") { if (q.audio) this._preloadFile(q.audio); this._preload(`w_${q.hanzi}`); }
     },
     _prefetchItem(it) {
       /* 会话推进统一预取（2026-11-02 卡顿整治）：题面+题干音频+内容+笔画数据。
@@ -1231,6 +1284,8 @@ const root = createApp({
       else if (aqt === "find") setTimeout(() => { if (this.curQuiz === qz) this.playChar(qz.hanzi); }, promptMs);
       else if (aqt === "rev" || aqt === "lsent" || aqt === "defi")
         setTimeout(() => { if (this.curQuiz === qz) this.playFile(qz.audio); }, promptMs);
+      else if (aqt === "mean")   /* v55：听词看挖空选字（原纯视觉默读书面词形，一年级口语词汇>>书面词形再认） */
+        setTimeout(() => { if (this.curQuiz === qz) this.meanAudioPlay(qz); }, promptMs);
     },
     /* ---------- 找一找（点出句/词中所有目标字） ---------- */
     findTap(li, ti, ch) {
@@ -1282,6 +1337,13 @@ const root = createApp({
       const t = qz.quiz_type;
       if (t === "defi" || t === "rev" || t === "lsent") return this.playFile(qz.audio);
       if (t === "mean" || t === "sent") return this.playFile(`w_${qz.hanzi}`);
+    },
+    async meanAudioPlay(qz) {
+      /* v55 mean 读题音频：hint_word 单词音（后端按 words 实时索引算好 audio 字段），
+         缺失/播放被拒回退组词连读 w_（预载两个都拉，回退零迟滞） */
+      if (!qz) return;
+      const ok = await this.playFile(qz.audio || `w_${qz.hanzi}`);
+      if (!ok && qz.audio && qz.audio !== `w_${qz.hanzi}`) this.playFile(`w_${qz.hanzi}`);
     },
     optClass(o) {
       if (!this.quizRevealed) return "";
@@ -1377,6 +1439,8 @@ const root = createApp({
           .catch(() => null);
         if (!this.curQuiz) return this.advance();
         if (this.curQuiz.quiz_type === "listen") setTimeout(() => this.playChar(this.curQuiz.hanzi), 400);
+        else if (this.curQuiz.quiz_type === "mean")   /* v55：重测同题干，读题音频一并重播（原仅 listen 补播） */
+          setTimeout(() => this.meanAudioPlay(this.curQuiz), 400);
         return;
       }
       this.advance();
