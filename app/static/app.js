@@ -73,7 +73,12 @@ const root = createApp({
       const studyDays = d - Math.floor(d / 7);           /* 每周 1 天周测不投新字 */
       const daily = Math.max(1, Math.ceil(t / studyDays));
       const est = Math.round((daily * 2.5 + daily * 4 * 0.2 + 3) * 10) / 10;
-      return { daily_new: daily, study_days: studyDays, est_minutes: est, over_30min: est > 30 };
+      /* 题量提示（2026-11-14 拍板）：峰值≈4×daily（间隔链 1/3/7/14 铺满后）。
+         30/60 与 scheduler.py 的 REVIEW_CAP / NEW_THROTTLE_AT 保持同步：
+         超 30=复习顺延分日消化；超 60=新字自动放缓、实际完成超所选天数 */
+      const peak = daily * 4;
+      return { daily_new: daily, study_days: studyDays, est_minutes: est, over_30min: est > 30,
+               review_peak: peak, over_cap: peak > 30, over_slow: peak > 60 };
     },
     estToday() {
       const n = (this.today.new || []).length, r = (this.today.review || []).length + (this.today.audit || []).length;
