@@ -72,7 +72,7 @@ const root = createApp({
       const d = this.obDays || 1, t = this.obTarget || 1;
       const studyDays = d - Math.floor(d / 7);           /* 每周 1 天周测不投新字 */
       const daily = Math.max(1, Math.ceil(t / studyDays));
-      const est = Math.round((daily * 2.5 + daily * 4 * 0.2 + 3) * 10) / 10;
+      const est = Math.round((daily * 2.5 + daily * 6 * 0.2 + 3) * 10) / 10;   /* 6 关（v59 读音关 +1） */
       /* 题量提示（2026-11-14 拍板）：峰值≈4×daily（间隔链 1/3/7/14 铺满后）。
          30/60 与 scheduler.py 的 REVIEW_CAP / NEW_THROTTLE_AT 保持同步：
          超 30=复习顺延分日消化；超 60=新字自动放缓、实际完成超所选天数 */
@@ -82,7 +82,7 @@ const root = createApp({
     },
     estToday() {
       const n = (this.today.new || []).length, r = (this.today.review || []).length + (this.today.audit || []).length;
-      return Math.round(n * 3.5 + r * 0.3 + 3.5);
+      return Math.round(n * 3.7 + r * 0.3 + 3.5);   /* v59 读音关：每新字 +1 题 ≈ +0.2 分 */
     },
     planDone() {                                   /* 本期达成：learned-基准线>=目标（续订增量记账） */
       const p = this.progress;
@@ -829,7 +829,7 @@ const root = createApp({
       if (t === "newcard") return "✨ 新字探索";
       if (t === "readcard") return "📖 今日朗读";
       if (t === "gatequiz" || t === "gatesummary")
-        return `🚪 第${this.curItem.gate}关 · ${["听音", "拼音", "组词", "听句", "字义"][this.curItem.gate - 1]}`;
+        return `🚪 第${this.curItem.gate}关 · ${["听音", "读音", "拼音", "组词", "听句", "字义"][this.curItem.gate - 1]}`;
       if (this.phase === "weekly") return "🏆 周大挑战";
       if (t === "auditquiz") return "🕵️ 小侦探抽查";
       return "🎯 复习挑战";
@@ -971,7 +971,7 @@ const root = createApp({
          写字关已删（2026-11-02 拍板）：新字卡第 4 步描红已覆盖写字，测验不重复 */
       const dailyDone = this.dailyDoneToday();
       const prog = this.gateProg();
-      const QT2G = { listen: 1, pin: 2, mean: 3, lsent: 4, defi: 5 };
+      const QT2G = { listen: 1, py: 2, pin: 3, mean: 4, lsent: 5, defi: 6 };
       for (const [qt, ids] of Object.entries(this.today.gate_done || {})) {
         const g = QT2G[qt];
         if (g) prog[g] = [...new Set([...(prog[g] || []), ...ids])];   /* 并集：任一真源说答过即不重做 */
@@ -985,10 +985,11 @@ const root = createApp({
       if (news.length) {
         const gates = [
           { gate: 1, label: "听音关", qt: "listen", icon: "👂" },
-          { gate: 2, label: "拼音关", qt: "pin", icon: "🔤" },
-          { gate: 3, label: "组词关", qt: "mean", icon: "🧩" },
-          { gate: 4, label: "听句关", qt: "lsent", icon: "🎧" },
-          { gate: 5, label: "字义关", qt: "defi", icon: "💡" },
+          { gate: 2, label: "读音关", qt: "py", icon: "🔡" },
+          { gate: 3, label: "拼音关", qt: "pin", icon: "🔤" },
+          { gate: 4, label: "组词关", qt: "mean", icon: "🧩" },
+          { gate: 5, label: "听句关", qt: "lsent", icon: "🎧" },
+          { gate: 6, label: "字义关", qt: "defi", icon: "💡" },
         ];
         const lastGate = gates[gates.length - 1].gate;
         gates.forEach(g => {
@@ -1214,7 +1215,7 @@ const root = createApp({
     _preload(name) { this._preloadFile(name + ".mp3"); },
     _preloadQuizAudio(q) {                       /* 题干音频按题型确定（与 startQuiz 自动播音同源） */
       const t = q.quiz_type;
-      if (t === "listen" || t === "find") this._preload(q.hanzi);
+      if (t === "listen" || t === "find" || t === "py") this._preload(q.hanzi);   /* py：预载字音供错后讲解（fetch≠播放不泄题） */
       else if (t === "rev" || t === "lsent" || t === "defi") this._preload(q.audio);
       else if (t === "sent") this._preload(`s_${q.hanzi}_1`);
       else if (t === "mean") { if (q.audio) this._preloadFile(q.audio); this._preload(`w_${q.hanzi}`); }
@@ -1275,7 +1276,7 @@ const root = createApp({
       this.quizPending = it;
       const aqt = this.curQuiz.quiz_type;   /* 实际题型（可能与请求不同：题库退化） */
       const PROMPT = { listen: "q_listen", mean: "q_mean", sent: "q_sent",
-                       find: "q_find", pin: "q_pin", rev: "q_rev",
+                       find: "q_find", pin: "q_pin", py: "q_py", rev: "q_rev",
                        lsent: "q_lsent", defi: "q_defi" };
       /* 玩法指令每会话每题型只播首次（2026-10-30 用户反馈：每题都播听着烦，
          且指令 2-3s 比答题慢，常"做完了还没读完"）；后续题自动播音不再等指令 */
@@ -1328,10 +1329,10 @@ const root = createApp({
          find（词句中点目标字）=纯字形匹配游戏，不认识字也能玩，砍出复习/周测池。
          周测 scope 无 stage → 通用池。题库缺题型由后端 _QB_DEGRADE 退化链兜底。 */
       const st = it && it.stage;
-      const pool = st === 0 ? ["listen", "mean"]
-        : st === 1 ? ["sent", "mean"]
-        : st >= 2 ? ["lsent", "defi", "sent"]
-        : ["listen", "mean", "sent", "lsent", "defi"];
+      const pool = st === 0 ? ["listen", "mean", "py"]
+        : st === 1 ? ["sent", "mean", "py"]
+        : st >= 2 ? ["lsent", "defi", "sent", "py"]
+        : ["listen", "py", "mean", "sent", "lsent", "defi"];
       return pool[Math.floor(Math.random() * pool.length)];
     },
     async _wrongAudio(qz) {

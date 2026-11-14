@@ -318,7 +318,7 @@ def run(page):
     check("家长长按步指示器越步(新字2认→词)", app(page)["nc"] == 2)
     follow_wait(page, False, timeout=5000)       # 点走后跟读链终止
     quiz_seq, gates_seen = [], 0
-    while gates_seen < 5:
+    while gates_seen < 6:
         st = app(page)
         if st["type"] == "newcard":
             # 新字2：预标 stroke_seen（复见场景）+ 长按跳步直达"写"（家长快进）
@@ -363,13 +363,25 @@ def run(page):
         quiz_seq.append(qt)
         if len(quiz_seq) == 1:
             shot(page, "08-gate1-listen")
+        if qt == "py":                       # v59 读音关题卡专项：大字题干+衬线拼音选项
+            qz = page.evaluate("() => window.ziapp.curQuiz")
+            zi = page.locator(".quiz-stem .zi-xl")
+            check("py 题干大字渲染（zi-xl=目标字）",
+                  zi.count() == 1 and zi.inner_text().strip() == qz["hanzi"], zi.inner_text() if zi.count() else None)
+            check("py 选项容器 pyopts+4 拼音（含声调符）",
+                  page.locator(".opts.pyopts .opt").count() == 4
+                  and all(any(c in t for c in "āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü")
+                          for t in [b.inner_text() for b in page.locator(".opts.pyopts .opt").all()]),
+                  [b.inner_text() for b in page.locator(".opts.pyopts .opt").all()])
+            shot(page, "09-gate2-py")
         answer_quiz(page)
         page.wait_for_timeout(1400)
-    check(f"五关题序 listen,pin,mean,lsent,defi 各×2（{quiz_seq}）",
-          quiz_seq[0:2] == ["listen", "listen"] and quiz_seq[2:4] == ["pin", "pin"]
-          and quiz_seq[4:6] == ["mean", "mean"] and quiz_seq[6:8] == ["lsent", "lsent"]
-          and quiz_seq[8:10] == ["defi", "defi"], quiz_seq)
-    check("两字共 10 题", len(quiz_seq) == 10, quiz_seq)
+    check(f"六关题序 listen,py,pin,mean,lsent,defi 各×2（{quiz_seq}）",
+          quiz_seq[0:2] == ["listen", "listen"] and quiz_seq[2:4] == ["py", "py"]
+          and quiz_seq[4:6] == ["pin", "pin"] and quiz_seq[6:8] == ["mean", "mean"]
+          and quiz_seq[8:10] == ["lsent", "lsent"] and quiz_seq[10:12] == ["defi", "defi"],
+          quiz_seq)
+    check("两字共 12 题", len(quiz_seq) == 12, quiz_seq)
 
     # ---- 今日朗读卡（收尾：指令→逐句跟读→自由朗读） ----
     st = app(page)

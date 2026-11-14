@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>字乐 zilearn</title>
-<link rel="stylesheet" href="/style.css?v=15">
+<link rel="stylesheet" href="/style.css?v=16">
 </head>
 <body>
 <div id="app" v-cloak>
@@ -293,6 +293,12 @@
         <div class="sent-stem">{{curQuiz.stem}}</div>
         <div class="hint">读一读句子，空格里是哪个字？</div>
       </div>
+      <!-- py: 看字选拼音（读音关 v59）：大字题干（.zi-xl 既有样式启用）；不播音——
+           播音=泄题，错后 _wrongAudio 的 playChar 播课内定音即教学闭环 -->
+      <div v-else-if="curQuiz.quiz_type==='py'" class="quiz-stem">
+        <div class="zi-xl">{{curQuiz.hanzi}}</div>
+        <div class="hint">看一看字，哪个是它的拼音？</div>
+      </div>
       <!-- pin: 看拼音选字 -->
       <div v-else-if="curQuiz.quiz_type==='pin'" class="quiz-stem">
         <div class="pinyin-xl">{{curQuiz.stem}}</div>
@@ -324,7 +330,7 @@
                   :disabled="quizRevealed" @click="findTap(li,ti,ch)">{{ch}}</button>
         </div>
       </div>
-      <div v-if="curQuiz.options" class="opts" :class="{four: curQuiz.options.length===4}">
+      <div v-if="curQuiz.options" class="opts" :class="{four: curQuiz.options.length===4, pyopts: curQuiz.quiz_type==='py'}">
         <button v-for="(o,i) in curQuiz.options" :key="i" class="opt"
                 :class="optClass(o)" :disabled="quizRevealed" @click="pickOpt(o)">{{o}}</button>
       </div>
@@ -463,6 +469,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=58"></script>
+<script src="/app.js?v=59"></script>
 </body>
 </html>

@@ -215,6 +215,7 @@ input:focus { outline: none; border-color: #ffb74d; }
   transition: transform .18s cubic-bezier(.34,1.56,.64,1); }   /* 弹性回弹按压 */
 .opt:not(:disabled):active { transform: scale(.94); }
 .opt.char-opt { font-size: 46px; font-family: "Kaiti SC", KaiTi, STKaiti, serif; }
+.opts.pyopts .opt { font-family: Georgia, "Times New Roman", serif; font-size: 34px; }   /* py 拼音选项（v59，镜像 .pinyin-xl 衬线） */
 .opt.good { background: #e8f5e9; border-color: #66bb6a; color: #2e7d32; }
 .opt.bad { background: #ffebee; border-color: #ef5350; color: #c62828; animation: shake .3s; }
 @keyframes shake { 25% {transform: translateX(-6px);} 75% {transform: translateX(6px);} }
