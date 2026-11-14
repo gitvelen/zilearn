@@ -183,6 +183,7 @@ input:focus { outline: none; border-color: #ffb74d; }
 .wf-tiles { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .wf-tile { width: 72px; height: 72px; border-radius: 16px; border: 3px solid #ffe0b2; background: #fffbf5;
   font-size: 40px; font-weight: 700; color: #5d4037; font-family: "Kaiti SC", KaiTi, STKaiti, serif;
+  display: flex; align-items: center; justify-content: center; padding: 0;   /* v58：显式居中（iPad WebKit 原生按钮默认内边距致字偏右） */
   transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
 .wf-tile:not(:disabled):active { transform: scale(.92); }
 .wf-tile.done { background: #e8f5e9; border-color: #66bb6a; color: #2e7d32; opacity: .9; }
@@ -196,7 +197,8 @@ input:focus { outline: none; border-color: #ffb74d; }
 .find-title { font-size: 22px; font-weight: 800; color: #5d4037; text-align: center; }
 .find-line { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 .find-tile { width: 52px; height: 52px; border-radius: 12px; border: 2px solid #ffe0b2; background: #fffbf5;
-  font-size: 30px; font-weight: 700; color: #5d4037; font-family: "Kaiti SC", KaiTi, STKaiti, serif; }
+  font-size: 30px; font-weight: 700; color: #5d4037; font-family: "Kaiti SC", KaiTi, STKaiti, serif;
+  display: flex; align-items: center; justify-content: center; padding: 0;   /* v58：同 wf-tile 显式居中 */ }
 .find-tile.hit { background: #e8f5e9; border-color: #66bb6a; color: #2e7d32; animation: pop .25s; }
 .find-tile.reveal { background: #fff8e1; border-color: #ffb300; color: #ff8f00; }
 .find-tile.shake { animation: shake .3s; background: #ffebee; border-color: #ef5350; }

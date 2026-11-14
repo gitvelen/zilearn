@@ -347,8 +347,10 @@ const root = createApp({
         this.startFollow("char");                /* 认步读字槽（强制窗） */
       } else if (this.ncStep === 2) {
         this.wf = this._buildWF();               /* v55 字找朋友：每次进词步重建（ncGo 跳回也重置重听） */
-        this._beginNarr(10000);
+        this._beginNarr(11000);                  /* cap=音频+1s 停留（原 10s 会把 >9s 音频的停留截短） */
         await this.playFile(`w_${ch}`);          /* 整体连听（环境音），完毕转自由点选 */
+        if (stale()) return;
+        await new Promise(r => setTimeout(r, 1000));  /* v58：读完词多停留 1s 再切找朋友（用户反馈切太快） */
         if (stale()) return;
         this._endNarr();
       } else if (this.ncStep === 3) {
@@ -1289,8 +1291,7 @@ const root = createApp({
       else if (aqt === "find") setTimeout(() => { if (this.curQuiz === qz) this.playChar(qz.hanzi); }, promptMs);
       else if (aqt === "rev" || aqt === "lsent" || aqt === "defi")
         setTimeout(() => { if (this.curQuiz === qz) this.playFile(qz.audio); }, promptMs);
-      else if (aqt === "mean")   /* v55：听词看挖空选字（原纯视觉默读书面词形，一年级口语词汇>>书面词形再认） */
-        setTimeout(() => { if (this.curQuiz === qz) this.meanAudioPlay(qz); }, promptMs);
+      /* v58：mean 不再自动读题（用户拍板）——错后对比教学 🔊 保留（meanAudioPlay），q_mean 玩法指令照播 */
     },
     /* ---------- 找一找（点出句/词中所有目标字） ---------- */
     findTap(li, ti, ch) {
@@ -1444,8 +1445,6 @@ const root = createApp({
           .catch(() => null);
         if (!this.curQuiz) return this.advance();
         if (this.curQuiz.quiz_type === "listen") setTimeout(() => this.playChar(this.curQuiz.hanzi), 400);
-        else if (this.curQuiz.quiz_type === "mean")   /* v55：重测同题干，读题音频一并重播（原仅 listen 补播） */
-          setTimeout(() => this.meanAudioPlay(this.curQuiz), 400);
         return;
       }
       this.advance();

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>字乐 zilearn</title>
-<link rel="stylesheet" href="/style.css?v=14">
+<link rel="stylesheet" href="/style.css?v=15">
 </head>
 <body>
 <div id="app" v-cloak>
@@ -282,12 +282,11 @@
         <button class="speak-xl" @click="playChar(curQuiz.hanzi)">🔊</button>
         <div class="hint">听一听，是哪个字？</div>
       </div>
-      <!-- mean: 组词补全（v55 读题音频：听词看挖空选字，考察口语词汇→字形映射；
-           原纯视觉默读书面词形对一年级超纲——mido 组词题 65% 根因之一） -->
+      <!-- mean: 组词补全（v58 拍板去读题音频：进题/重测不自动播、题面🔊删，看挖空默读选字；
+           错后对比教学 🔊 仍用 meanAudioPlay 播后端 audio 字段） -->
       <div v-else-if="curQuiz.quiz_type==='mean'" class="quiz-stem">
         <div class="cloze-xl">{{curQuiz.stem}}</div>
-        <button class="speak-xl" v-if="curQuiz.hint_word" @click="meanAudioPlay(curQuiz)">🔊</button>
-        <div class="hint">听一听词语，空格里是哪个字？</div>
+        <div class="hint">看一看词语，空格里是哪个字？</div>
       </div>
       <!-- sent: 句子填空 -->
       <div v-else-if="curQuiz.quiz_type==='sent'" class="quiz-stem">
@@ -464,6 +463,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=57"></script>
+<script src="/app.js?v=58"></script>
 </body>
 </html>
