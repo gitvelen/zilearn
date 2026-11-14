@@ -51,7 +51,9 @@
 - **https://zi.velen.ltd**（Caddy 自动 HTTPS，反代 zilearn:8000，main_default 网络）
 - 修改 Caddyfile 后必须 `docker restart main-caddy-1`（单文件挂载绑定 inode，reload 读不到重写后的文件）
 - 容器内 pip 需清华源（直连 pypi 不可达）
-- `docker compose up -d --build` 重建代码后：`docker exec zilearn python seed.py hanzi`（幂等）
+- `docker compose up -d --build` 重建代码后**无需跑 seed**：字表/内容/题库都在持久卷 DB（./app/data），镜像重建不动它。
+  - `seed.py hanzi` 是**全表清空重灌（含用户进度），仅限空库初始化**——有学习数据的库会被保险丝拒绝（2026-11-14 实录：曾按本条跑过一次，靠 questions 表 FK 挡下才无伤）。
+  - 线上更新字表内容用增量路径：`docker exec zilearn python seed.py content`（只 upsert zi_content）。
 
 ## 测试（本地与线上同套）
 

@@ -39,6 +39,15 @@ def py_to_tone3(py: str) -> str:
 def seed_hanzi():
     db = database.get_db()
     try:
+        # 保险丝（2026-11-14）：本函数是全表清空重灌，DELETE 清单含 user_hanzi/quiz_log/
+        # confirm_pick（用户进度）。线上库按旧 README「rebuild 后跑 seed」触发过一次，
+        # 靠 questions 表 FK（不在清单内）挡在 DELETE FROM hanzi 才未清库——侥幸无伤。
+        # 有任何用户学习数据即拒绝：seed hanzi 仅限空库初始化；线上更新内容走 seed content。
+        n = db.execute("SELECT COUNT(*) c FROM user_hanzi").fetchone()["c"]
+        n2 = db.execute("SELECT COUNT(*) c FROM quiz_log").fetchone()["c"]
+        if n or n2:
+            raise SystemExit(f"⛔ 库内有用户学习数据（user_hanzi={n} / quiz_log={n2}），"
+                             "拒绝重灌。seed hanzi 仅限空库初始化；线上更新内容请用 seed content")
         rows = list(csv.DictReader(CSV.open()))
         content = json.loads(CONTENT.read_text()) if CONTENT.exists() else {}
         for t in ("zi_content", "user_hanzi", "quiz_log", "confirm_pick"):
