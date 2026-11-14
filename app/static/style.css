@@ -61,10 +61,9 @@ input:focus { outline: none; border-color: #ffb74d; }
 
 /* ---------- 摸底字格 ---------- */
 .char-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; }
-.char-chip { background: #fff; border: 2px solid #f5e6d3; border-radius: 16px; padding: 10px 4px;
+.char-chip { background: #fff; border: 2px solid #f5e6d3; border-radius: 16px; padding: 14px 4px;
   display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .char-chip b { font-size: 30px; line-height: 1.2; color: #5d4037; }
-.char-chip small { color: #bcaaa4; font-size: 12px; }
 .char-chip.on { background: #fff8e1; border-color: #ffb300; box-shadow: 0 0 0 3px #ffe082; }
 .char-chip.on b { color: #ff8f00; }
 .char-chip.small { flex-direction: row; gap: 4px; padding: 6px 10px; }
@@ -231,7 +230,6 @@ input:focus { outline: none; border-color: #ffb74d; }
 .done-stats { display: flex; flex-direction: column; gap: 10px; font-size: 22px; font-weight: 700;
   background: #fff; padding: 24px 40px; border-radius: 24px; text-align: center; }
 .score-xl { font-size: 56px; font-weight: 900; color: #ff9800; }
-.stars-line { font-size: 28px; }
 .loading { color: #bcaaa4; padding: 40px; }
 
 /* ---------- 家长页 ---------- */
@@ -252,6 +250,11 @@ input:focus { outline: none; border-color: #ffb74d; }
 .sub.kick { color: #ef6c00; font-weight: 700; margin: 0; }
 .wr-row { padding: 6px 0; border-bottom: 1px dashed #f0e0cc; width: 100%; text-align: center; font-size: 18px; }
 .wrong-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+/* 2026-11-14 家长页重构：跟读行并入近7天卡的分区线 + 退出长按链接（防孩子误触清会话） */
+.p-sec { margin-top: 10px; border-top: 1px dashed #f0e0cc; padding-top: 10px; width: 100%; text-align: center; }
+.logout-link { border: none; background: none; color: #bcaaa4; font-size: 13px; padding: 10px 18px;
+  transition: transform .12s; }
+.logout-link.hold { transform: scale(1.1); color: #8d6e63; }
 
 /* ---------- 跟读（节奏式+音量确认：范读→留白听你读→✓，无录音） ---------- */
 .follow-bar { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 10px 0 4px; }

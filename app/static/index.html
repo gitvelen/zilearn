@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>字乐 zilearn</title>
-<link rel="stylesheet" href="/style.css?v=17">
+<link rel="stylesheet" href="/style.css?v=19">
 </head>
 <body>
 <div id="app" v-cloak>
@@ -71,13 +71,15 @@
   <div class="char-grid">
     <button v-for="c in confirmBatches[confirmPage]" :key="c.id"
             class="char-chip" :class="{on: confirmPicked.includes(c.id)}" @click="togglePick(c.id)">
-      <b>{{c.char}}</b><small>{{c.pinyin}}</small>
+      <b>{{c.char}}</b>
     </button>
   </div>
   <div class="row">
     <button class="btn ghost" v-if="confirmPage>0" @click="confirmPage--">← 上一页</button>
     <button class="btn ghost" v-if="confirmBatches.length-1 > confirmPage" @click="confirmPage++">下一页 →</button>
-    <button class="btn big" @click="confirmSubmit">{{confirmBatches.length-1 > confirmPage?'跳过剩余':'选完了，开始学 →'}}</button>
+    <!-- 跳过剩余与翻页同级（2026-11-14 拍板）：仅末页保留大按钮主 CTA -->
+    <button v-if="confirmBatches.length-1 > confirmPage" class="btn ghost" @click="confirmSubmit">跳过剩余</button>
+    <button v-else class="btn big" @click="confirmSubmit">选完了，开始学 →</button>
   </div>
 </div>
 
@@ -92,7 +94,7 @@
           <span class="task-chip new">✨ 新字 {{today.new.length}} 个</span>
           <span class="task-chip review">🎯 复习 {{today.review.length + today.audit.length}} 个</span>
         </div>
-        <div class="hint">大概 {{estToday}} 分钟</div>
+        <div class="hint">大概 {{estToday}} 分钟{{today.new.length ? ' · 学完还有闯关小测验 🚪 和小朗读 📖' : ''}}</div>
       </template>
       <template v-else-if="todayPendingMore()">
         <div class="big-emoji">🚪</div>
@@ -421,7 +423,6 @@
   <h2>{{today.grad ? '本期毕业大挑战' : '第 '+today.week_no+' 周大挑战'}}</h2>
   <div class="done-stats">
     <div class="score-xl">{{weeklyScore}} / {{weeklyTotal}}</div>
-    <div class="stars-line">⭐ × {{weeklyScore}}</div>
     <div v-if="weeklyWrong.length" class="hint">要加油的字：{{weeklyWrong.join(' ')}}</div>
     <!-- v60 毕业测：字级掌握（三题全对才算掌握）+ 三维度正确率（读/词/义） -->
     <div v-if="today.grad && gradStats" class="hint">三题全对、真正掌握：{{gradStats.mastered}} / {{gradStats.n}} 个字</div>
@@ -439,7 +440,8 @@
   <button class="btn ghost" @click="boot">完成！</button>
 </div>
 
-<!-- ============ 家长页 ============ -->
+<!-- ============ 家长页（2026-11-14 重构：四区块层次——计划/累计/近7天/测验，
+     跟读并入近7天、周测+易错合并，退出改长按防孩子误触清会话） ============ -->
 <div v-else-if="phase==='parent'" class="wizard wide">
   <h2>家长中心 👨‍👩‍👦</h2>
   <div class="p-card wide plan-card">
@@ -450,19 +452,13 @@
       <span>已学 <b>{{planLearned}}</b> 字</span>
       <span>剩 {{Math.max(0, progress.target_chars - planLearned)}} 字</span>
     </div>
-    <div class="hint">今日新学 {{todayNewN}} 字 · 复习 {{today.review_done ?? 0}} 字 · 剩余可学 {{progress.pool}} 字</div>
+    <div class="hint">今日：新学 {{todayNewN}} 字 · 复习 {{today.review_done ?? 0}} 字</div>
   </div>
   <div class="parent-grid">
-    <div class="p-card"><b>已学</b><span>{{progress.learned}} 字</span></div>
-    <div class="p-card"><b>已掌握</b><span>{{progress.mastered}} 字</span></div>
+    <div class="p-card"><b>累计已学</b><span>{{progress.learned}} 字</span></div>
+    <div class="p-card"><b>累计掌握</b><span>{{progress.mastered}} 字</span></div>
     <div class="p-card"><b>星星</b><span>⭐ {{progress.stars}}</span></div>
     <div class="p-card"><b>近7天正确率</b><span>{{trendAcc}}</span></div>
-  </div>
-  <div class="p-card wide" v-if="report && report.weekly.length">
-    <b>周测成绩</b>
-    <div v-for="w in report.weekly" :key="w.week_no" class="wr-row">
-      第 {{w.week_no}} 周：{{w.score}} / {{w.total}}（{{(w.score/w.total*100).toFixed(0)}}%）
-    </div>
   </div>
   <div class="p-card wide" v-if="report && report.trend">
     <b>近 7 天（答题 / 新学字）</b>
@@ -470,24 +466,27 @@
       <div v-for="d in report.trend" :key="d.date" class="trend-day" :title="d.date+'：'+d.ok+'/'+d.n+' 题，新学 '+d.new+' 字'">
         <div class="trend-col">
           <div class="trend-bar" :class="d.n===0 ? '' : (d.ok/d.n>=0.9 ? 'good' : d.ok/d.n>=0.7 ? 'mid' : 'low')"
-               :style="{height: (d.n ? Math.max(12, d.n*6) : 4)+'px'}"><span v-if="d.n">{{d.ok}}/{{d.n}}</span></div>
+               :style="{height: (d.n ? Math.max(12, Math.round(d.n / trendMaxN * 84)) : 4)+'px'}"><span v-if="d.n">{{d.ok}}/{{d.n}}</span></div>
         </div>
         <div class="trend-new" v-if="d.new">+{{d.new}}字</div>
         <small>{{d.label}}</small>
       </div>
     </div>
+    <div class="hint p-sec" v-if="report.follow">🎤 跟读开口 {{Math.round(report.follow.heard / report.follow.n * 100)}}%
+      ——读到 {{report.follow.heard}} / {{report.follow.n}} 次 · 超时 {{report.follow.timeout}} · 麦克风未开 {{report.follow.na}}</div>
   </div>
-  <div class="p-card wide" v-if="report && report.top_wrong.length">
-    <b>易错字 TOP</b>
-    <div class="wrong-list"><span v-for="w in report.top_wrong" :key="w.char" class="char-chip small">{{w.char}}×{{w.n}}</span></div>
+  <div class="p-card wide" v-if="report && (report.weekly.length || report.top_wrong.length)">
+    <b>测验表现</b>
+    <div v-for="w in report.weekly" :key="w.week_no" class="wr-row">
+      第 {{w.week_no}} 周：{{w.score}} / {{w.total}}（{{w.total ? (w.score/w.total*100).toFixed(0) : 0}}%）
+    </div>
+    <div class="wrong-list" v-if="report.top_wrong.length" style="margin-top:8px">
+      <span v-for="w in report.top_wrong" :key="w.char" class="char-chip small">{{w.char}}×{{w.n}}</span>
+    </div>
   </div>
-  <div class="p-card wide" v-if="report && report.follow">
-    <b>跟读开口（近 7 天）</b>
-    <span class="score-md">{{ Math.round(report.follow.heard / report.follow.n * 100) }}%</span>
-    <div class="hint">读到 {{report.follow.heard}} / {{report.follow.n}} 次 · 超时 {{report.follow.timeout}} 次 · 麦克风未开 {{report.follow.na}} 次</div>
-  </div>
-  <button class="btn ghost" @click="parentBack">← 返回</button>
-  <button class="btn ghost" @click="logout">退出登录</button>
+  <button class="btn big" @click="parentBack">← 回去继续</button>
+  <button class="logout-link" :class="{hold: holdLogout}" @pointerdown="logoutDown"
+          @pointerup="logoutUp" @pointerleave="logoutUp">🔒 长按退出登录</button>
 </div>
 
 <div v-else class="loading">加载中… 🐣</div>
@@ -495,6 +494,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=60"></script>
+<script src="/app.js?v=62"></script>
 </body>
 </html>

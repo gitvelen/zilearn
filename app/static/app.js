@@ -46,6 +46,7 @@ const root = createApp({
       micDenied: false, micState: "ok", followPop: false, quizBurst: false,
       narrLock: false, readAudioUrl: "",
       homeTip: false, homeHold: false, ncHold: -1, renewing: false, moreRound: false,
+      holdLogout: false,
       BURST_DIRS: [["-70px","-60px"],["70px","-75px"],["0px","-95px"],["-55px","55px"],["55px","65px"],["0px","-30px"]],
       gateScores: {}, gateWrong: {}, readNews: [],
     };
@@ -104,6 +105,10 @@ const root = createApp({
       const ok = this.report.trend.reduce((s, d) => s + d.ok, 0);
       return n ? Math.round(ok / n * 100) + "%" : "—";
     },
+    trendMaxN() {                                  /* 趋势柱归一化上限（原 d.n*6 无 cap：
+                                                      学习日 25+ 题柱高 150px 溢出 90px 容器压住标题） */
+      return Math.max(1, ...(this.report && this.report.trend ? this.report.trend.map(d => d.n) : [1]));
+    },
     todayNewN() {                                  /* 今日新学：完成页统计真源，重进路径取 learned_today */
       return this.doneStats.new || (this.today.learned_today || []).length;
     },
@@ -142,6 +147,14 @@ const root = createApp({
       await api("POST", "/api/logout").catch(() => { });
       this.loginForm.p = "";
       this.phase = "login";
+    },
+    /* 退出长按 1.5s（2026-11-14 拍板）：家长页孩子也会进，一次误触=清会话回登录页；
+       mido 密码无第二真源（credentials.json 实锤失配），锁在外面只能改库 */
+    logoutDown() { this._logoutT = Date.now(); this.holdLogout = true; },
+    logoutUp() {
+      this.holdLogout = false;
+      if (Date.now() - (this._logoutT || 0) >= 1500) this.logout();
+      else this.holdTip("长按一会儿才能退出哦（防止小朋友误触）");
     },
     _resetPlayCtx() {
       /* 假死自愈（2026-11-03 MIDO 实报根治位）：弃旧建新。running 状态不可信——真机
@@ -1039,7 +1052,9 @@ const root = createApp({
           q = q.concat(round);
         }
       } else {
-        q = this.today.scope.filter(h => !done.has(h.id))
+        /* done 键统一 String（v60 map(String) 后 h.id 数字恒 miss → 断点续做重跑已答题、
+           分数重复累计——ui_test"周测断点分数累计保留 2/2"实锤）；旧版数字存储同样兼容 */
+        q = this.today.scope.filter(h => !done.has(String(h.id)))
           .map(h => ({ type: "weeklyquiz", phase: "weekly", ...h }));
         for (let i = q.length - 1; i > 0; i--) {          /* 乱序（防固定顺序产生位置预期） */
           const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]];
@@ -1053,6 +1068,8 @@ const root = createApp({
       this.weeklyTotal = grad ? this.today.scope.length * 3 : this.today.scope.length;
       this.weeklyWrong = prog ? prog.wrong : [];
       this.weeklyWrongIds = prog ? prog.wrongIds : [];
+      this.weeklyDoneIds = (prog && prog.done) || [];   /* 断点续做必须恢复：不恢复则首次
+        weeklySave 把 prog.done 覆盖缩水，二次退出重进已答字重现（filter 修复暴露） */
       /* 毕业测维度/字级统计跨日续做恢复（结算展示用；普通周测为空对象） */
       this.dimScore = (prog && prog.dimScore) || {};
       this.dimTotal = (prog && prog.dimTotal) || {};
@@ -1250,7 +1267,7 @@ const root = createApp({
       if (t === "listen" || t === "find" || t === "py") this._preload(q.hanzi);   /* py：预载字音供错后讲解（fetch≠播放不泄题） */
       else if (t === "rev" || t === "lsent" || t === "defi") this._preload(q.audio);
       else if (t === "sent") this._preload(`s_${q.hanzi}_1`);
-      else if (t === "mean") { if (q.audio) this._preloadFile(q.audio); this._preload(`w_${q.hanzi}`); }
+      else if (t === "mean") { if (q.audio) this._preload(q.audio); this._preload(`w_${q.hanzi}`); }   /* q.audio 裸名须 _preload 补 .mp3（原 _preloadFile 404，走查实锤） */
       else if (t === "wf") this._preload(`w_${q.hanzi}`);   /* v60：答错讲解播组词连读，预载同 mean */
     },
     _prefetchItem(it) {

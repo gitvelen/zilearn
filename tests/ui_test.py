@@ -142,7 +142,7 @@ def reset_test_user():
     uid = conn.execute("SELECT id FROM users WHERE username='test'").fetchone()[0]
     conn.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL,
                     plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0,
-                    day_offset=0 WHERE id=?""", (uid,))
+                    day_offset=0, grad_pending=0, grad_anchor=NULL WHERE id=?""", (uid,))
     for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports",
               "follow_log", "daily_mail"):
         conn.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
@@ -212,6 +212,10 @@ def run(page):
     page.locator(".char-chip").nth(0).click()
     page.locator(".char-chip").nth(1).click()
     page.wait_for_function("window.ziapp.confirmPicked.length===2", timeout=5000)   # 点击落空防直接提交
+    # 翻到末页再提交（跳过剩余已降级 ghost，大按钮仅末页——2026-11-14 拍板）
+    while page.locator("button:has-text('下一页')").count():
+        page.locator("button:has-text('下一页')").first.click()
+        page.wait_for_timeout(300)
     page.click("button.btn.big")                 # 选完了，开始学
     page.wait_for_selector(".day-card", timeout=10000)
 
@@ -506,17 +510,20 @@ def run_weekly(page):
       await post('/api/plan/create', {target_chars: 20, days: 7});      // 池 26 字（含可学）
       const b = await fetch('/api/confirm/batches').then(r => r.json());
       const list = b.batches.flat();
-      const learnNext = async (start) => {          // 学 start 起第一个能涨 learned 的字
-        const L = (await me()).progress.learned;
-        for (let i = start; i < list.length; i++) {
-          await post('/api/submit', {hanzi_id: list[i].id, phase: 'learn', quiz_type: 'card', correct: true});
-          if ((await me()).progress.learned > L) return i + 1;
+      const learnNext = async (start, n = 1) => {   // 学 start 起 n 个能涨 learned 的字
+        let i = start;
+        for (let k = 0; k < n; k++) {
+          const L = (await me()).progress.learned;
+          for (; i < list.length; i++) {
+            await post('/api/submit', {hanzi_id: list[i].id, phase: 'learn', quiz_type: 'card', correct: true});
+            if ((await me()).progress.learned > L) { i++; break; }
+          }
         }
-        return start;
+        return i;
       };
-      const i = await learnNext(0);                 // 学第 1 个生字
-      await post('/api/plan/create', {target_chars: 1, days: 7});   // base=当前 learned
-      await learnNext(i);                           // 再学 1 个 → learned-base>=1 达成
+      const i = await learnNext(0, 1);              // 学第 1 个生字
+      await post('/api/plan/create', {target_chars: 10, days: 7});  // base=当前 learned（下限 10，2026-11-14）
+      await learnNext(i, 10);                       // 再学 10 个 → learned-base>=10 达成
     }""")
     page.goto(BASE + "/", wait_until="networkidle")   # 刷新 progress
     page.wait_for_selector(".day-card", timeout=10000)
