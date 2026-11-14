@@ -283,6 +283,20 @@ def build_today(user_id):
             if done:
                 return {"mode": "weekly", "week_no": week_no, "scope": [], "done": True,
                         "score": done["score"], "total": done["total"], "date": t}
+            # 本期毕业测（v60，用户拍板）：目标达成跨越后的下一个周测槽位升级——每字 3 题
+            # 固定三维度（py 会读 / wf 找朋友会词 / defi 听释义会义），前端按 slot 展开。
+            # scope=锚点起本期全部新字（7 天计划=收官周测、30 天=月测），不含旧错字/到期
+            # 复习（毕业测日纯测验，顺延至毕业后学习日，REVIEW_CAP 顺延兜底）。mode 仍
+            # weekly：submit/weekly_finish/跨日续做/done 早退全共用，grad 标志前端分支。
+            if user["grad_pending"]:
+                scope = {}
+                for r in db.execute(f"""SELECT h.id, h.char FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
+                                        WHERE uh.user_id=? AND uh.first_date>=? AND uh.status!='skipped'
+                                        AND {CONTENT_READY}""",
+                                    (user_id, user["grad_anchor"])):
+                    scope[r["id"]] = dict(r)
+                return {"mode": "weekly", "grad": True, "week_no": week_no,
+                        "scope": list(scope.values()), "date": t}
             # 本周窗口 = 本周首个活动日（第 (week_no-1)*7+1 个）的日期
             active = _active_days(db, user_id)
             week_start = active[(week_no - 1) * 7]
@@ -395,11 +409,15 @@ def build_today(user_id):
 
 # ---------- 答题状态机 ----------
 
-def submit(user_id, hanzi_id, phase, quiz_type, correct):
+def submit(user_id, hanzi_id, phase, quiz_type, correct, grad_slot=None):
     """phase: learn|review|weekly|audit。返回该字最新状态。
 
     review/weekly/audit 当日幂等：同字同 phase 当日已提交过（中途退出重进重做）
     只记流水不二次推进状态机——间隔以首答为准。
+    毕业测每字 3 题（v60）：grad_slot=0|1|2（普通周测/复习不传）。语义=「对只算一次，
+    错永远回炉」——correct 仅 slot0 且非 replayed 才 stage+1（与普通周测同权，防全对字
+    stage+3 失衡、防跨日 slot1/2 对把 D+1 回炉覆盖成 D+14）；wrong 不看 replayed（任一
+    维度错都必须留下 v56 调度痕迹，否则同日 slot2 错被幂等吞掉）。
     """
     db = get_db()
     try:
@@ -418,7 +436,17 @@ def submit(user_id, hanzi_id, phase, quiz_type, correct):
                             next_date=date(?, '+1 day'), first_date=?, last_date=?
                           WHERE user_hanzi.status='new'""",
                        (user_id, hanzi_id, t, t, t, t, t, t))
-        elif phase in ("review", "weekly") and not replayed:
+            # 毕业测挂旗=跨越事件（v60）：learn 新字逐字 +1 步进，base+target 恰好命中那一次
+            # 置位（「=」而非「<=」——达成是持续状态非事件，<= 会在毕业后每次 submit 重复挂旗
+            # → 无限毕业测循环）。grad_anchor=COALESCE 保留最早未消费锚点：A 期挂旗→当日续订
+            # B→B 期达成再跨越时 anchor 仍=A → 毕业测合并考 A+B 两期新字；结算才清零。
+            # gate 题同 phase 提交但不增行（COUNT 不变），值不变时幂等 no-op。
+            db.execute("""UPDATE users SET grad_pending=1, grad_anchor=COALESCE(grad_anchor, plan_start)
+                          WHERE id=? AND target_chars>0 AND plan_start IS NOT NULL
+                            AND plan_base_learned + target_chars =
+                                (SELECT COUNT(*) FROM user_hanzi WHERE user_id=users.id
+                                 AND status IN ('learning','mastered'))""", (user_id,))
+        elif phase == "review" and not replayed:
             row = db.execute("SELECT stage, wrong_count FROM user_hanzi WHERE user_id=? AND hanzi_id=?",
                              (user_id, hanzi_id)).fetchone()
             if row:
@@ -438,6 +466,26 @@ def submit(user_id, hanzi_id, phase, quiz_type, correct):
                     db.execute("""UPDATE user_hanzi SET status='learning', stage=1, wrong_count=wrong_count+1,
                                   next_date=date(?, '+1 day'), last_date=? WHERE user_id=? AND hanzi_id=?""",
                                (t, t, user_id, hanzi_id))
+        elif phase == "weekly":
+            row = db.execute("SELECT stage, wrong_count FROM user_hanzi WHERE user_id=? AND hanzi_id=?",
+                             (user_id, hanzi_id)).fetchone()
+            if row:
+                if not correct:
+                    # 错永远回炉（不看 replayed，v60 毕业测；语义对齐 v56）
+                    db.execute("""UPDATE user_hanzi SET status='learning', stage=1, wrong_count=wrong_count+1,
+                                  next_date=date(?, '+1 day'), last_date=? WHERE user_id=? AND hanzi_id=?""",
+                               (t, t, user_id, hanzi_id))
+                elif not replayed and grad_slot in (None, 0):
+                    # 对只算一次：slot0（或普通周测单题）才 stage+1；replayed/毕业测 slot>0 只记流水
+                    stage = row["stage"] + 1
+                    if stage >= len(INTERVALS):
+                        db.execute("""UPDATE user_hanzi SET status='mastered', stage=?, next_date=NULL,
+                                      last_date=? WHERE user_id=? AND hanzi_id=?""",
+                                   (stage, t, user_id, hanzi_id))
+                    else:
+                        db.execute("""UPDATE user_hanzi SET stage=?, next_date=date(?, '+' || ? || ' day'),
+                                      last_date=? WHERE user_id=? AND hanzi_id=?""",
+                                   (stage, t, INTERVALS[stage], t, user_id, hanzi_id))
         elif phase == "audit" and not replayed:
             if not correct:
                 db.execute("""UPDATE user_hanzi SET status='learning', stage=1, wrong_count=wrong_count+1,
@@ -467,6 +515,9 @@ def weekly_finish(user_id, week_no, score, total, wrong_ids):
         if not existed:                     # 首次结算才记星，重复结算不刷星
             db.execute("INSERT INTO stars(user_id, date, src, n) VALUES(?,?,'weekly',?)",
                        (user_id, today_for(u), score))
+        # 毕业测结算消费挂旗（v60）。无重臂：下一期达成是新的跨越事件，由 submit 的
+        # 「=」挂旗负责——若此处用「<=」重臂，未续订用户达成状态持续为真会无限重挂
+        db.execute("UPDATE users SET grad_pending=0, grad_anchor=NULL WHERE id=?", (user_id,))
         db.commit()
     finally:
         db.close()
@@ -822,6 +873,57 @@ def gen_quiz(hanzi_id, quiz_type, book=None):
                             "tone3": h["tone3"], "stem": "", "sentence": s,
                             "audio": f"s_{h['char']}_{i + 1}", "options": opts, "answer": h["char"]}
             return gen_quiz(hanzi_id, "listen", book=book)
+
+        # wf 找朋友判错版（毕业测维度②·会词，v60）：复用认字词步「字找朋友」（v55）交互的
+        # 测验形态——给目标字的二字词槽位「？＿」，从字块中点出全部伙伴字。纯运行时生成
+        # （同 lsent 哲学：机械校验即安全，不进题库不进 _QB_DEGRADE）。
+        # 判错版与学习版的关键差异=干扰字约束：学习版不判错故干扰无约束；判错版里干扰字
+        # 若与目标字两序可组成真词即双解题（点它语义对却被判错）——干扰必须过统一词集
+        # 两序不成词校验（词集在后端，故 payload 由后端组装，前端只渲染+判定）。
+        # 二字词伙伴=0 → 退化 mean（组词补全单选）。伙伴规则同 _buildWF：只取二字词、
+        # 排除叠字（爸爸→伙伴是自己）、伙伴去重。
+        if quiz_type == "wf":
+            parts, pseen = [], {h["char"]}
+            for wi, w in enumerate(words):
+                if len(w) != 2 or w[0] == w[1]:
+                    continue
+                other = w[1] if w[0] == h["char"] else (w[0] if w[1] == h["char"] else None)
+                if not other or other in pseen:
+                    continue
+                pseen.add(other)
+                parts.append({"partner": other, "word": w,
+                              "audio": f"n_{h['char']}_{wi + 1}"})   # 点对播该词单词音（v55 同款奖励）
+                if len(parts) >= 4:
+                    break
+            if not parts:
+                return gen_quiz(hanzi_id, "mean", book=book)
+            valid = _valid_words(db)
+
+            def _wf_bad(ch):
+                return ch in pseen or (h["char"] + ch) in valid or (ch + h["char"]) in valid
+
+            tiles_dr = []
+            for d in ds:
+                if not _wf_bad(d["char"]):
+                    pseen.add(d["char"])
+                    tiles_dr.append(d["char"])
+                    if len(tiles_dr) >= 4:
+                        break
+            if len(tiles_dr) < 3:                    # 同册随机补足（形近池耗尽时）
+                for r in db.execute("SELECT char FROM hanzi WHERE book=? AND char != ? "
+                                    "ORDER BY RANDOM() LIMIT 20", (h["book"], h["char"])):
+                    if not _wf_bad(r["char"]):
+                        pseen.add(r["char"])
+                        tiles_dr.append(r["char"])
+                        if len(tiles_dr) >= 4:
+                            break
+            if len(tiles_dr) < 3:
+                return gen_quiz(hanzi_id, "mean", book=book)
+            tiles = [p["partner"] for p in parts] + tiles_dr
+            random.shuffle(tiles)
+            return {"quiz_type": "wf", "hanzi_id": hanzi_id, "hanzi": h["char"],
+                    "tone3": h["tone3"], "stem": "", "slots": parts,
+                    "tiles": tiles, "answer": [p["partner"] for p in parts]}
 
         if quiz_type == "mean":
             valid = _valid_words(db)

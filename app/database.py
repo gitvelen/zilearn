@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
   confirm_book    TEXT,                           -- 摸底跨册水位：当前供应册（NULL=本册；本册摸尽顺延下一内容就绪册）
   onboarded     INTEGER DEFAULT 0,                -- 1=引导流完成（年级+计划+摸底）
   day_offset    INTEGER DEFAULT 0,                -- TEST 跳日：虚拟日历偏移天（"今天"=真实今天+偏移）
+  grad_pending  INTEGER DEFAULT 0,                -- 本期毕业测挂起（v60）：目标达成跨越时置位，下一个周测槽位消费
+  grad_anchor   TEXT,                             -- 毕业测锚点=挂旗时 plan_start 快照（scope=first_date>=anchor；COALESCE 保留最早未消费锚点）
   created_at    TEXT DEFAULT (datetime('now'))
 );
 
@@ -170,6 +172,15 @@ def init_db():
     # 迁移：TEST 跳日虚拟日历列（新库 SCHEMA 已含）
     try:
         db.execute("ALTER TABLE users ADD COLUMN day_offset INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    # 迁移：本期毕业测挂起列（v60，新库 SCHEMA 已含）
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN grad_pending INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN grad_anchor TEXT")
     except sqlite3.OperationalError:
         pass
     # 迁移：旧库补 zi_content 释义列（字义关 v39，新库 SCHEMA 已含）

@@ -59,6 +59,7 @@ class SubmitIn(BaseModel):
     phase: str          # learn | review | weekly | audit
     quiz_type: str = ""
     correct: bool
+    grad_slot: int | None = None   # 毕业测每字 3 题的槽位（v60）：0|1|2；普通周测/复习不传
 
 class ConfirmSubmitIn(BaseModel):
     known_ids: list
@@ -225,7 +226,8 @@ def dev_next_day(request: Request):
 @app.post("/api/submit")
 def submit(body: SubmitIn, request: Request):
     user = auth.current_user(request)
-    return scheduler.submit(user["id"], body.hanzi_id, body.phase, body.quiz_type, body.correct)
+    return scheduler.submit(user["id"], body.hanzi_id, body.phase, body.quiz_type, body.correct,
+                            grad_slot=body.grad_slot)
 
 
 @app.get("/api/quiz")
