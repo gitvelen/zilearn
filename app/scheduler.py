@@ -369,7 +369,7 @@ def build_today(user_id):
                WHERE user_id=? AND ts>=? AND phase IN ('review','audit')""",
             (user_id, t)).fetchone()["n"]
         # 当日分关进度（2026-11-07 mido 实报事故）：关题流水按题型分组（题型↔关固定映射
-        # listen→1 pin→2 mean→3 lsent→4 defi→5）。真源=服务端流水——v50 及更早答题无前端
+        # listen→1 py→2 pin→3 mean→4 lsent→5 defi→6，v59 读音关插第 2 关）。真源=服务端流水——v50 及更早答题无前端
         # gateProg、换设备/清缓存同此，已答字不重做（做题数据不丢）。退化（pin 题库缺货
         # 落 listen）会把该字记入 listen 组，前端与 localStorage 并集后至多"某字某关少答
         # 一次"，不卡流程。done=答过(含错，错字 D+1 复习兜底)；correct=答对(关分起底)。
@@ -677,7 +677,7 @@ def _distractors(db, h, book, n=12, rng=None):
             break
     if not chars:
         return []
-    rows = db.execute(f"SELECT char, tone3 FROM hanzi WHERE char IN ({','.join('?' * len(chars))})",
+    rows = db.execute(f"SELECT char, pinyin, tone3 FROM hanzi WHERE char IN ({','.join('?' * len(chars))})",
                       tuple(chars)).fetchall()
     by_char = {r["char"]: dict(r) for r in rows}
     return [by_char[ch] for ch in chars if ch in by_char]
@@ -692,6 +692,8 @@ def _distractors(db, h, book, n=12, rng=None):
 _QB_DEGRADE = {"find": ("sent", "mean", "listen"),
                "sent": ("mean", "listen"), "mean": ("listen",),
                "pin": ("listen",), "rev": ("listen",),
+               # py 看字选拼音（读音关 v59）：题库缺货/未审退化 listen（同 pin）
+               "py": ("listen",),
                # defi 无释义的册无题库 → 退化 listen（不排哑巴题）
                "defi": ("listen",), "lsent": ()}
 

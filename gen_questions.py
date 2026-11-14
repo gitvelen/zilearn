@@ -169,6 +169,36 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems,
         out["pin"] = {"quiz_type": "pin", "hanzi_id": h["id"], "hanzi": h["char"],
                       "tone3": h["tone3"], "stem": h["pinyin"], "options": opts, "answer": h["char"]}
 
+    # py 看字选拼音（读音关 v59）：题干=字，选项=带调拼音，answer=课内定音。
+    # 干扰 tone3 ∉ {主音 ∪ alt_readings 全部 tone3}（防"觉 jué+干扰 jiào(睡觉)"alt 双解，
+    # listen/pin 考字不考音无此问题，py 考音必须排）；选项两两 tone3 互异（同音同调绝不
+    # 共存；同音节异调 tiān/tián 允许=考声调教学点，2026-11-14 拍板）。
+    bad_t = {h["tone3"]}
+    for alt in (json.loads(h["alt_readings"]) if h["alt_readings"] else []):
+        bad_t.add(alt[1])                              # alt = [拼音, tone3, 词境]
+    py_dr = []
+    for d in ds:
+        if d["tone3"] not in bad_t:
+            py_dr.append(d); bad_t.add(d["tone3"])
+        if len(py_dr) >= 3:
+            break
+    if len(py_dr) < 3:                                 # 同册 rng 确定性补足（同 listen fill 模式）
+        fill = [dict(r) for r in db.execute(
+            "SELECT char, pinyin, tone3 FROM hanzi WHERE book=? AND char != ?", (h["book"], h["char"]))]
+        rng.shuffle(fill)
+        for r in fill:
+            if r["tone3"] not in bad_t:
+                py_dr.append(r); bad_t.add(r["tone3"])
+            if len(py_dr) >= 3:
+                break
+    if len(py_dr) >= 3:
+        opts = [h["pinyin"]] + [d["pinyin"] for d in py_dr[:3]]
+        rng.shuffle(opts)
+        out["py"] = {"quiz_type": "py", "hanzi_id": h["id"], "hanzi": h["char"],
+                     "tone3": h["tone3"], "stem": "", "options": opts, "answer": h["pinyin"]}
+        out["py_checks"] = {"alt_excluded": sorted(
+            {a[1] for a in json.loads(h["alt_readings"])} if h["alt_readings"] else [])}
+
     # rev 听词选字：播整词音频选词中之字；目标字在词中恰 1 次、干扰不入词且异音
     for i, w in enumerate(content_words):
         if w.count(h["char"]) != 1:
@@ -201,9 +231,9 @@ def main():
     hanzi = db.execute(
         f"SELECT * FROM hanzi WHERE book IN ({','.join('?' * len(books))}) ORDER BY book, seq",
         books).fetchall()
-    stats = {"listen": 0, "pin": 0, "rev": 0, "mean": 0, "sent": 0, "find": 0, "defi": 0}
+    stats = {"listen": 0, "pin": 0, "py": 0, "rev": 0, "mean": 0, "sent": 0, "find": 0, "defi": 0}
     no_mean, no_sent, no_find, no_listen = [], [], [], []
-    no_pin, no_rev, no_defi = [], [], []
+    no_pin, no_py, no_rev, no_defi = [], [], [], []
     rows, checks_rows = [], []
     for h in hanzi:
         c = db.execute("SELECT * FROM zi_content WHERE hanzi_id=?", (h["id"],)).fetchone()
@@ -213,14 +243,14 @@ def main():
         out = gen_for_char(db, h, words, sents, valid_words, used_stems,
                            content_mean=(c["mean"] if c else None),
                            content_avoid=(c["avoid"] if c else None))
-        for qt in ("listen", "pin", "rev", "mean", "sent", "find", "defi"):
+        for qt in ("listen", "pin", "py", "rev", "mean", "sent", "find", "defi"):
             if qt in out:
                 payload = out[qt]
                 checks = out.get(f"{qt}_checks")
                 rows.append((h["id"], qt, 1, json.dumps(payload, ensure_ascii=False),
                              json.dumps(checks, ensure_ascii=False) if checks else None))
                 stats[qt] += 1
-        for name, miss in (("listen", no_listen), ("pin", no_pin), ("rev", no_rev),
+        for name, miss in (("listen", no_listen), ("pin", no_pin), ("py", no_py), ("rev", no_rev),
                            ("mean", no_mean), ("sent", no_sent), ("find", no_find),
                            ("defi", no_defi)):
             if name not in out:
@@ -236,9 +266,9 @@ def main():
     print(f"生成入库：{len(rows)} 题（表内现存 {total}，含已审查保留）")
     for qt, n in stats.items():
         print(f"  {qt}: {n}/{len(hanzi)}")
-    for name, miss in (("缺listen", no_listen), ("缺pin", no_pin), ("缺rev", no_rev),
-                       ("缺mean", no_mean), ("缺sent", no_sent), ("缺find", no_find),
-                       ("缺defi", no_defi)):
+    for name, miss in (("缺listen", no_listen), ("缺pin", no_pin), ("缺py", no_py),
+                       ("缺rev", no_rev), ("缺mean", no_mean), ("缺sent", no_sent),
+                       ("缺find", no_find), ("缺defi", no_defi)):
         # 注：重灌跑批时 sent 题干唯一性种子会拦下"句已在库"的字，缺sent 数偏大属预期，
         # 其题库题由幂等保留（INSERT OR IGNORE），实际不缺。
         if miss:

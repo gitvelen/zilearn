@@ -169,6 +169,39 @@ def api_tests():
           q3.get("lines") if q3 else None)
     q4 = call("GET", f"/api/quiz?hanzi_id={new_ids[0]}&quiz_type=listen")
     check("listen 题选项无同音", q4 and len({o for o in q4["options"]}) == 4, q4)
+    # py 看字选拼音（读音关 v59）：题干=字、选项=带调拼音、answer=课内定音。
+    # 硬校验：选项两两 tone3 互异（同音同调不共存；同音节异调=考声调教学点）+
+    # 干扰 tone3 ∉ {主音 ∪ alt_readings}（防"觉 jué+干扰 jiào(睡觉)"alt 双解——
+    # listen/pin 考字不考音无此约束，py 考音必须有，2026-11-14 拍板）
+    q5 = call("GET", f"/api/quiz?hanzi_id={new_ids[0]}&quiz_type=py")
+    _V2 = {"ā": ("a", 1), "ē": ("e", 1), "ī": ("i", 1), "ō": ("o", 1), "ū": ("u", 1), "ǖ": ("v", 1),
+           "á": ("a", 2), "é": ("e", 2), "í": ("i", 2), "ó": ("o", 2), "ú": ("u", 2), "ǘ": ("v", 2),
+           "ǎ": ("a", 3), "ě": ("e", 3), "ǐ": ("i", 3), "ǒ": ("o", 3), "ǔ": ("u", 3), "ǚ": ("v", 3),
+           "à": ("a", 4), "è": ("e", 4), "ì": ("i", 4), "ò": ("o", 4), "ù": ("u", 4), "ǜ": ("v", 4),
+           "ü": ("v", 0)}
+    def _t3(py):                      # 拼音串→tone3（同 fetch_zi.py 口径，轻声=5）
+        tone, out = 5, []
+        for c in py:
+            if c in _V2:
+                out.append(_V2[c][0])
+                if _V2[c][1]:
+                    tone = _V2[c][1]
+            else:
+                out.append(c)
+        return "".join(out) + str(tone)
+    _d = _dbm.get_db()
+    _h5 = _d.execute("SELECT pinyin, tone3, alt_readings FROM hanzi WHERE id=?", (new_ids[0],)).fetchone()
+    _d.close()
+    _alt_t3 = {a[1] for a in json.loads(_h5["alt_readings"])} if _h5["alt_readings"] else set()
+    _t3s = [_t3(o) for o in q5["options"]] if q5 and q5.get("options") else []
+    check("py 看字选拼音四选一（answer=课内定音）",
+          q5 and q5.get("quiz_type") == "py" and len(q5["options"]) == 4
+          and q5["answer"] in q5["options"] and q5["hanzi"] and q5["answer"] == _h5["pinyin"],
+          q5.get("quiz_type") if q5 else None)
+    check("py 选项两两异调+干扰∉{主音∪alt}（无双解）",
+          len(set(_t3s)) == 4 and not any(
+              _t3(o) in ({_h5["tone3"], *_alt_t3}) for o in q5["options"] if o != q5["answer"]),
+          (q5.get("options"), _t3s) if q5 else None)
     r = call("POST", "/api/submit", {"hanzi_id": new_ids[0], "phase": "learn",
                                      "quiz_type": "listen", "correct": True})
     check("learn 落库", r and r.get("status") == "learning" and r.get("next_date"), r)
@@ -188,7 +221,7 @@ def api_tests():
     alt = json.loads(r["hanzi"]["alt_readings"] or "[]")
     check("地 alt de·轻轻地", alt and alt[0][:2] == ["de", "de5"] and alt[0][2] == "轻轻地", alt)
     for fn in ("地.mp3", "地_de5.mp3", "子.mp3", "着.mp3", "只.mp3", "s_日_1.mp3",
-               "n_天_1.mp3", "w_天.mp3", "e_天.mp3"):
+               "n_天_1.mp3", "w_天.mp3", "e_天.mp3", "t_q_py.mp3"):
         try:
             urllib.request.urlopen(f"{BASE}/static/audio/{urllib.parse.quote(fn)}").read(16)
             check(f"音频 {fn} 可达", True)
@@ -666,6 +699,10 @@ def throttle_bank_tests():
         q = scheduler.gen_quiz(h1["id"], "lsent")
         check("lsent 无题库设计：运行时生成 lsent（勿被银行 listen 截胡）",
               q and q["quiz_type"] == "lsent", q and q["quiz_type"])
+        # v59：py 走题库路线（非 lsent 轻路）——银行缺货退化 listen（同 pin 的 DAG 终点）
+        q = scheduler.gen_quiz(h1["id"], "py")
+        check("银行缺货 py 退化=listen（题库路线，同 pin）",
+              q and q["quiz_type"] == "listen", q and q["quiz_type"])
         # v55：银行缺货 mean 运行时生成也守异音约束（生成端与题库端同一不变式）
         q = scheduler.gen_quiz(h1["id"], "mean")
         _m3 = {}
