@@ -593,6 +593,38 @@ def _mean_ok(w, ch):
     return not (len(w) == 2 and w[0] == ch and w[1] in _MEAN_BAD_FINALS)
 
 
+def _mean_tone3_bad(db, q):
+    """mean 题干扰项与答案同音 → 题坏（2026-11-14：mean 加读题音频后"心＿"选"情"、
+    干扰"晴"同 qing2，听词也无法区分）。口径与 listen 一致：tone3 完全相等。
+    存量坏题由 _qbank 过滤不可达，新生成由 gen_quiz/gen_questions 双端约束不再产生。"""
+    others = [o for o in q.get("options", []) if o != q.get("answer")]
+    if not others:
+        return False
+    at = _row(db, "SELECT tone3 FROM hanzi WHERE char=?", (q.get("answer"),))
+    if not at:
+        return False
+    ph = ",".join("?" * len(others))
+    return bool(_row(db, f"SELECT 1 FROM hanzi WHERE char IN ({ph}) AND tone3=?",
+                     (*others, at["tone3"])))
+
+
+def _mean_audio(db, hanzi_id, q):
+    """mean 读题音频：hint_word 在 zi_content.words 中的单词音 n_{char}_{i+1}
+    （hint_word 未必是 words[0]，4% 的题不是，前端无 words 数据算不了索引——后端单一真源）。
+    words 漂移（改版换词）→ 回退全词连读 w_{char}；无 content → None（前端回退 w_）。"""
+    c = _row(db, "SELECT words FROM zi_content WHERE hanzi_id=?", (hanzi_id,))
+    if not c or not c["words"]:
+        return None
+    try:
+        ws = json.loads(c["words"])
+        i = ws.index(q.get("hint_word"))
+    except ValueError:
+        i = -1
+    if i < 0:
+        return f"w_{q.get('hanzi')}"
+    return f"n_{q.get('hanzi')}_{i + 1}"
+
+
 def _sent_window_bad(sentence, char, d_char, valid):
     """sent 干扰字代入后，与挖空前/后邻字组成的二字窗成真词 → 危险。
 
@@ -662,14 +694,21 @@ def _qbank(db, hanzi_id, quiz_types):
     """从已审查题库（verified=1）按优先序取第一题。
 
     options 运行时 shuffle：审查过的选项集合不变，仅打乱展示顺序防位置记忆。
+    mean：遍历全部变体行，同音坏题跳过（存量 22 题不可达，2026-11-14），
+    通过后 attach 读题音频 audio 字段（n_{char}_{i} 或 w_{char} 回退）。
     """
     for qt in quiz_types:
-        row = _row(db, """SELECT payload FROM questions
-                          WHERE hanzi_id=? AND quiz_type=? AND verified=1
-                          ORDER BY RANDOM() LIMIT 1""", (hanzi_id, qt))   # 变体随机轮换
-                                                                                   # （原 ORDER BY variant 恒取 v1：同字同题型永远同一题，2026-11-03 修正）
-        if row:
+        for row in db.execute("""SELECT payload FROM questions
+                                 WHERE hanzi_id=? AND quiz_type=? AND verified=1
+                                 ORDER BY RANDOM()""", (hanzi_id, qt)):   # 变体随机轮换
+                                                                              # （原 ORDER BY variant 恒取 v1：同字同题型永远同一题，2026-11-03 修正）
             q = json.loads(row["payload"])
+            if qt == "mean":
+                if _mean_tone3_bad(db, q):
+                    continue
+                a = _mean_audio(db, hanzi_id, q)
+                if a:
+                    q["audio"] = a
             if q.get("options"):
                 random.shuffle(q["options"])
             return q
@@ -686,7 +725,8 @@ def gen_quiz(hanzi_id, quiz_type, book=None):
     - 干扰项同册字池内 形近优先 → 同单元 → 随机；
     - listen 干扰与目标读音不同，且选项间读音两两不同（防 他/她 同 tā）；
     - mean 目标字在词中恰好出现 1 次（多则挖空后剩余出现泄漏答案），干扰字≠题干字，
-      代入挖空不得成真词（统一词集 = content ∪ jieba ∪ 补充词集）；
+      代入挖空不得成真词（统一词集 = content ∪ jieba ∪ 补充词集），且干扰与答案异音
+      （读题音频下"晴/情"同音无法区分，2026-11-14），payload 附读题音频 audio；
     - sent 例句中目标字恰好 1 次，干扰字不得在句中出现（防句中现字），代入后与挖空
       前后邻字的二字窗不得成真词（防"后面/青瓜/刚好"句面双解），且题干全库唯一
       （防"太阳升＿来了=上/起"同句异答）；
@@ -777,17 +817,20 @@ def gen_quiz(hanzi_id, quiz_type, book=None):
 
         if quiz_type == "mean":
             valid = _valid_words(db)
-            cands = [w for w in words if w.count(h["char"]) == 1 and _mean_ok(w, h["char"])]
+            cands = [(i, w) for i, w in enumerate(words)
+                     if w.count(h["char"]) == 1 and _mean_ok(w, h["char"])]
             random.shuffle(cands)
-            for w in cands:
+            for i, w in cands:
                 dr = [d["char"] for d in ds if d["char"] not in w
+                      and d["tone3"] != h["tone3"]
                       and w.replace(h["char"], d["char"], 1) not in valid][:3]
                 if len(dr) >= 3:
                     opts = [h["char"]] + dr[:3]
                     random.shuffle(opts)
                     return {"quiz_type": "mean", "hanzi_id": hanzi_id, "hanzi": h["char"],
                             "tone3": h["tone3"], "stem": w.replace(h["char"], "＿", 1),
-                            "hint_word": w, "options": opts, "answer": h["char"]}
+                            "hint_word": w, "audio": f"n_{h['char']}_{i + 1}",
+                            "options": opts, "answer": h["char"]}
             return gen_quiz(hanzi_id, "listen", book=book)
 
         # listen：干扰读音必须不同，且选项间两两不同（防 他/她 同 tā）

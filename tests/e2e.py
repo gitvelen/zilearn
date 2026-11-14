@@ -82,13 +82,16 @@ def api_tests():
     r = call("GET", "/api/me")
     check("me.grades_ready 八册", r.get("grades_ready") ==
           ["1A", "1B", "2A", "2B", "3A", "3B", "4A", "4B"], r.get("grades_ready"))
-    r = call("POST", "/api/plan/create", {"target_chars": 300, "days": 50})
+    r = call("POST", "/api/plan/create", {"target_chars": 45, "days": 50})
+    # target 45：速选 3 个后 raw=供应50-passed3=47≥45 即收敛（v51 八册全 ready 后摸底
+    # 跨册供应，旧的 target300 速选 3 个永远不够 → more_batch 非空，旧断言"速选即完"过时）
     check("plan 创建", r.get("daily_new", 0) >= 1, r)
     r = call("GET", "/api/me")
     check("计划后未摸底 stage=confirm(刷新回摸底页)", r.get("stage") == "confirm", r.get("stage"))
     r = call("GET", "/api/confirm/batches")
     n_batch = len(r["batches"])
-    check(f"摸底分批 {n_batch}", n_batch >= 6 and sum(len(b) for b in r["batches"]) == 281)
+    # 首轮池=ceil(target*1.3)=ceil(45*1.3)=59 字，50/批 → 2 批（旧断言 6 批 281 基于 target300）
+    check(f"摸底分批 {n_batch}", n_batch >= 2 and sum(len(b) for b in r["batches"]) == 59)
     # 速选前 3 个字为"认识"（验证轮已砍 2026-11-03：已选直接 skipped，无验证题）
     ids = [x["id"] for x in r["batches"][0][:3]]
     r = call("POST", "/api/confirm/submit", {"known_ids": ids})
@@ -123,6 +126,39 @@ def api_tests():
     amb = [o for o in q["options"] if o != q["answer"]
            and q["hint_word"].replace(q["answer"], o, 1) in _allw]
     check("mean 干扰代入不成真词", not amb, (q["hint_word"], amb))
+    # v55：mean 干扰与答案异音（读题音频下"晴/情"同 qing2 无法区分——读词选字不公平题）
+    _t3 = {}
+    _d = _dbm.get_db()
+    for _r in _d.execute(
+            f"SELECT char, tone3 FROM hanzi WHERE char IN ({','.join('?' * len(q['options']))})",
+            q["options"]):
+        _t3[_r["char"]] = _r["tone3"]
+    _d.close()
+    homo = [o for o in q["options"] if o != q["answer"] and _t3.get(o) == _t3.get(q["answer"])]
+    check("mean 干扰与答案异音", not homo, (q["hint_word"], homo))
+    # v55：mean 带读题音频（hint_word 单词音 n_{char}_{i}，words 漂移回退 w_{char}）
+    m_audio = q.get("audio", "")
+    check("mean 读题音频字段", m_audio == f"w_{q['hanzi']}" or
+          (m_audio.startswith(f"n_{q['hanzi']}_") and m_audio.rsplit("_", 1)[-1].isdigit()), m_audio)
+    try:
+        urllib.request.urlopen(f"{BASE}/static/audio/{urllib.parse.quote(m_audio + '.mp3')}").read(16)
+        check("mean 读题音频可达", True)
+    except Exception as e:
+        check("mean 读题音频可达", False, str(e)[:60])
+    # v55：存量同音坏题运行时过滤（情 307 v1"心＿"干扰含同音"晴"→ 不可达，退化 listen）
+    qh = call("GET", "/api/quiz?hanzi_id=307&quiz_type=mean")
+    _h3 = {}
+    if qh and qh.get("options"):
+        _d = _dbm.get_db()
+        for _r in _d.execute(
+                f"SELECT char, tone3 FROM hanzi WHERE char IN ({','.join('?' * len(qh['options']))})",
+                qh["options"]):
+            _h3[_r["char"]] = _r["tone3"]
+        _d.close()
+    check("同音坏题运行时不可达（情→退化或干净）",
+          qh and (qh["quiz_type"] != "mean" or not any(
+              _h3.get(o) == _h3.get(qh["answer"]) for o in qh["options"] if o != qh["answer"])),
+          qh.get("quiz_type") if qh else None)
     q2 = call("GET", f"/api/quiz?hanzi_id={new_ids[0]}&quiz_type=sent")
     check("sent 句子填空", q2 and q2.get("quiz_type") == "sent" and q2["stem"].count("＿") == 1
           and all(o not in q2["sentence"] for o in q2["options"] if o != q2["answer"]), q2)
@@ -143,7 +179,10 @@ def api_tests():
     q2b = call("GET", f"/api/quiz?hanzi_id={new_ids[0]}&quiz_type=sent")
     check("sent 出自例句集", q2b and q2b.get("sentence") in sents, q2b.get("sentence") if q2b else None)
     # 多音字定音：地主音 dì（天地人），alt de 带词境（TTS 词境消歧）
-    di = [c["id"] for b in (call("GET", "/api/confirm/batches")["batches"]) for c in b if c["char"] == "地"][0]
+    # 直查 hanzi 表：摸底批次在 stage=study 后为空（旧依赖 confirm batches 含"地"已过时）
+    _d = _dbm.get_db()
+    di = _d.execute("SELECT id FROM hanzi WHERE char='地' AND book='1a'").fetchone()["id"]
+    _d.close()
     r = call("GET", f"/api/hanzi/{di}/full")
     check("地 课内主音 dì", r["hanzi"]["pinyin"] == "dì" and r["hanzi"]["tone3"] == "di4", r["hanzi"])
     alt = json.loads(r["hanzi"]["alt_readings"] or "[]")
@@ -246,7 +285,10 @@ def report_tests():
     html = _report.render_html(rep)
     check("日报 HTML 渲染含关键段", "每日学习报告" in html and "错字清单" in html and "跟读开口率" in html)
     r = call("POST", "/api/report/daily")
-    check("日报幂等+测试账号跳过发信", r.get("reason") in ("测试账号不发信", "今日已发送"), r)
+    # mido 已转正（2026-11-04 移出发信黑名单，学完即发）：e2e 用 mido 账号，此断言只接受
+    # 环境性不发信（SMTP 未配置）或幂等——reason=ok=真发信必须红灯（e2e 环境不得有 smtp.json；
+    # 线上容器挂载 ./app/data 含 smtp.json，直接对其跑 e2e 会真发日报邮件，2026-11-14 实锤）
+    check("日报环境性不发信或幂等", r.get("reason") in ("测试账号不发信", "今日已发送", "SMTP 未配置"), r)
     r2 = call("POST", "/api/report/daily")
     check("日报二次触发不重发", r2.get("sent") is False, r2)
     reset_user()
@@ -450,7 +492,8 @@ def confirm_more_tests():
     in_pool = all(h["char"] in known2 for h in t["new"])
     check("学习字全部来自已摸底池", in_pool, [h["char"] for h in t["new"]])
 
-    # 全册摸完仍不足：target=280（池=全册），选 260 → 收敛
+    # 1a 摸完仍不足：target=280（池=全册），选 260 → 跨册续摸 1b（v51 八册内容全 ready
+    # 后摸底跨册供应；收敛只在全部 ready 册摸尽时触发，grade=4B 场景冒烟构造不了，不测）
     reset_user()
     call("POST", "/api/login", {"username": "mido", "password": MIDO_PASS})
     call("POST", "/api/profile/grade", {"grade": "1A"})
@@ -459,12 +502,13 @@ def confirm_more_tests():
     pool = [c for b in batches for c in b]
     check("280 目标池=全册 281", len(pool) == 281, len(pool))
     r = call("POST", "/api/confirm/submit", {"known_ids": [c["id"] for c in pool[:260]]})
-    check("全册摸完 → 无补摸批次", not r.get("more_batch"), r.get("more_batch"))
+    check("1a 摸完仍不足 → 跨册续摸 1b 首批", r.get("more_batch") and len(r["more_batch"]) == 50,
+          len(r["more_batch"]) if r.get("more_batch") else None)
     import database as _dbt
     _c = _dbt.get_db()
     tgt = _c.execute("SELECT target_chars FROM users WHERE username='mido'").fetchone()[0]
     _c.close()
-    check("目标收敛到实际生词 21", tgt == 21, tgt)
+    check("跨册供应中目标不收敛", tgt == 280, tgt)
     reset_user()   # 本组自带清理
 
 
@@ -622,6 +666,15 @@ def throttle_bank_tests():
         q = scheduler.gen_quiz(h1["id"], "lsent")
         check("lsent 无题库设计：运行时生成 lsent（勿被银行 listen 截胡）",
               q and q["quiz_type"] == "lsent", q and q["quiz_type"])
+        # v55：银行缺货 mean 运行时生成也守异音约束（生成端与题库端同一不变式）
+        q = scheduler.gen_quiz(h1["id"], "mean")
+        _m3 = {}
+        for _r in db.execute(f"SELECT char, tone3 FROM hanzi WHERE char IN "
+                             f"({','.join('?' * len(q['options']))})", q["options"]):
+            _m3[_r["char"]] = _r["tone3"]
+        check("银行缺货 mean 运行时生成守异音", q and (q["quiz_type"] != "mean" or not any(
+            _m3.get(o) == _m3.get(q["answer"]) for o in q["options"] if o != q["answer"])),
+            q and q.get("quiz_type"))
     finally:
         for qid, v in marks.items():
             db.execute("UPDATE questions SET verified=? WHERE id=?", (v, qid))
@@ -644,6 +697,14 @@ def throttle_bank_tests():
     sents = json.loads(c2["sentences"]) if c2["sentences"] else [c2["sentence"] or ""]
     a = _gq.gen_for_char(gq_db, h2, words, sents, valid, set(), c2["mean"], c2["avoid"])
     b = _gq.gen_for_char(gq_db, h2, words, sents, valid, set(), c2["mean"], c2["avoid"])
+    if "mean" in a:   # v55：离线生成端 mean 干扰异音（与运行时同一不变式）
+        _g3 = {}
+        for _r in gq_db.execute(f"SELECT char, tone3 FROM hanzi WHERE char IN "
+                                 f"({','.join('?' * len(a['mean']['options']))})", a["mean"]["options"]):
+            _g3[_r["char"]] = _r["tone3"]
+        check("gen_for_char mean 干扰异音（离线端）", not any(
+            _g3.get(o) == _g3[a["mean"]["answer"]] for o in a["mean"]["options"]
+            if o != a["mean"]["answer"]), a["mean"]["options"])
     gq_db.close()
     same = all(a[k] == b[k] for k in a if not k.endswith("_checks"))
     check("gen_for_char 同字重跑产出一致（确定性干扰）", same and "listen" in a,

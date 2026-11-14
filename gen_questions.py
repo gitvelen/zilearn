@@ -113,14 +113,15 @@ def gen_for_char(db, h, content_words, content_sents, valid_words, used_stems,
             used_stems.add(stem)
             break
 
-    # mean：目标字在词中恰 1 次，干扰≠题干字，代入不得成真词（content ∪ jieba ∪ 补充）；
+    # mean：目标字在词中恰 1 次，干扰≠题干字，代入不得成真词（content ∪ jieba ∪ 补充），
+    # 干扰与答案异音（2026-11-14：mean 加读题音频后"晴/情"同音无法区分）；
     # "动词+助词/趋向"二字词结构性多解（＿着/＿了 任何动词代入皆通），与运行时同规则排除
     for w in content_words:
         if w.count(h["char"]) != 1 or not scheduler._mean_ok(w, h["char"]):
             continue
         dr, subst = [], []
         for d in ds:
-            if d["char"] in w:
+            if d["char"] in w or d["tone3"] == h["tone3"]:
                 continue
             rep = w.replace(h["char"], d["char"], 1)
             if rep not in valid_words:
@@ -315,6 +316,7 @@ def regen():
                         or w.replace(h["char"], "＿", 1) in bl_stems:
                     continue
                 dr = [d["char"] for d in ds if d["char"] not in w
+                      and d["tone3"] != h["tone3"]
                       and w.replace(h["char"], d["char"], 1) not in valid_words][:3]
                 if len(dr) >= 3:
                     opts = [h["char"]] + dr
@@ -358,6 +360,75 @@ def regen():
     db.close()
 
 
+def regen_mean_tone3():
+    """对 verified=1 但含同音干扰的 mean 题生成 variant=2 替代（2026-11-14）。
+
+    背景：mean 题加读题音频后，干扰与答案同音（"心＿"选"情"、干扰"晴"同 qing2）
+    变成听词也无法区分的不公平题。运行时 _qbank 已过滤坏题不可达（退化 listen 兜底），
+    此处恢复这些字的 mean 供给。策略：优先同 hint_word 换异音干扰（题面已审语义不变，
+    审查面最小），失败再换词；插入 verified=0 走 review → review_apply.py 审查流程。
+    """
+    db = sqlite3.connect(DB)
+    db.row_factory = sqlite3.Row
+    valid_words = scheduler._valid_words(db)
+    made, skipped, failed = [], [], []
+    for q in db.execute("SELECT * FROM questions WHERE quiz_type='mean' AND verified=1").fetchall():
+        p = json.loads(q["payload"])
+        if not scheduler._mean_tone3_bad(db, p):
+            continue
+        h = db.execute("SELECT * FROM hanzi WHERE id=?", (q["hanzi_id"],)).fetchone()
+        # 已有 v2（任何审查状态）则跳过：UNIQUE 约束下一字一题型仅一个 v2，覆盖会作废已导出的审查清单
+        has_v2 = db.execute("""SELECT 1 FROM questions WHERE hanzi_id=? AND quiz_type='mean'
+                               AND variant=2 LIMIT 1""", (q["hanzi_id"],)).fetchone()
+        if has_v2:
+            skipped.append((q["id"], h["char"]))
+            continue
+        c = db.execute("SELECT * FROM zi_content WHERE hanzi_id=?", (h["id"],)).fetchone()
+        words = json.loads(c["words"]) if c and c["words"] else []
+        rng = random.Random(f"q-{h['char']}-v2")   # 与 regen() 同种子：同字重跑稳定复现
+        ds = scheduler._distractors(db, h, h["book"], rng=rng)
+        old_hint = p.get("hint_word")
+        payload = None
+        for w in [old_hint] + [x for x in words if x != old_hint]:   # 优先原词换干扰
+            if w.count(h["char"]) != 1 or not scheduler._mean_ok(w, h["char"]):
+                continue
+            dr, subst = [], []
+            for d in ds:
+                if d["char"] in w or d["tone3"] == h["tone3"]:
+                    continue
+                rep = w.replace(h["char"], d["char"], 1)
+                if rep not in valid_words:
+                    dr.append(d["char"])
+                    subst.append(rep)
+                if len(dr) == 3:
+                    break
+            if len(dr) >= 3:
+                opts = [h["char"]] + dr
+                rng.shuffle(opts)
+                payload = {"quiz_type": "mean", "hanzi_id": h["id"], "hanzi": h["char"],
+                           "tone3": h["tone3"], "stem": w.replace(h["char"], "＿", 1),
+                           "hint_word": w, "options": opts, "answer": h["char"]}
+                checks = {"substitutions": subst, "replaces": q["id"],
+                          "reason": "v1 同音干扰，换异音干扰重生成"}
+                db.execute("INSERT INTO questions(hanzi_id,quiz_type,variant,payload,checks,verified,verdict) "
+                           "VALUES(?,?,2,?,?,0,NULL)",
+                           (h["id"], "mean", json.dumps(payload, ensure_ascii=False),
+                            json.dumps(checks, ensure_ascii=False)))
+                made.append((q["id"], h["char"], payload["hint_word"], "".join(opts)))
+                break
+        if not payload:
+            failed.append((q["id"], h["char"]))
+    db.commit()
+    print(f"同音干扰 mean 替代题 {len(made)} 道（variant=2 待审，替换 v1 id）：")
+    for m in made:
+        print(" ", m)
+    if skipped:
+        print(f"已存在 v2 跳过 {len(skipped)} 题：", skipped)
+    if failed:
+        print(f"无替代素材 {len(failed)} 题（运行时过滤+退化 listen 兜底）：", failed)
+    db.close()
+
+
 def export_review():
     """导出审查清单：紧凑题单 + 打分模板。"""
     db = sqlite3.connect(DB)
@@ -389,5 +460,7 @@ if __name__ == "__main__":
         export_review()
     elif len(sys.argv) > 1 and sys.argv[1] == "regen":
         regen()
+    elif len(sys.argv) > 1 and sys.argv[1] == "regen-mean-tone3":
+        regen_mean_tone3()
     else:
         main()
