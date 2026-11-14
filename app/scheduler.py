@@ -25,7 +25,7 @@ INTERVALS = [1, 3, 7, 14]     # stage0→1 / 1→2 / 2→3 / 3→mastered 的间
 AUDIT_N = 3                   # 掌握词每日抽检数
 CONFIRM_BATCH = 50            # 摸底速选表格每批字数
 MIN_PLAN_DAYS = 7             # 计划天数下限（一个完整周循环）
-REVIEW_CAP = 30               # 单日复习供给上限（缺勤积压分日消化，先到期先服务；状态机不动）
+REVIEW_CAP = 30               # 单日复习供给上限（缺勤积压分日消化；出队序=错字优先、余按到期 2026-11-14 拍板；状态机不动）
 NEW_THROTTLE_AT = 60          # 到期复习积压超此值 → 当日新字减半（先还债再扩新，稳态≈4×daily_new）
 
 # 内容就绪过滤（2026-11-01 线上事故）：zi_content 只建了 1a 全量 281 字，1b+ 册无
@@ -293,9 +293,12 @@ def build_today(user_id):
                                    AND {CONTENT_READY}""",
                                 (user_id, week_start)):
                 scope[r["id"]] = dict(r)
-            # 本周答错过的字（含前几周的旧字本周答错）
+            # 本周答错过的字（含前几周的旧字本周答错）。EXISTS 防御：quiz_log 有错答记录
+            # 但 user_hanzi 为 skipped/缺行的脏数据不进周测——否则答错会把 skipped 字激活回复习池
             for r in db.execute(f"""SELECT DISTINCT h.id, h.char FROM quiz_log q JOIN hanzi h ON h.id=q.hanzi_id
-                                   WHERE q.user_id=? AND q.correct=0 AND q.ts>=? AND {CONTENT_READY}""",
+                                   WHERE q.user_id=? AND q.correct=0 AND q.ts>=? AND {CONTENT_READY}
+                                   AND EXISTS (SELECT 1 FROM user_hanzi uh WHERE uh.user_id=q.user_id
+                                               AND uh.hanzi_id=q.hanzi_id AND uh.status IN ('learning','mastered'))""",
                                 (user_id, week_start)):
                 scope[r["id"]] = dict(r)
             # 当日到期复习（并入，避免同字重复出现）
@@ -345,7 +348,8 @@ def build_today(user_id):
             f"""SELECT h.id, h.char, h.pinyin, h.tone3, uh.stage FROM user_hanzi uh
                JOIN hanzi h ON h.id=uh.hanzi_id
                WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=? AND {CONTENT_READY}
-               ORDER BY uh.next_date LIMIT {REVIEW_CAP}""", (user_id, t))]  # stage/first_date 已含
+               ORDER BY uh.wrong_count>0 DESC, uh.next_date, uh.wrong_count DESC
+               LIMIT {REVIEW_CAP}""", (user_id, t))]  # 错字优先（组内先到期、同日错得多优先）
         # 掌握词抽检（带 stage：mastered=4，前端题型分层落深阶池）
         audits = [dict(r) for r in db.execute(
             f"""SELECT h.id, h.char, h.pinyin, h.tone3, uh.stage FROM user_hanzi uh
@@ -429,7 +433,9 @@ def submit(user_id, hanzi_id, phase, quiz_type, correct):
                                       last_date=? WHERE user_id=? AND hanzi_id=?""",
                                    (stage, t, INTERVALS[stage], t, user_id, hanzi_id))
                 else:
-                    db.execute("""UPDATE user_hanzi SET stage=1, wrong_count=wrong_count+1,
+                    # status='learning'：mastered 字经周测"本周答错"入 scope 且答错时回炉（对齐 audit 分支），
+                    # 否则 next_date=D+1 却被复习池 status 过滤排除，只能靠抽检随机捞回
+                    db.execute("""UPDATE user_hanzi SET status='learning', stage=1, wrong_count=wrong_count+1,
                                   next_date=date(?, '+1 day'), last_date=? WHERE user_id=? AND hanzi_id=?""",
                                (t, t, user_id, hanzi_id))
         elif phase == "audit" and not replayed:
