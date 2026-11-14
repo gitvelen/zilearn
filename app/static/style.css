@@ -190,6 +190,9 @@ input:focus { outline: none; border-color: #ffb74d; }
 .wf-tile.shake { animation: shake .3s; background: #ffebee; border-color: #ef5350; }
 .wf-tile:disabled { opacity: 1; }
 .wf-cheer { font-size: 22px; font-weight: 800; color: #43a047; animation: goodPop .45s ease-out both; }
+/* v60 毕业测找朋友判错版：答错 reveal 态（未找到的槽位亮出词 / 干扰字亮黄）——同 find-tile.reveal 语义 */
+.wf-combo.reveal { color: #ff8f00; background: #fff8e1; border-color: #ffb300; border-style: solid; }
+.wf-tile.reveal { background: #fff8e1; border-color: #ffb300; color: #ff8f00; }
 .zi-xl { font-size: 110px; line-height: 1.1; font-weight: 900; color: #3e2723; font-family: "Kaiti SC", KaiTi, STKaiti, serif; }
 .cloze-xl { font-size: 56px; font-weight: 900; color: #3e2723; letter-spacing: 4px; }
 .sent-stem { font-size: 34px; font-weight: 800; color: #3e2723; line-height: 1.6; text-align: center;

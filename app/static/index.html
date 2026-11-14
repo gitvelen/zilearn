@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>字乐 zilearn</title>
-<link rel="stylesheet" href="/style.css?v=16">
+<link rel="stylesheet" href="/style.css?v=17">
 </head>
 <body>
 <div id="app" v-cloak>
@@ -106,16 +106,18 @@
       </template>
     </template>
     <template v-else-if="today.mode==='weekly'">
-      <div class="big-emoji">🏆</div>
+      <div class="big-emoji">{{today.grad ? '🎓' : '🏆'}}</div>
       <template v-if="today.done">
-        <div class="row-of-stats"><span>第 {{today.week_no}} 周大挑战已经完成！</span></div>
+        <div class="row-of-stats"><span>{{today.grad ? '本期毕业大挑战' : '第 '+today.week_no+' 周大挑战'}}已经完成！</span></div>
         <div class="hint">得了 {{today.score}} / {{today.total}}，好棒！</div>
         <div class="hint">明天开始第 {{today.week_no + 1}} 周，继续学新字 🚀</div>
       </template>
       <template v-else>
-        <div class="row-of-stats"><span>今天是第 {{today.week_no}} 周大挑战！</span></div>
+        <div class="row-of-stats"><span>{{today.grad ? '本期毕业大挑战！这期学的字都来考一遍' : '今天是第 '+today.week_no+' 周大挑战！'}}</span></div>
+        <div class="hint" v-if="today.grad">每个字考三样：认读音 🔤 · 找朋友组词 🤝 · 听意思 💡</div>
         <div class="hint" v-if="weeklyLeft()!=null">继续上次的挑战，还剩 {{weeklyLeft()}} 道题，加油！</div>
-        <div class="hint" v-else>一共 {{today.scope.length}} 道题，加油！</div>
+        <div class="hint" v-else>一共 {{today.grad ? today.scope.length*3 : today.scope.length}} 道题（{{today.scope.length}} 个字），加油！</div>
+        <div class="hint" v-if="today.grad">题有点多，可以分几次做完，进度都会留着 💪</div>
       </template>
     </template>
     <div v-else class="hint">计划信息丢失了，退出重新登录试试</div>
@@ -330,12 +332,31 @@
                   :disabled="quizRevealed" @click="findTap(li,ti,ch)">{{ch}}</button>
         </div>
       </div>
+      <!-- wf: 找朋友判错版（毕业测维度②·会词 v60）：复用词步「字找朋友」（v55）交互——
+           槽位「？＿」+ 字块，点出全部伙伴字；误点≥2 判错（同 find 先例），找完且误点≤1=对。
+           干扰由后端过"与目标字两序不成词"校验（学习版不判错无此约束，判错版防双解） -->
+      <div v-else-if="curQuiz.quiz_type==='wf' && curQuiz.tiles" class="quiz-stem">
+        <div class="find-title">「{{curQuiz.hanzi}}」的好朋友藏在下面，都找出来 👇</div>
+        <div class="wf-combos">
+          <span v-for="s in curQuiz.slots" :key="s.partner" class="wf-combo"
+                :class="{done: wfqFound(s.partner), reveal: quizRevealed && !wfqFound(s.partner)}">
+            {{ wfqFound(s.partner) || quizRevealed ? s.word : '？＿' }}</span>
+        </div>
+        <div class="wf-tiles">
+          <button v-for="t in curQuiz.tiles" :key="t" class="wf-tile"
+                  :class="{done: wfqFound(t),
+                           reveal: quizRevealed && !curQuiz.answer.includes(t),
+                           shake: wfq && wfq.shake===t}"
+                  :disabled="quizRevealed" @click="wfqTap(t)">{{t}}</button>
+        </div>
+      </div>
       <div v-if="curQuiz.options" class="opts" :class="{four: curQuiz.options.length===4, pyopts: curQuiz.quiz_type==='py'}">
         <button v-for="(o,i) in curQuiz.options" :key="i" class="opt"
                 :class="optClass(o)" :disabled="quizRevealed" @click="pickOpt(o)">{{o}}</button>
       </div>
       <div v-if="quizRevealed && !quizCorrect" class="wrong-note">
         <template v-if="curQuiz.quiz_type==='find'">「{{curQuiz.hanzi}}」一共有 {{curQuiz.count}} 个，都点亮给你看啦</template>
+        <template v-else-if="curQuiz.quiz_type==='wf'">「{{curQuiz.hanzi}}」的好朋友都点亮给你看啦</template>
         <template v-else>正确答案：<b>{{curQuiz.answer}}</b></template>
         <!-- v55 对比教学：错字代入挖空（不是词）vs 正确词并排可见——原反馈"再听一遍"无新信息，
              重考通过率仅 50%；对比行给可区分的视觉证据（quizPick 已守 reveal 域，find 无此变量不进） -->
@@ -396,12 +417,17 @@
 
 <!-- ============ 周测结算 ============ -->
 <div v-else-if="phase==='weekly-done'" class="wizard">
-  <div class="big-emoji">🏆</div>
-  <h2>第 {{today.week_no}} 周大挑战</h2>
+  <div class="big-emoji">{{today.grad ? '🎓' : '🏆'}}</div>
+  <h2>{{today.grad ? '本期毕业大挑战' : '第 '+today.week_no+' 周大挑战'}}</h2>
   <div class="done-stats">
     <div class="score-xl">{{weeklyScore}} / {{weeklyTotal}}</div>
     <div class="stars-line">⭐ × {{weeklyScore}}</div>
     <div v-if="weeklyWrong.length" class="hint">要加油的字：{{weeklyWrong.join(' ')}}</div>
+    <!-- v60 毕业测：字级掌握（三题全对才算掌握）+ 三维度正确率（读/词/义） -->
+    <div v-if="today.grad && gradStats" class="hint">三题全对、真正掌握：{{gradStats.mastered}} / {{gradStats.n}} 个字</div>
+    <div v-if="today.grad && gradStats" class="hint">认读音 {{gradStats.dims[0].ok}}/{{gradStats.dims[0].n}}
+      · 找朋友 {{gradStats.dims[1].ok}}/{{gradStats.dims[1].n}}
+      · 听意思 {{gradStats.dims[2].ok}}/{{gradStats.dims[2].n}}</div>
   </div>
   <div v-if="planDone" class="plan-done-banner">
     <div class="big-emoji">🏆</div>
@@ -469,6 +495,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=59"></script>
+<script src="/app.js?v=60"></script>
 </body>
 </html>

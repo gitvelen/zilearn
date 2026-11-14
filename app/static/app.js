@@ -36,6 +36,9 @@ const root = createApp({
       wf: null,                                       /* v55 词步字找朋友（组词产出练习）状态 */
       weeklyDoneIds: [],
       curContent: null, weeklyScore: 0, weeklyTotal: 0, weeklyWrong: [], weeklyWrongIds: [],
+      wfq: null,                                      /* v60 毕业测找朋友判错版：{found:[伙伴字],misses,shake} */
+      dimScore: {}, dimTotal: {}, charOK: {},         /* v60 毕业测三维度/字级掌握（会话内统计） */
+      gradStats: null,                                /* v60 毕业测结算展示 {n,mastered,dims:[{qt,ok,n}]} */
       traceMsg: "", tracing: false, traceDone: false, traceFallback: false, traceWatched: false,
       findFound: [], findMisses: 0, findMiss: "",
       doneStats: { new: 0, review: 0 }, report: null,
@@ -830,7 +833,7 @@ const root = createApp({
       if (t === "readcard") return "📖 今日朗读";
       if (t === "gatequiz" || t === "gatesummary")
         return `🚪 第${this.curItem.gate}关 · ${["听音", "读音", "拼音", "组词", "听句", "字义"][this.curItem.gate - 1]}`;
-      if (this.phase === "weekly") return "🏆 周大挑战";
+      if (this.phase === "weekly") return this.today.grad ? "🎓 毕业大挑战" : "🏆 周大挑战";
       if (t === "auditquiz") return "🕵️ 小侦探抽查";
       return "🎯 复习挑战";
     },
@@ -1017,20 +1020,43 @@ const root = createApp({
     buildWeeklyQueue() {
       /* 断点续做：localStorage 记当日周测进度（首答过的字不再重出，分数/错字保留） */
       const prog = this.weeklyProg();
-      const done = new Set(prog ? prog.done : []);
-      const q = this.today.scope.filter(h => !done.has(h.id))
-        .map(h => ({ type: "weeklyquiz", phase: "weekly", ...h }));
-      for (let i = q.length - 1; i > 0; i--) {          /* 乱序（防固定顺序产生位置预期） */
-        const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]];
+      const grad = !!this.today.grad;               /* v60 毕业测：每字 3 题三维度 */
+      const done = new Set(prog ? prog.done.map(String) : []);
+      let q = [];
+      if (grad) {
+        /* 三 slot 三轮（slot0=py 会读 / slot1=wf 找朋友会词 / slot2=defi 听释义会义），
+           轮内乱序 + 轮界防同字相邻（用户拍板"同字三题不必连续出现"）；
+           quiz_type 直接挂 item → _qtOf 命中不走 randType；done 键="id:slot"（同字三题不撞 id） */
+        const QT = ["py", "wf", "defi"];
+        for (let slot = 0; slot < 3; slot++) {
+          const round = this.today.scope.filter(h => !done.has(h.id + ":" + slot))
+            .map(h => ({ type: "weeklyquiz", phase: "weekly", slot, quiz_type: QT[slot], ...h }));
+          for (let i = round.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1)); [round[i], round[j]] = [round[j], round[i]];
+          }
+          if (q.length && round.length > 1 && round[0].id === q[q.length - 1].id)
+            [round[0], round[1]] = [round[1], round[0]];   /* 轮界：同字不相邻 */
+          q = q.concat(round);
+        }
+      } else {
+        q = this.today.scope.filter(h => !done.has(h.id))
+          .map(h => ({ type: "weeklyquiz", phase: "weekly", ...h }));
+        for (let i = q.length - 1; i > 0; i--) {          /* 乱序（防固定顺序产生位置预期） */
+          const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]];
+        }
       }
       this.sessQueue = q; this.sessIdx = 0;
       this._promptDone = new Set(); this._quizCache = {};   /* 会话级：玩法指令首题化 + 题目预取缓存 */
       ["ok", "no", "ding", "win"].forEach(s => this._preloadFile(`sfx_${s}.wav`));
       this._prefetchItem(this.sessQueue[0]);                /* 首项预取 */
       this.weeklyScore = prog ? prog.score : 0;
-      this.weeklyTotal = this.today.scope.length;
+      this.weeklyTotal = grad ? this.today.scope.length * 3 : this.today.scope.length;
       this.weeklyWrong = prog ? prog.wrong : [];
       this.weeklyWrongIds = prog ? prog.wrongIds : [];
+      /* 毕业测维度/字级统计跨日续做恢复（结算展示用；普通周测为空对象） */
+      this.dimScore = (prog && prog.dimScore) || {};
+      this.dimTotal = (prog && prog.dimTotal) || {};
+      this.charOK = (prog && prog.charOK) || {};
       if (!q.length) return this.finishSession();   /* 已答完未结算（最后一题答完即退出） */
       this.enterItem();
     },
@@ -1040,10 +1066,15 @@ const root = createApp({
       return "weekly_w" + (this.today.week_no || 0);
     },
     weeklyProg() { try { return JSON.parse(localStorage.getItem(this.weeklyKey())) || null; } catch { return null; } },
-    weeklyLeft() { const p = this.weeklyProg(); return p && this.today.scope ? this.today.scope.length - p.done.length : null; },
+    weeklyLeft() {                              /* v60 毕业测题量×3（done 键=id:slot 同口径） */
+      const p = this.weeklyProg(); if (!p || !this.today.scope) return null;
+      const total = this.today.grad ? this.today.scope.length * 3 : this.today.scope.length;
+      return total - p.done.length;
+    },
     weeklySave() {
       localStorage.setItem(this.weeklyKey(), JSON.stringify(
-        { done: this.weeklyDoneIds, score: this.weeklyScore, wrong: this.weeklyWrong, wrongIds: this.weeklyWrongIds }));
+        { done: this.weeklyDoneIds, score: this.weeklyScore, wrong: this.weeklyWrong, wrongIds: this.weeklyWrongIds,
+          dimScore: this.dimScore, dimTotal: this.dimTotal, charOK: this.charOK }));
     },
 
     /* ---------- 会话推进 ---------- */
@@ -1055,6 +1086,7 @@ const root = createApp({
       this.tracing = false; this.traceDone = false; this.traceFallback = false; this.traceWatched = false;
       this.traceMsg = "✏️ 点米字格，跟着橙色笔顺写一写";
       this.findFound = []; this.findMisses = 0; this.findMiss = "";
+      this.wfq = null;                               /* 毕业测找朋友：进卡重置（维度统计 dim/charOK 会话级，不在此清） */
       this.ncStep = 1; this.readPlaying = false; this.readCur = "";
       this._stopHw();                               /* 换卡卸载：停上一卡描红实例的无限 loop */
       this.stopNarration();
@@ -1219,6 +1251,7 @@ const root = createApp({
       else if (t === "rev" || t === "lsent" || t === "defi") this._preload(q.audio);
       else if (t === "sent") this._preload(`s_${q.hanzi}_1`);
       else if (t === "mean") { if (q.audio) this._preloadFile(q.audio); this._preload(`w_${q.hanzi}`); }
+      else if (t === "wf") this._preload(`w_${q.hanzi}`);   /* v60：答错讲解播组词连读，预载同 mean */
     },
     _prefetchItem(it) {
       /* 会话推进统一预取（2026-11-02 卡顿整治）：题面+题干音频+内容+笔画数据。
@@ -1277,7 +1310,8 @@ const root = createApp({
       const aqt = this.curQuiz.quiz_type;   /* 实际题型（可能与请求不同：题库退化） */
       const PROMPT = { listen: "q_listen", mean: "q_mean", sent: "q_sent",
                        find: "q_find", pin: "q_pin", py: "q_py", rev: "q_rev",
-                       lsent: "q_lsent", defi: "q_defi" };
+                       lsent: "q_lsent", defi: "q_defi", wf: "q_wf" };
+      if (aqt === "wf") this.wfq = { found: [], misses: 0, shake: "" };   /* 找朋友判错版状态（v60） */
       /* 玩法指令每会话每题型只播首次（2026-10-30 用户反馈：每题都播听着烦，
          且指令 2-3s 比答题慢，常"做完了还没读完"）；后续题自动播音不再等指令 */
       (this._promptDone ||= new Set());
@@ -1321,6 +1355,36 @@ const root = createApp({
       this.quizCorrect = !failed;
       this.submitQuiz(this.quizCorrect);   /* advance 统一由 submitQuiz 负责（双定时器曾跳卡） */
     },
+    /* ---------- 找朋友判错版（v60 毕业测维度②·会词） ----------
+       交互复用词步「字找朋友」（v55）：点字块填「？＿」槽位。判错版差异=误点计数：
+       误点≥2 判错（同 find 先例，1 次宽容防误触过度回炉）；全部伙伴找完且误点≤1=对。
+       答错 reveal（槽位亮出+干扰标记）→ 半卡 → 同题型重测（重拉新干扰）。 */
+    wfqFound(partner) { return !!(this.wfq && this.wfq.found.includes(partner)); },
+    wfqTap(t) {
+      const q = this.curQuiz;
+      if (!q || q.quiz_type !== "wf" || !this.wfq || this.quizRevealed) return;
+      if (q.answer.includes(t)) {
+        this.wfq.found.push(t);
+        const s = q.slots.find(x => x.partner === t);
+        if (s && s.audio) this.playOne(s.audio);   /* 点对该词单词音即奖励（v55 同款，不叠 sfx） */
+        if (this.wfq.found.length >= q.answer.length) this.wfqDone(false);
+      } else if (!this.wfq.found.includes(t)) {
+        this.playSfx("no", 0.3);
+        this.wfq.shake = t;
+        setTimeout(() => { if (this.wfq) this.wfq.shake = ""; }, 400);
+        this.wfq.misses++;
+        if (this.wfq.misses >= 2) this.wfqDone(true);
+      }
+    },
+    wfqDone(failed) {
+      if (!failed) { this.playSfx("ok"); this.burst(); }
+      else setTimeout(() => {
+        if (this.curQuiz && this.quizRevealed && !this.quizCorrect) this._wrongAudio(this.curQuiz);
+      }, 600);
+      this.quizRevealed = true;
+      this.quizCorrect = !failed;
+      this.submitQuiz(this.quizCorrect);
+    },
     randType(it) {
       /* 题型按记忆阶段分层（wordslearn d2/d5/d12 模式，2026-11-02 用户拍板"复习设计低级"重构）：
          stage0(D+1 昨日重现)=再认：听音选字/组词——刚学一天只求音形义再认；
@@ -1343,7 +1407,7 @@ const root = createApp({
       if (this.curQuiz !== qz || !this.quizRevealed) return;   /* 半卡期已切题则止链 */
       const t = qz.quiz_type;
       if (t === "defi" || t === "rev" || t === "lsent") return this.playFile(qz.audio);
-      if (t === "mean" || t === "sent") return this.playFile(`w_${qz.hanzi}`);
+      if (t === "mean" || t === "sent" || t === "wf") return this.playFile(`w_${qz.hanzi}`);   /* wf 重听组词连读（v60） */
     },
     async meanAudioPlay(qz) {
       /* v55 mean 读题音频：hint_word 单词音（后端按 words 实时索引算好 audio 字段），
@@ -1405,12 +1469,27 @@ const root = createApp({
       if (!correct) this.mountContent(it.id);
       if (first) {
         await send({ hanzi_id: it.id, phase: it.phase,
-          quiz_type: this.curQuiz.quiz_type, correct });
-        if (!correct && this.phase === "weekly") {
-          this.weeklyWrong.push(this.curQuiz.hanzi);
-          this.weeklyWrongIds.push(it.id);
+          quiz_type: this.curQuiz.quiz_type, correct,
+          grad_slot: it.slot });   /* v60 毕业测槽位 0|1|2（普通题为 undefined，序列化丢弃→后端 None） */
+        if (this.phase === "weekly") {
+          if (this.today.grad) {
+            /* v60：done 键=id:slot（同字三题不撞）；维度按 slot 请求题型计（退化不改归属）；
+               charOK=字级掌握（任一 slot 首答错即 false）；错字按字去重 */
+            this.weeklyDoneIds.push(it.id + ":" + it.slot);
+            const qt = it.quiz_type;
+            this.dimTotal[qt] = (this.dimTotal[qt] || 0) + 1;
+            if (correct) this.dimScore[qt] = (this.dimScore[qt] || 0) + 1;
+            this.charOK[it.id] = (this.charOK[it.id] !== false) && correct;
+            if (!correct && !this.weeklyWrongIds.includes(it.id)) {
+              this.weeklyWrong.push(this.curQuiz.hanzi);
+              this.weeklyWrongIds.push(it.id);
+            }
+          } else {
+            if (!correct) { this.weeklyWrong.push(this.curQuiz.hanzi); this.weeklyWrongIds.push(it.id); }
+            this.weeklyDoneIds.push(it.id);
+          }
+          this.weeklySave();
         }
-        if (this.phase === "weekly") { this.weeklyDoneIds.push(it.id); this.weeklySave(); }
       }
       if (correct) {
         if (first && this.phase === "weekly") this.weeklyScore++;
@@ -1446,6 +1525,7 @@ const root = createApp({
           .catch(() => null);
         if (!this.curQuiz) return this.advance();
         if (this.curQuiz.quiz_type === "listen") setTimeout(() => this.playChar(this.curQuiz.hanzi), 400);
+        if (this.curQuiz.quiz_type === "wf") this.wfq = { found: [], misses: 0, shake: "" };  /* 新干扰重选（v60） */
         return;
       }
       this.advance();
@@ -1475,6 +1555,13 @@ const root = createApp({
           score: this.weeklyScore, total: this.weeklyTotal, wrong_ids: this.weeklyWrongIds })
           .catch(e => console.warn("weekly/finish 弱网失败", e));   /* 结算可丢，流程照走（防空白卡死） */
         localStorage.removeItem(this.weeklyKey());   /* 已结算，清断点 */
+        if (this.today.grad) {                       /* v60 毕业测结算统计（会话内，不落库；重进 done 早退只显 score/total） */
+          this.gradStats = {
+            n: this.today.scope.length,
+            mastered: Object.values(this.charOK).filter(v => v !== false && v !== undefined).length,
+            dims: ["py", "wf", "defi"].map(qt => ({ qt, ok: this.dimScore[qt] || 0, n: this.dimTotal[qt] || 0 }))
+          };
+        }
         this.phase = "weekly-done";
       } else {
         localStorage.setItem(this.dailyDoneKey(), "1");   /* 当日真完成（含朗读卡）：此后重进直接看成绩 */
