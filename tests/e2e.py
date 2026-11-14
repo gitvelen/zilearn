@@ -53,7 +53,7 @@ def reset_user():
     import database
     db = database.get_db()
     uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
-    db.execute("UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0, day_offset=0 WHERE id=?", (uid,))
+    db.execute("UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0, day_offset=0, grad_pending=0, grad_anchor=NULL WHERE id=?", (uid,))
     for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports", "follow_log", "daily_mail"):
         db.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
     db.commit()
@@ -399,6 +399,9 @@ def weekly_done_tests():
         db.execute("INSERT INTO quiz_log(user_id, hanzi_id, phase, quiz_type, correct, ts) "
                    "VALUES(?,?, 'review', 'listen', 1, ?)",
                    (uid, hid, (_date.today() - _td(days=i)).isoformat()))
+    # 本周新字入 scope（2026-11-14 空 scope 周测转学习日后，周测日断言须有可考字）
+    db.execute("INSERT INTO user_hanzi(user_id,hanzi_id,status,stage,first_date) VALUES(?,?,'learning',0,?)",
+               (uid, hid, _date.today().isoformat()))
     db.commit()
     db.close()
     t = scheduler.build_today(uid)
@@ -500,6 +503,54 @@ def plan_renew_tests():
     reset_user()   # 本组自带清理
 
 
+def plan_floor_and_empty_weekly_tests():
+    """2026-11-14 拍板两项：① plan target 下限（手输 0/负数不再建成即达成的空计划）；
+    ② 空 scope 周测日转学习日（末期全 mastered 无错无到期不考空卷；毕业测空 scope 消费挂旗）"""
+    reset_user()
+    call("POST", "/api/login", {"username": "mido", "password": MIDO_PASS})
+    call("POST", "/api/profile/grade", {"grade": "1A"})
+    r = call("POST", "/api/plan/create", {"target_chars": 3, "days": 14})
+    check("计划 target 下限 3→10", r["target"] == 10, r)
+
+    print("== 空 scope 周测日 ==")
+    import database, scheduler
+    db = database.get_db()
+    uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
+    chars = [row["id"] for row in db.execute(
+        """SELECT h.id FROM hanzi h WHERE h.book='1a' AND NOT EXISTS
+           (SELECT 1 FROM user_hanzi uh WHERE uh.user_id=? AND uh.hanzi_id=h.id) LIMIT 2""", (uid,))]
+    day0 = date(2026, 3, 2)
+    days = [(day0 + timedelta(days=i)).isoformat() for i in range(13)]   # 13 活动日，今日=第 14 天（周测日 di=13）
+    db.execute("""UPDATE users SET target_chars=2, plan_days=14, plan_start=?, onboarded=1,
+                  grad_pending=0, grad_anchor=NULL WHERE id=?""", (days[0], uid))
+    for i, hid in enumerate(chars):     # 第 1 周学 2 字 → 全 mastered（无错、无到期）
+        db.execute("INSERT INTO user_hanzi(user_id,hanzi_id,status,stage,next_date,first_date) "
+                   "VALUES(?,?,'mastered',4,NULL,?)", (uid, hid, days[i]))
+        db.execute("INSERT INTO quiz_log(user_id,hanzi_id,phase,quiz_type,correct,ts) "
+                   "VALUES(?,?,'learn','card',1,?)", (uid, hid, days[i]))
+    for i in range(2, 13):              # 铺满活动日（第 2 周起无新字，全对无错）
+        db.execute("INSERT INTO quiz_log(user_id,hanzi_id,phase,quiz_type,correct,ts) "
+                   "VALUES(?,?,'review','listen',1,?)", (uid, chars[0], days[i]))
+    db.commit(); db.close()
+    real_today = scheduler.today_str
+    try:
+        scheduler.today_str = lambda: (day0 + timedelta(days=13)).isoformat()
+        r = scheduler.build_today(uid)
+        check("空 scope 周测日转学习日", r["mode"] == "learn", r)
+        db = database.get_db()
+        db.execute("UPDATE users SET grad_pending=1, grad_anchor=? WHERE id=?", (days[7], uid))
+        db.commit(); db.close()
+        r = scheduler.build_today(uid)
+        db = database.get_db()
+        u = db.execute("SELECT grad_pending, grad_anchor FROM users WHERE id=?", (uid,)).fetchone()
+        check("空 scope 毕业测：消费挂旗+转学习日",
+              r["mode"] == "learn" and u["grad_pending"] == 0 and u["grad_anchor"] is None, (r, dict(u)))
+        db.close()
+    finally:
+        scheduler.today_str = real_today
+    reset_user()
+
+
 def confirm_more_tests():
     """轮次补摸（验证轮已砍：速选直接 skipped）：池内确认生词<目标 → submit 响应
     more_batch 续摸；够数开始学；全册摸完仍不足 → target 收敛（目标不悬空）"""
@@ -563,6 +614,9 @@ def weekly_resume_tests():
         d = (_date.today() - _td(days=i)).isoformat()
         db.execute("INSERT INTO quiz_log(user_id, hanzi_id, phase, quiz_type, correct, ts) "
                    "VALUES(?,?, 'review', 'listen', 1, ?)", (uid, h1["id"], d))
+    # 本周新字入 scope（2026-11-14 空 scope 周测转学习日后，周测日断言须有可考字）
+    db.execute("INSERT INTO user_hanzi(user_id,hanzi_id,status,stage,first_date) VALUES(?,?,'learning',0,?)",
+               (uid, h1["id"], _date.today().isoformat()))
     db.commit()
     db.close()
     t = scheduler.build_today(uid)
@@ -767,6 +821,7 @@ if __name__ == "__main__":
     weekly_done_tests()
     weekly_resume_tests()
     plan_renew_tests()
+    plan_floor_and_empty_weekly_tests()
     confirm_more_tests()
     throttle_bank_tests()
     content_gate_tests()

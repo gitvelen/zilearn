@@ -25,6 +25,7 @@ INTERVALS = [1, 3, 7, 14]     # stage0→1 / 1→2 / 2→3 / 3→mastered 的间
 AUDIT_N = 3                   # 掌握词每日抽检数
 CONFIRM_BATCH = 50            # 摸底速选表格每批字数
 MIN_PLAN_DAYS = 7             # 计划天数下限（一个完整周循环）
+MIN_TARGET_CHARS = 10         # 目标字数下限（防手输 0/负数建成即达成的空计划；池不足时取池）
 REVIEW_CAP = 30               # 单日复习供给上限（缺勤积压分日消化；出队序=错字优先、余按到期 2026-11-14 拍板；状态机不动）
 NEW_THROTTLE_AT = 60          # 到期复习积压超此值 → 当日新字减半（先还债再扩新，稳态≈4×daily_new）
 
@@ -91,7 +92,7 @@ def create_plan(user_id, target_chars, days):
         base = db.execute("""SELECT COUNT(*) n FROM user_hanzi
                              WHERE user_id=? AND status IN ('learning','mastered')""",
                           (user_id,)).fetchone()["n"]
-        target = min(int(target_chars), pool)
+        target = min(max(int(target_chars), MIN_TARGET_CHARS), pool)   # 下限校验（2026-11-14 拍板）：前端 :min=10 不拦手输
         study_days = days - days // 7            # 每周 1 天周测不投新字
         daily_new = max(1, math.ceil(target / study_days))
         # onboarded 不在此置位（2026-11-03 补洞）：摸底完成（confirm_submit 无补摸批次）才置 1，
@@ -288,40 +289,47 @@ def build_today(user_id):
             # scope=锚点起本期全部新字（7 天计划=收官周测、30 天=月测），不含旧错字/到期
             # 复习（毕业测日纯测验，顺延至毕业后学习日，REVIEW_CAP 顺延兜底）。mode 仍
             # weekly：submit/weekly_finish/跨日续做/done 早退全共用，grad 标志前端分支。
+            scope = {}
             if user["grad_pending"]:
-                scope = {}
                 for r in db.execute(f"""SELECT h.id, h.char FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
                                         WHERE uh.user_id=? AND uh.first_date>=? AND uh.status!='skipped'
                                         AND {CONTENT_READY}""",
                                     (user_id, user["grad_anchor"])):
                     scope[r["id"]] = dict(r)
-                return {"mode": "weekly", "grad": True, "week_no": week_no,
-                        "scope": list(scope.values()), "date": t}
+                if scope:
+                    return {"mode": "weekly", "grad": True, "week_no": week_no,
+                            "scope": list(scope.values()), "date": t}
+                # 空 scope（锚点后无字的脏数据/恢复态）：消费挂旗转学习日，防每周空转毕业测
+                db.execute("UPDATE users SET grad_pending=0, grad_anchor=NULL WHERE id=?", (user_id,))
+                db.commit()
             # 本周窗口 = 本周首个活动日（第 (week_no-1)*7+1 个）的日期
-            active = _active_days(db, user_id)
-            week_start = active[(week_no - 1) * 7]
-            scope = {}
-            # 本周新字
-            for r in db.execute(f"""SELECT h.id, h.char FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
-                                   WHERE uh.user_id=? AND uh.first_date>=? AND uh.status!='skipped'
-                                   AND {CONTENT_READY}""",
-                                (user_id, week_start)):
-                scope[r["id"]] = dict(r)
-            # 本周答错过的字（含前几周的旧字本周答错）。EXISTS 防御：quiz_log 有错答记录
-            # 但 user_hanzi 为 skipped/缺行的脏数据不进周测——否则答错会把 skipped 字激活回复习池
-            for r in db.execute(f"""SELECT DISTINCT h.id, h.char FROM quiz_log q JOIN hanzi h ON h.id=q.hanzi_id
-                                   WHERE q.user_id=? AND q.correct=0 AND q.ts>=? AND {CONTENT_READY}
-                                   AND EXISTS (SELECT 1 FROM user_hanzi uh WHERE uh.user_id=q.user_id
-                                               AND uh.hanzi_id=q.hanzi_id AND uh.status IN ('learning','mastered'))""",
-                                (user_id, week_start)):
-                scope[r["id"]] = dict(r)
-            # 当日到期复习（并入，避免同字重复出现）
-            for r in db.execute(f"""SELECT h.id, h.char FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
-                                   WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=?
-                                   AND {CONTENT_READY}""",
-                                (user_id, t)):
-                scope[r["id"]] = dict(r)
-            return {"mode": "weekly", "week_no": week_no, "scope": list(scope.values()), "date": t}
+            if not scope:
+                active = _active_days(db, user_id)
+                week_start = active[(week_no - 1) * 7]
+                # 本周新字
+                for r in db.execute(f"""SELECT h.id, h.char FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
+                                       WHERE uh.user_id=? AND uh.first_date>=? AND uh.status!='skipped'
+                                       AND {CONTENT_READY}""",
+                                    (user_id, week_start)):
+                    scope[r["id"]] = dict(r)
+                # 本周答错过的字（含前几周的旧字本周答错）。EXISTS 防御：quiz_log 有错答记录
+                # 但 user_hanzi 为 skipped/缺行的脏数据不进周测——否则答错会把 skipped 字激活回复习池
+                for r in db.execute(f"""SELECT DISTINCT h.id, h.char FROM quiz_log q JOIN hanzi h ON h.id=q.hanzi_id
+                                       WHERE q.user_id=? AND q.correct=0 AND q.ts>=? AND {CONTENT_READY}
+                                       AND EXISTS (SELECT 1 FROM user_hanzi uh WHERE uh.user_id=q.user_id
+                                                   AND uh.hanzi_id=q.hanzi_id AND uh.status IN ('learning','mastered'))""",
+                                    (user_id, week_start)):
+                    scope[r["id"]] = dict(r)
+                # 当日到期复习（并入，避免同字重复出现）
+                for r in db.execute(f"""SELECT h.id, h.char FROM user_hanzi uh JOIN hanzi h ON h.id=uh.hanzi_id
+                                       WHERE uh.user_id=? AND uh.status='learning' AND uh.next_date<=?
+                                       AND {CONTENT_READY}""",
+                                    (user_id, t)):
+                    scope[r["id"]] = dict(r)
+            # 空 scope 周测日（末期全 mastered 无错无到期，2026-11-14 拍板）：不考空卷，
+            # 转学习日——供给三空则自然显示"任务都完成啦"
+            if scope:
+                return {"mode": "weekly", "week_no": week_no, "scope": list(scope.values()), "date": t}
 
         # ---- 学习日 ----
         daily_new = math.ceil(user["target_chars"] /
