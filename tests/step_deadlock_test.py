@@ -57,7 +57,7 @@ def onboard_to_session(page):
     page.locator(".chip", has_text="30 天").click()
     page.click("button.btn.big")
     page.wait_for_selector(".char-grid", timeout=10000)
-    page.click("button.btn.big")                     # 选完了，开始学（验证轮已砍）
+    page.locator("button.btn.ghost", has_text="跳过剩余").click()   # 非末页为 ghost（2026-11-14 拍板）
     page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=10000)
     page.evaluate("() => document.querySelector('button.btn.big').click()")
     page.wait_for_function("window.ziapp.sessQueue.length>0 && window.ziapp.curItem", timeout=10000)

@@ -1,6 +1,6 @@
 """调度核心 — zilearn
 
-周循环 + 日日复习（PRD §4）：
+周循环 + 日日复习（设计详见 README「核心设计」）：
 - 间隔序列 INTERVALS=[1,3,7,14]：首学 D0 → 复习1(D+1) → 复习2(D+4) → 复习3(D+11) → 复习4(D+25) → mastered
   （间隔从每次复习当日起算；扩张比≈3）
 - 每周 = 6 学习日 + 1 周测日（不投新字）；活动日驱动：中断不推进计划、周测日顺延到
@@ -272,8 +272,8 @@ def build_today(user_id):
 
         if is_weekly_day(user, db):
             week_no = (di + 1) // 7
-        elif weekly_pending(db, user, di):
-            week_no = weekly_pending(db, user, di)   # 跨日续做：上周周测开头未结算 → 仍是周测日
+        elif (wp := weekly_pending(db, user, di)):   # 跨日续做：上周周测开头未结算 → 仍是周测日
+            week_no = wp
         else:
             week_no = None
         if week_no:

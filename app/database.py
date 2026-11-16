@@ -1,6 +1,6 @@
 """SQLite 数据模型与初始化 — zilearn（儿童识字，对标洪恩识字）
 
-设计详见 docs/PRD.md §7。核心表：users / hanzi / zi_content / user_hanzi /
+设计详见 README「核心设计」。核心表：users / hanzi / zi_content / user_hanzi /
 quiz_log / stars / weekly_reports。绘本表（books）P4 接入时启用。
 """
 import sqlite3
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS zi_content (
   etym_type TEXT,          -- picto|component|mnemonic|scene
   etym      TEXT,          -- 字源/部件故事
   emoji     TEXT,          -- 视觉锚点（高置信才配，可空）
-  mean      TEXT,          -- 释义（字义关素材：听释义选字；12-30 字、不含目标字、特异无歧义）
+  mean      TEXT,          -- 释义（字义关素材：听释义选字；6-30 字、不含目标字、特异无歧义）
   avoid     TEXT           -- 义近/同类禁扰字（逗号分隔，出题时排除——防"释义也能套"的歧义）
 );
 
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS quiz_log (
   id        INTEGER PRIMARY KEY,
   user_id   INTEGER NOT NULL,
   hanzi_id  INTEGER NOT NULL,
-  phase     TEXT NOT NULL,               -- learn|review|weekly|verify|audit
+  phase     TEXT NOT NULL,               -- learn|review|weekly|audit（verify 轮已砍，2026-11-03）
   quiz_type TEXT,                        -- read|listen|mean
   correct   INTEGER NOT NULL,
   ts        TEXT DEFAULT (datetime('now'))
@@ -120,6 +120,8 @@ CREATE TABLE IF NOT EXISTS follow_log (   -- 跟读开口记录（有效性度�
   mic_settings TEXT,                      -- gUM 实际生效设置 JSON（Safari 忽略约束的电平取证）
   ts_ms     INTEGER,                      -- 客户端时刻（区分弱网批量交付与服务端 ts）
   ua        TEXT,                         -- 截断 UA（设备/浏览器/刷新率排查）
+  asr_text  TEXT,                         -- 词步 ASR 识别文本（v38：degraded 时为空可辨）
+  asr_pass  INTEGER,                      -- 词步 ASR 匹配结果 1/0（未走 ASR 为 NULL）
   ts        TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_flog_user ON follow_log(user_id, ts);

@@ -4,6 +4,10 @@
 输入：verdict 列表（本文件 VERDICTS 常量，Claude 逐题审查结论）
 格式：(id, 'P'|'F'|'W', note)  P=通过 W=通过但弱题(待variant替换) F=打回(待重新生成)
 用法：python3 review_apply.py
+
+⚠️ 历史存档，勿再执行：id 位置绑定 2026-10-27 mean 批次那次生成的 questions 表状态
+（固定种子）。表已扩至多册多轮生成，重跑 gen_questions 后同 id 命中的是别的题——
+现在执行会把审查结论盖到无关题目上且不可察觉。新册题库审定不走本文件。
 """
 import sqlite3
 from pathlib import Path

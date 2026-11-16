@@ -148,7 +148,7 @@ def main():
         em = c.get("emoji", "")
         if em and re.search(r"[一-鿿]", em):
             errors.append(f"[{ch}] emoji 含汉字：{em}")
-        # 释义（可选字段，字义关素材）：不含目标字（防读释义泄漏答案）、12-30 字、
+        # 释义（可选字段，字义关素材）：不含目标字（防读释义泄漏答案）、6-30 字、
         # 白名单内用字（释义会被 TTS 读给孩子听）、avoid 禁扰字必须在册表内
         mean = c.get("mean", "")
         if mean:

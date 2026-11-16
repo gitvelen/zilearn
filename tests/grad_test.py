@@ -266,8 +266,8 @@ def chain_tests(uid):
     day0 = date(2026, 3, 2)
     D = lambda n: (day0 + timedelta(days=n)).isoformat()  # noqa: E731
     db = database.get_db()
-    chars = ready_chars(db, 8)
-    db.close()
+    chars = ready_chars(db, 25)   # A3 + B10 + C10：B/C 走 create_plan，target 受 v61 下限
+    db.close()                    # MIN_TARGET_CHARS=10 钳制，须学满 10 字才真实跨越
     real_today = scheduler.today_str
     try:
         scheduler.today_str = lambda: D(0)
@@ -280,10 +280,10 @@ def chain_tests(uid):
             scheduler.submit(uid, hid, "learn", "card", True)
         p, a = grad_flags(database.get_db(), uid)
         check("A 期达成挂旗", p == 1 and a == D(0), (p, a))
-        # 当日续订 B 期（create_plan 记新 base=3、新 plan_start=D1）
+        # 当日续订 B 期（create_plan 记新 base=3、新 plan_start=D1；target 2→钳 10，v61 下限）
         scheduler.today_str = lambda: D(1)
         scheduler.create_plan(uid, 2, 7)
-        for hid in chars[3:5]:                     # B 期 2 字 → 跨越再命中
+        for hid in chars[3:13]:                    # B 期 10 字 → 跨越再命中（base3+10=13）
             scheduler.submit(uid, hid, "learn", "card", True)
         p, a = grad_flags(database.get_db(), uid)
         check("B 期跨越：flag 保持、anchor 仍=A（合并考 A+B）", p == 1 and a == D(0), (p, a))
@@ -293,7 +293,7 @@ def chain_tests(uid):
         check("毕业测结算 → 清旗", p == 0 and a is None, (p, a))
         # C 期再达成 → 重新挂旗（新 anchor）
         scheduler.create_plan(uid, 2, 7)
-        for hid in chars[5:7]:
+        for hid in chars[13:23]:                   # C 期 10 字（base13+10=23 跨越）
             scheduler.submit(uid, hid, "learn", "card", True)
         p, a = grad_flags(database.get_db(), uid)
         check("C 期跨越 → 重挂新 anchor", p == 1 and a == D(1), (p, a))

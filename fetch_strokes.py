@@ -33,7 +33,6 @@ def fetch(ch):
 
 
 def main():
-    import urllib.parse  # noqa
     chars = []
     with CSV.open() as f:
         for row in csv.DictReader(f):

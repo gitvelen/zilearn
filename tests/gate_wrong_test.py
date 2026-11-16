@@ -33,7 +33,7 @@ def run(page):
     page.locator(".chip", has_text="30 天").click()
     page.click("button.btn.big")
     page.wait_for_selector(".char-grid", timeout=10000)
-    page.click("button.btn.big")               # 跳过剩余（全不认识）
+    page.locator("button.btn.ghost", has_text="跳过剩余").click()   # 非末页为 ghost（2026-11-14 拍板）
     page.wait_for_timeout(1200)
     page.wait_for_selector(".day-card", timeout=10000)
     page.click("button.btn.pulse", force=True)

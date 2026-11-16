@@ -244,7 +244,6 @@ const root = createApp({
       this._resetPlayCtx();                          /* 异步弃旧防 Safari 配额；此处重建非手势尽力而为 */
       ctx = this._playCtx;
       if (!ctx) return null;
-      if (!ctx) return null;
       if (ctx.state === "running") return ctx;
       await Promise.race([
         ctx.resume().catch(() => { }),

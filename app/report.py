@@ -72,11 +72,9 @@ def build_daily_report(user_id, day=None):
             first.append(r)
         n_first = len(first)
         ok_first = sum(r["correct"] for r in first)
-        # 分轮表现（phase × 题型聚合）
+        # 分轮表现（phase × 题型聚合；first 已排除 card）
         rounds = {}
         for r in first:
-            if r["quiz_type"] == "card":
-                continue
             key = f"{PHASE_LABEL.get(r['phase'], r['phase'])}·{QT_LABEL.get(r['quiz_type'], r['quiz_type'])}"
             s = rounds.setdefault(key, {"n": 0, "ok": 0})
             s["n"] += 1

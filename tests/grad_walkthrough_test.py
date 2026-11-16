@@ -13,7 +13,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).parent.parent
 DB = ROOT / "app/data/zilearn.db"
-BASE = "http://127.0.0.1:8101"
+BASE = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8101"
 PASS = FAIL = 0
 
 
