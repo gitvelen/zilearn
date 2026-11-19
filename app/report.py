@@ -18,8 +18,9 @@ from database import get_db, DB_PATH
 import scheduler                      # 日报聚合口径与调度同源（TEST 跳日：quiz_log ts 记虚拟日）
 
 SMTP_CONF = DB_PATH.parent / "smtp.json"
-SMTP_SKIP_USERS = ("test",)                  # 2026-11-04 拍板：mido 转孩子日常账号（移出发信黑名单，学完即发日报），
-                                             # test 仍为开发测试号（反复清数据/跳日自测）不发信
+SMTP_SKIP_USERS = ("test", "mily")          # 2026-11-04 拍板：mido 转孩子日常账号（移出发信黑名单，学完即发日报）；
+                                             # test 为开发测试号（反复清数据/跳日自测）；
+                                             # mily 纯写字模式不发日报（2026-11-19 拍板）
 QT_LABEL = {"listen": "听音题", "pin": "拼音题", "py": "读音题", "mean": "组词题", "sent": "句子题",
             "find": "找一找", "rev": "听词题", "lsent": "听句题", "defi": "字义题",
             "stroke": "写字", "card": "新字卡"}
