@@ -167,6 +167,42 @@ def run_wrong_path(browser):
     check("结算页到达（判错字计入未掌握）", "真正掌握" in body and "1 / 2 个字" in body, body[:400])
 
 
+def run_renewed_banner(browser):
+    """已续订态毕业测结算页（mido 11-18 实况回归，v62）：达成日条幅已续订过 planDone=false，
+    毕业测结算页仍须有"调整下一期"入口；重进走 done 早退（grad 列真源）也要显示。"""
+    print("== 走查 C：已续订态结算页入口（重进）==")
+    setup_grad_state(3)
+    con = sqlite3.connect(DB); con.row_factory = sqlite3.Row
+    uid = con.execute("SELECT id FROM users WHERE username='test'").fetchone()["id"]
+    con.execute("UPDATE users SET plan_base_learned=3, target_chars=30, plan_days=30 WHERE id=?",
+                (uid,))                      # 模拟达成日已续订 30/30（planDone=false）
+    con.commit(); con.close()
+    page = browser.new_context().new_page()
+    login(page)                              # 毕业测 intro（未结算）
+    page.evaluate("""async () => {           // 走 API 正规结算（grad 列落库）后重进：done 早退渲染结算页
+        await fetch('/api/weekly/finish', {method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({week_no: 1, score: 9, total: 9, wrong_ids: []})});
+        await window.ziapp.boot();
+    }""")
+    page.wait_for_timeout(1000)
+    body = page.inner_text("body")
+    check("重进结算页(9/9 显示)", "9 / 9" in body, body[:200])
+    check("已续订态 banner：本期圆满毕业", "本期圆满毕业" in body, body[:300])
+    check("下一期已订文案", "下一期已订：30 字 / 30 天" in body, body[:400])
+    check("调整按钮在（家长长按）", "调整下一期" in body, body[:400])
+    rbtn = page.locator(".plan-done-banner .btn")
+    rbtn.dispatch_event("pointerdown"); rbtn.dispatch_event("pointerup")   # 短按锁
+    page.wait_for_timeout(300)
+    check("短按被锁", page.evaluate("() => ziapp.phase") != "ob-plan")
+    rbtn.dispatch_event("pointerdown")
+    page.wait_for_timeout(1600)
+    rbtn.dispatch_event("pointerup")
+    page.wait_for_timeout(400)
+    check("长按进入调整表单", "下一期学多少字" in page.inner_text(".wizard h2"))
+    check("预填本期 30/30", page.evaluate("() => [ziapp.obTarget, ziapp.obDays]") == [30, 30],
+          page.evaluate("() => [ziapp.obTarget, ziapp.obDays]"))
+
+
 def main():
     with sync_playwright() as p:
         browser = p.chromium.launch(
@@ -174,6 +210,7 @@ def main():
             args=["--no-sandbox", "--autoplay-policy=no-user-gesture-required"])
         run_correct_path(browser)
         run_wrong_path(browser)
+        run_renewed_banner(browser)
         browser.close()
     print(f"\n{PASS} pass / {FAIL} fail")
     sys.exit(1 if FAIL else 0)

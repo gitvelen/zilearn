@@ -301,6 +301,103 @@ def chain_tests(uid):
         scheduler.today_str = real_today  # noqa
 
 
+def spread_tests(uid):
+    """⑧ 测验错字打散（v62，周测/月测/毕业测统一）：结算时按每日 WRONG_SPREAD_DAILY 均匀
+    铺 D+1..D+ceil(N/上限)；小批量（≤上限）与 D+1 全量回炉原语义重合；守卫不等式（跨日
+    续做 D0 答错 D1 结算不漏排）；not existed 幂等；脏数据（next 已推远）防御；重复 id 去重。"""
+    print("== ⑧ 测验错字打散 ==")
+    day0 = date(2026, 4, 6)
+    D = lambda n: (day0 + timedelta(days=n)).isoformat()  # noqa: E731
+    db = database.get_db()
+    chars = ready_chars(db, 30)
+    db.close()
+    real_today = scheduler.today_str
+
+    def uh(hid):
+        d = database.get_db()
+        r = d.execute("""SELECT status, stage, wrong_count, next_date FROM user_hanzi
+                         WHERE user_id=? AND hanzi_id=?""", (uid, hid)).fetchone()
+        d.close()
+        return dict(r) if r else None
+
+    def nexts(ids):
+        return sorted(uh(h)["next_date"] for h in ids)
+
+    try:
+        scheduler.today_str = lambda: D(0)
+        db = database.get_db()
+        db.execute("""UPDATE users SET grade='1A', target_chars=99, plan_days=30,
+                      plan_start=?, onboarded=1, grad_pending=0 WHERE id=?""", (D(0), uid))
+        db.commit()
+        db.close()
+        for hid in chars:
+            scheduler.submit(uid, hid, "learn", "card", True)   # stage0 / next D1
+
+        # A. 毕业测 N=12 错字结算：前 6 铺 D2、后 6 铺 D3；对字/状态机不动；report.grad 落库
+        scheduler.today_str = lambda: D(1)
+        for hid in chars[0:12]:
+            scheduler.submit(uid, hid, "weekly", "py", False, grad_slot=0)  # 错 → next D2
+        scheduler.submit(uid, chars[12], "weekly", "py", True, grad_slot=0)  # 对 → stage1 next D4
+        db = database.get_db()
+        db.execute("UPDATE users SET grad_pending=1, grad_anchor=? WHERE id=?", (D(0), uid))
+        db.commit()
+        db.close()
+        scheduler.weekly_finish(uid, 2, 10, 15, chars[0:12])
+        check("N=12 → 6 个 D+1、6 个 D+2",
+              nexts(chars[0:12]) == [D(2)] * 6 + [D(3)] * 6, nexts(chars[0:12]))
+        check("对字不被打散（stage1/D+3 原 next 保持）",
+              uh(chars[12])["next_date"] == D(4) and uh(chars[12])["stage"] == 1, uh(chars[12]))
+        check("打散只挪日期：stage=1/wrong_count=1 不动",
+              all(uh(h)["stage"] == 1 and uh(h)["wrong_count"] == 1 for h in chars[0:12]))
+        g = database.get_db().execute(
+            "SELECT grad FROM weekly_reports WHERE user_id=? AND week_no=2", (uid,)).fetchone()["grad"]
+        check("report.grad 落库（毕业测=1，重进结算页可判）", g == 1, g)
+
+        # B. 幂等：重复结算不挪字（not existed 门）
+        scheduler.weekly_finish(uid, 2, 10, 15, chars[0:12])
+        check("重复结算 → 日期不变（幂等）",
+              nexts(chars[0:12]) == [D(2)] * 6 + [D(3)] * 6, nexts(chars[0:12]))
+
+        # C. 跨日续做守卫（不等式）：D2 答错（next=D3）、D3 结算 → 铺到 D4（相等匹配会漏排留 D3）
+        scheduler.today_str = lambda: D(2)
+        scheduler.submit(uid, chars[13], "weekly", "py", False, grad_slot=0)   # next=D3
+        scheduler.today_str = lambda: D(3)
+        scheduler.weekly_finish(uid, 3, 0, 1, [chars[13]])
+        check("跨日续做：D2 错 D3 结算 → 铺到结算日+1（守卫不等式）",
+              uh(chars[13])["next_date"] == D(4), uh(chars[13]))
+
+        # D. 小批量 N=3 → 全 D+1（与原全量回炉语义重合）
+        for hid in chars[14:17]:
+            scheduler.submit(uid, hid, "weekly", "listen", False)              # 错 → next D4
+        scheduler.weekly_finish(uid, 4, 1, 3, chars[14:17])
+        check("N=3（≤每日上限）→ 全 D+1（原语义重合）",
+              nexts(chars[14:17]) == [D(4)] * 3, nexts(chars[14:17]))
+
+        # E. 普通周测（grad_pending 已清）同样打散 + wrong_ids 重复去重
+        p, _ = grad_flags(database.get_db(), uid)
+        check("前置：grad_pending 已清（普通周测场景）", p == 0, p)
+        for hid in chars[18:26]:
+            scheduler.submit(uid, hid, "weekly", "listen", False)              # 8 错 → next D4
+        scheduler.weekly_finish(uid, 5, 2, 8, chars[18:26] + [chars[19], chars[19]])  # 重复 id
+        check("普通周测 N=8（去重后）→ 6 个 D+1、2 个 D+2",
+              nexts(chars[18:26]) == [D(4)] * 6 + [D(5)] * 2, nexts(chars[18:26]))
+        g = database.get_db().execute(
+            "SELECT grad FROM weekly_reports WHERE user_id=? AND week_no=5", (uid,)).fetchone()["grad"]
+        check("普通周测 report.grad=0", g == 0, g)
+
+        # F. 脏数据防御：结算前 next 已被推远（> 结算日+1）的字不被动
+        scheduler.submit(uid, chars[26], "weekly", "listen", False)            # next D4
+        db = database.get_db()
+        db.execute("UPDATE user_hanzi SET next_date=? WHERE user_id=? AND hanzi_id=?",
+                   (D(12), uid, chars[26]))
+        db.commit()
+        db.close()
+        scheduler.weekly_finish(uid, 6, 0, 1, [chars[26]])
+        check("脏数据防御：next 已推远的字不被动", uh(chars[26])["next_date"] == D(12), uh(chars[26]))
+    finally:
+        scheduler.today_str = real_today  # noqa
+
+
 if __name__ == "__main__":
     database.init_db()   # 迁移 grad 两列（幂等；与容器启动路径一致——旧容器 SELECT * 不受新增列影响）
     db = database.get_db()
@@ -320,6 +417,8 @@ if __name__ == "__main__":
         clean_test_data(uid)
         wf_gen_tests()
         chain_tests(uid)
+        clean_test_data(uid)
+        spread_tests(uid)
     finally:
         clean_test_data(uid)   # teardown：只清 test，mido 零接触
     print(f"\n{PASS_N} pass / {FAIL_N} fail")

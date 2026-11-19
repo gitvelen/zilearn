@@ -45,7 +45,7 @@ const root = createApp({
       follow: { on: false, kind: "", idx: 0, done: [], state: "off" }, micLvl: 0,
       micDenied: false, micState: "ok", followPop: false, quizBurst: false,
       narrLock: false, readAudioUrl: "",
-      homeTip: false, homeHold: false, ncHold: -1, renewing: false, moreRound: false,
+      homeTip: false, homeHold: false, ncHold: -1, renewing: false, moreRound: false, renewHold: false,
       holdLogout: false,
       BURST_DIRS: [["-70px","-60px"],["70px","-75px"],["0px","-95px"],["-55px","55px"],["55px","65px"],["0px","-30px"]],
       gateScores: {}, gateWrong: {}, readNews: [],
@@ -901,8 +901,18 @@ const root = createApp({
     },
     startRenew(from) {                              /* 本期达成 → 家长续订（完成页入口） */
       this.renewing = true; this._renewFrom = from;
-      this.obTarget = Math.min(30, this.progress.pool || 30);
+      /* 预填上期同款（v62 拍板）：mido 11-17 续订落 30/30 就是默认值没改直提——预填可防复发；
+         pool 不足时钳到池（后端 create_plan 同款钳制）；天数不在 chips（历史脏数据）回退 30 */
+      this.obTarget = Math.min(this.progress.target_chars || 30, this.progress.pool || 30);
+      this.obDays = [7, 14, 30, 60, 90].includes(this.progress.plan_days)
+        ? this.progress.plan_days : 30;
       this.phase = "ob-plan";
+    },
+    renewDown() { this._renewT = Date.now(); this.renewHold = true; },
+    renewUp(from) {                                 /* 订下一期入口=家长长按 1.5s（防孩子误订，v62） */
+      this.renewHold = false;
+      if (Date.now() - (this._renewT || 0) >= 1500) this.startRenew(from);
+      else this.holdTip("家长长按一会儿才能订下一期哦");
     },
     renewBack() { this.renewing = false; this.phase = this._renewFrom || "done"; },
     togglePick(id) {
@@ -1570,6 +1580,8 @@ const root = createApp({
         await api("POST", "/api/weekly/finish", { week_no: this.today.week_no,
           score: this.weeklyScore, total: this.weeklyTotal, wrong_ids: this.weeklyWrongIds })
           .catch(e => console.warn("weekly/finish 弱网失败", e));   /* 结算可丢，流程照走（防空白卡死） */
+        try { const me = await api("GET", "/api/me"); this.progress = me.progress; }
+        catch (e) { /* 结算页 banner（下一期已订/达成）读 progress，结算后刷新；弱网容忍 */ }
         localStorage.removeItem(this.weeklyKey());   /* 已结算，清断点 */
         if (this.today.grad) {                       /* v60 毕业测结算统计（会话内，不落库；重进 done 早退只显 score/total） */
           this.gradStats = {

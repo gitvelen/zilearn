@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>字乐 zilearn</title>
-<link rel="stylesheet" href="/style.css?v=19">
+<link rel="stylesheet" href="/style.css?v=20">
 </head>
 <body>
 <div id="app" v-cloak>
@@ -113,6 +113,17 @@
         <div class="row-of-stats"><span>{{today.grad ? '本期毕业大挑战' : '第 '+today.week_no+' 周大挑战'}}已经完成！</span></div>
         <div class="hint">得了 {{today.score}} / {{today.total}}，好棒！</div>
         <div class="hint">明天开始第 {{today.week_no + 1}} 周，继续学新字 🚀</div>
+        <!-- v62：结算后重进走本早退页（结算页一闪而过）——"下一期"入口必须在此常驻，否则
+             mido 11-18 实况重演（达成日续订过 planDone=false，家长重进找不到入口） -->
+        <div v-if="planDone || today.grad" class="plan-done-banner" style="margin-top:10px">
+          <h3 v-if="planDone">本期目标达成！</h3>
+          <h3 v-else>本期圆满毕业！</h3>
+          <div v-if="planDone" class="hint">这期学了 {{progress.learned - progress.plan_base_learned}} 个字（目标 {{progress.target_chars}}）</div>
+          <div v-else class="hint">下一期已订：{{progress.target_chars}} 字 / {{progress.plan_days}} 天</div>
+          <button class="btn big pulse" :class="{hold: renewHold}" @pointerdown="renewDown"
+                  @pointerup="renewUp('today-intro')" @pointerleave="renewHold = false">
+            {{ planDone ? '🔒 家长长按订下一期 →' : '🔒 家长长按调整下一期 →' }}</button>
+        </div>
       </template>
       <template v-else>
         <div class="row-of-stats"><span>{{today.grad ? '本期毕业大挑战！这期学的字都来考一遍' : '今天是第 '+today.week_no+' 周大挑战！'}}</span></div>
@@ -411,7 +422,8 @@
     <div class="big-emoji">🏆</div>
     <h3>本期目标达成！</h3>
     <div class="hint">这期学了 {{progress.learned - progress.plan_base_learned}} 个字（目标 {{progress.target_chars}}）</div>
-    <button class="btn big pulse" @click="startRenew('done')">订下一期目标 →</button>
+    <button class="btn big pulse" :class="{hold: renewHold}" @pointerdown="renewDown"
+            @pointerup="renewUp('done')" @pointerleave="renewHold = false">🔒 家长长按订下一期 →</button>
   </div>
   <button class="btn big" @click="goParent('done')">给爸爸妈妈看成绩</button>
   <button class="btn ghost" @click="boot">明天再来！</button>
@@ -430,11 +442,17 @@
       · 找朋友 {{gradStats.dims[1].ok}}/{{gradStats.dims[1].n}}
       · 听意思 {{gradStats.dims[2].ok}}/{{gradStats.dims[2].n}}</div>
   </div>
-  <div v-if="planDone" class="plan-done-banner">
+  <!-- v62：收官测（毕业测/月测）结算无条件给"下一期"入口——已续订态显示"调整"（mido 11-18
+       毕业测后家长找不到入口的实况：达成日条幅续订过 planDone 已归零）；普通周测仍仅达成后 -->
+  <div v-if="planDone || today.grad" class="plan-done-banner">
     <div class="big-emoji">🏆</div>
-    <h3>本期目标达成！</h3>
-    <div class="hint">这期学了 {{progress.learned - progress.plan_base_learned}} 个字（目标 {{progress.target_chars}}）</div>
-    <button class="btn big pulse" @click="startRenew('weekly-done')">订下一期目标 →</button>
+    <h3 v-if="planDone">本期目标达成！</h3>
+    <h3 v-else>本期圆满毕业！</h3>
+    <div v-if="planDone" class="hint">这期学了 {{progress.learned - progress.plan_base_learned}} 个字（目标 {{progress.target_chars}}）</div>
+    <div v-else class="hint">下一期已订：{{progress.target_chars}} 字 / {{progress.plan_days}} 天</div>
+    <button class="btn big pulse" :class="{hold: renewHold}" @pointerdown="renewDown"
+            @pointerup="renewUp('weekly-done')" @pointerleave="renewHold = false">
+      {{ planDone ? '🔒 家长长按订下一期 →' : '🔒 家长长按调整下一期 →' }}</button>
   </div>
   <button class="btn big" @click="goParent('weekly-done')">给爸爸妈妈看成绩</button>
   <button class="btn ghost" @click="boot">完成！</button>
@@ -494,6 +512,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=63"></script>
+<script src="/app.js?v=64"></script>
 </body>
 </html>

@@ -28,6 +28,10 @@ MIN_PLAN_DAYS = 7             # 计划天数下限（一个完整周循环）
 MIN_TARGET_CHARS = 10         # 目标字数下限（防手输 0/负数建成即达成的空计划；池不足时取池）
 REVIEW_CAP = 30               # 单日复习供给上限（缺勤积压分日消化；出队序=错字优先、余按到期 2026-11-14 拍板；状态机不动）
 NEW_THROTTLE_AT = 60          # 到期复习积压超此值 → 当日新字减半（先还债再扩新，稳态≈4×daily_new）
+WRONG_SPREAD_DAILY = 6        # 测验（周测/月测/毕业测）错字打散的每日复习上限：结算时 next_date
+                              # 均匀铺 D+1..D+ceil(N/上限)，防大批错字 D+1 扎堆以 wrong_count>0
+                              # 霸占 REVIEW_CAP（2026-11-19 拍板，mido 11-18 毕业测 40 错字实况）；
+                              # 小批量≤上限时与 D+1 全量回炉原语义重合
 
 # 内容就绪过滤（2026-11-01 线上事故）：zi_content 只建了 1a 全量 281 字，1b+ 册无
 # 词/句/字源素材也无 TTS 音频。选字入口（计划池/摸底/新字/复习/周测范围）一律要求
@@ -278,12 +282,13 @@ def build_today(user_id):
             week_no = None
         if week_no:
             # 已结算的周测不重开（防退出重进无限刷星/重复推进状态机）
-            done = _row(db, """SELECT score, total FROM weekly_reports
+            done = _row(db, """SELECT score, total, grad FROM weekly_reports
                                 WHERE user_id=? AND week_no=? AND done=1""",
                         (user_id, week_no))
             if done:
                 return {"mode": "weekly", "week_no": week_no, "scope": [], "done": True,
-                        "score": done["score"], "total": done["total"], "date": t}
+                        "score": done["score"], "total": done["total"],
+                        "grad": bool(done["grad"]), "date": t}
             # 本期毕业测（v60，用户拍板）：目标达成跨越后的下一个周测槽位升级——每字 3 题
             # 固定三维度（py 会读 / wf 找朋友会词 / defi 听释义会义），前端按 slot 展开。
             # scope=锚点起本期全部新字（7 天计划=收官周测、30 天=月测），不含旧错字/到期
@@ -513,16 +518,30 @@ def submit(user_id, hanzi_id, phase, quiz_type, correct, grad_slot=None):
 def weekly_finish(user_id, week_no, score, total, wrong_ids):
     db = get_db()
     try:
-        u = db.execute("SELECT day_offset FROM users WHERE id=?", (user_id,)).fetchone()
+        u = db.execute("SELECT day_offset, grad_pending FROM users WHERE id=?", (user_id,)).fetchone()
+        t = today_for(u)
         existed = _row(db, "SELECT 1 FROM weekly_reports WHERE user_id=? AND week_no=?",
                        (user_id, week_no))
-        db.execute("""INSERT INTO weekly_reports(user_id, week_no, score, total, wrong_ids, done)
-                      VALUES(?,?,?,?,?,1)
+        db.execute("""INSERT INTO weekly_reports(user_id, week_no, score, total, wrong_ids, done, grad)
+                      VALUES(?,?,?,?,?,1,?)
                       ON CONFLICT(user_id, week_no) DO NOTHING""",
-                   (user_id, week_no, score, total, json.dumps(wrong_ids)))
-        if not existed:                     # 首次结算才记星，重复结算不刷星
+                   (user_id, week_no, score, total, json.dumps(wrong_ids), u["grad_pending"] or 0))
+        if not existed:                     # 首次结算才记星/打散错字，重复结算不刷星不挪字
             db.execute("INSERT INTO stars(user_id, date, src, n) VALUES(?,?,'weekly',?)",
-                       (user_id, today_for(u), score))
+                       (user_id, t, score))
+            # 测验错字打散（v62，周测/月测/毕业测统一）：错字 submit 时统一回炉 D+1，大批量
+            # （毕业测/月测）会扎堆一天且以 wrong_count>0 霸占 REVIEW_CAP 出队序——结算时按
+            # 每日 WRONG_SPREAD_DAILY 个均匀铺开；小批量（≤上限）与 D+1 全量回炉语义重合。
+            # 守卫 next_date<=D+1 用不等式：错字 next=最后一次答错日+1，跨日续做（D0 答错
+            # D1 结算）时早于结算日+1，相等匹配会整体静默漏排；已被再答推进的字 next 更远
+            # 自动跳过（结算前无复习路径——weekly_pending 期间 build_today 全是 weekly 模式，
+            # 守卫仅防御脏数据）。
+            ids = sorted({int(h) for h in wrong_ids})
+            for i, hid in enumerate(ids):
+                db.execute("""UPDATE user_hanzi SET next_date=date(?, '+' || ? || ' day')
+                              WHERE user_id=? AND hanzi_id=? AND status='learning'
+                                AND next_date<=date(?, '+1 day')""",
+                           (t, i // WRONG_SPREAD_DAILY + 1, user_id, hid, t))
         # 毕业测结算消费挂旗（v60）。无重臂：下一期达成是新的跨越事件，由 submit 的
         # 「=」挂旗负责——若此处用「<=」重臂，未续订用户达成状态持续为真会无限重挂
         db.execute("UPDATE users SET grad_pending=0, grad_anchor=NULL WHERE id=?", (user_id,))

@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS weekly_reports (
   total     INTEGER NOT NULL,
   wrong_ids TEXT,                        -- 错字 id JSON
   done      INTEGER DEFAULT 0,           -- 1=已完成结算
+  grad      INTEGER DEFAULT 0,           -- 1=毕业测/月测（v62：结算页"调整下一期"banner 重进可判）
   UNIQUE(user_id, week_no)
 );
 
@@ -183,6 +184,12 @@ def init_db():
         pass
     try:
         db.execute("ALTER TABLE users ADD COLUMN grad_anchor TEXT")
+    except sqlite3.OperationalError:
+        pass
+    # 迁移：周测报告补毕业测标志（v62，新库 SCHEMA 已含）——结算后重进 build_today
+    # done 分支据此返回 grad，结算页"调整下一期"banner 不随重进消失
+    try:
+        db.execute("ALTER TABLE weekly_reports ADD COLUMN grad INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
         pass
     # 迁移：旧库补 zi_content 释义列（字义关 v39，新库 SCHEMA 已含）

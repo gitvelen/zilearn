@@ -533,14 +533,32 @@ def run_weekly(page):
       ziapp.phase = 'done';                            // 完成页（达成引导挂载点）
     }""")
     check("达成条幅出现", page.locator(".plan-done-banner").count() == 1)
-    page.evaluate("() => document.querySelector('.plan-done-banner .btn').click()")   # pulse 动画：JS 点击
+    # v62 家长长按锁：短按（瞬时 pointerdown/up）不进表单，出 holdTip
+    rbtn = page.locator(".plan-done-banner .btn")
+    rbtn.dispatch_event("pointerdown")
+    rbtn.dispatch_event("pointerup")
+    page.wait_for_timeout(300)
+    tip = page.evaluate("() => ziapp.homeTip")   # .hold-tip 渲染真源（1.5s 自隐前读，免 DOM 时机抖动）
+    check("短按被锁（holdTip 提示家长长按）", tip and "家长长按" in tip, repr(tip))
+    check("短按不进表单", page.evaluate("() => ziapp.phase") == "done")
+    # 真实长按路径（dispatch 惯例）：>1.5s 进续订表单
+    rbtn.dispatch_event("pointerdown")
+    page.wait_for_timeout(1600)
+    rbtn.dispatch_event("pointerup")
     page.wait_for_timeout(400)
-    check("续订进入计划页(下一期文案)", "下一期" in page.locator(".wizard h2").inner_text())
+    check("家长长按进入续订表单(下一期文案)", "下一期" in page.locator(".wizard h2").inner_text())
+    # v62 预填上期同款：造态第二期 target=10/days=7
+    check("预填上期目标字数", page.evaluate("() => ziapp.obTarget") == 10,
+          page.evaluate("() => ziapp.obTarget"))
+    check("预填上期天数(chip 高亮)", page.evaluate("() => ziapp.obDays") == 7,
+          page.evaluate("() => ziapp.obDays"))
     check("续订态显示剩余池", "还可以再学" in page.locator(".field .hint").first.inner_text())
     page.evaluate("() => ziapp.renewBack()")
     page.wait_for_timeout(200)
     check("续订可返回完成页", page.evaluate("() => ziapp.phase") == "done")
-    page.evaluate("() => document.querySelector('.plan-done-banner .btn').click()")
+    rbtn.dispatch_event("pointerdown")
+    page.wait_for_timeout(1600)
+    rbtn.dispatch_event("pointerup")
     page.wait_for_timeout(300)
     page.evaluate("() => document.querySelector('.wizard button.btn.big').click()")   # 订好啦，继续学
     page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=8000)
