@@ -802,6 +802,119 @@ def throttle_bank_tests():
           [k for k in a if a.get(k) != b.get(k)])
 
 
+def stroke_mode_tests():
+    """stroke_only（mily 纯写字，2026-11-19）：HTTP 黑盒全流程——跳摸底/供给结构/
+    日期推进（day_offset 走 DB，next-day 对 mily 403）/无周测/不挂毕业测旗/续订"""
+    print("== stroke_only（mily 纯写字）全流程 ==")
+    import auth as _auth
+    import secrets as _secrets
+
+    def mily_uid():
+        import database as _db
+        d = _db.get_db()
+        u = d.execute("SELECT id FROM users WHERE username='mily'").fetchone()
+        d.close()
+        if not u:
+            print("⛔ 缺 mily 账号（seed users 应建），跳过本组")
+            return None
+        return u["id"]
+
+    def reset_mily():
+        """清 mily 学习状态（mode 保险重置）+ 密码重置为已知值（副本库随机密码不可知）"""
+        global MILY_PASS
+        import database as _db
+        d = _db.get_db()
+        uid = d.execute("SELECT id FROM users WHERE username='mily'").fetchone()["id"]
+        d.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL,
+                     plan_base_learned=0, confirm_upto=0, onboarded=0, day_offset=0,
+                     grad_pending=0, grad_anchor=NULL, mode='stroke_only' WHERE id=?""", (uid,))
+        for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports", "follow_log", "daily_mail"):
+            d.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
+        MILY_PASS = _secrets.token_urlsafe(6)
+        d.execute("UPDATE users SET password_hash=? WHERE id=?", (_auth.hash_password(MILY_PASS), uid))
+        d.commit()
+        d.close()
+
+    def mily_day(uid, off):
+        import database as _db
+        d = _db.get_db()
+        d.execute("UPDATE users SET day_offset=? WHERE id=?", (off, uid))
+        d.commit()
+        d.close()
+
+    uid = mily_uid()
+    if uid is None:
+        return
+    reset_mily()
+    r = call("POST", "/api/login", {"username": "mily", "password": MILY_PASS})
+    check("mily login", r.get("ok"), r)
+    r = call("GET", "/api/me")
+    check("me.user.mode=stroke_only", r.get("user", {}).get("mode") == "stroke_only", r.get("user"))
+    check("初始 stage=onboard", r.get("stage") == "onboard", r.get("stage"))
+    r = call("POST", "/api/profile/grade", {"grade": "1A"})
+    check("选年级 1A", r.get("ok"), r)
+    r = call("GET", "/api/me")
+    check("选年级后 stage=plan", r.get("stage") == "plan", r.get("stage"))
+    r = call("POST", "/api/plan/create", {"target_chars": 14, "days": 7})
+    check("建计划成功", r.get("daily_new", 0) >= 1, r)
+    r = call("GET", "/api/me")
+    check("跳摸底：建计划即 stage=study（非 confirm）", r.get("stage") == "study", r.get("stage"))
+    import database as _db
+    d = _db.get_db()
+    row = d.execute("SELECT onboarded, grad_pending FROM users WHERE id=?", (uid,)).fetchone()
+    d.close()
+    check("onboarded=1", row["onboarded"] == 1)
+    # 供给结构
+    r = call("GET", "/api/today")
+    check("today 恒 learn+stroke", r.get("mode") == "learn" and r.get("stroke") is True,
+          {k: r.get(k) for k in ("mode", "stroke")})
+    check("daily_new=2（不扣周测日）", len(r.get("new", [])) == 2, len(r.get("new", [])))
+    check("无复习/抽检/分关", r.get("review") == [] and r.get("audit") == [] and r.get("gate_done") == {})
+    check("新字带 stroke_seen", all("stroke_seen" in x for x in r["new"]))
+    for h in r["new"]:
+        call("POST", "/api/submit", {"hanzi_id": h["id"], "phase": "learn",
+                                     "quiz_type": "stroke", "correct": True})
+    # next-day 是 test 专属：mily 403（日期推进只能走 DB day_offset）
+    r = call("POST", "/api/dev/next-day")
+    check("next-day 对 mily 403", r.get("__error__") == 403, r)
+    # D1..D6：每天 2 字；次日复习恒空；第 7 活动日（normal 周测日）仍 learn
+    for off in range(1, 7):
+        mily_day(uid, off)
+        r = call("GET", "/api/today")
+        if r.get("mode") != "learn" or r.get("stroke") is not True or r.get("review") != []:
+            check(f"D{off} 仍 learn+stroke 且复习空", False,
+                  {k: r.get(k) for k in ("mode", "stroke")})
+            break
+        for h in r["new"]:
+            call("POST", "/api/submit", {"hanzi_id": h["id"], "phase": "learn",
+                                         "quiz_type": "stroke", "correct": True})
+    else:
+        check("D1..D6 恒 learn+stroke 复习空（含第 7 活动日绕过周测）", True)
+    d = _db.get_db()
+    n_learn = d.execute("SELECT COUNT(DISTINCT hanzi_id) n FROM quiz_log WHERE user_id=? AND phase='learn'", (uid,)).fetchone()["n"]
+    grad = d.execute("SELECT grad_pending FROM users WHERE id=?", (uid,)).fetchone()["grad_pending"]
+    qtype = d.execute("SELECT COUNT(*) n FROM quiz_log WHERE user_id=? AND quiz_type='stroke'", (uid,)).fetchone()["n"]
+    d.close()
+    check("14 字全部以 quiz_type=stroke 写完", n_learn == 14 and qtype == 14, (n_learn, qtype))
+    check("写满达成 grad_pending==0（无毕业测）", grad == 0, grad)
+    # 达成：progress.learned==14 → 前端 planDone（续订入口）；续订走 plan/create（增量记账）
+    r = call("GET", "/api/me")
+    check("progress.learned=14（planDone 成立）", r.get("progress", {}).get("learned") == 14,
+          r.get("progress", {}).get("learned"))
+    r = call("POST", "/api/plan/create", {"target_chars": 13, "days": 7})
+    d = _db.get_db()
+    base = d.execute("SELECT plan_base_learned FROM users WHERE id=?", (uid,)).fetchone()["plan_base_learned"]
+    d.close()
+    check("续订 base 前移到 14", base == 14, base)
+    # 日报：副本库无 smtp.json → 环境性不发信（真发信必红灯，v55 事故红线）
+    r = call("POST", "/api/report/daily")
+    check("日报环境性不发信或幂等", r.get("reason") in ("测试账号不发信", "今日已发送", "SMTP 未配置"), r)
+    reset_mily()   # teardown：清 mily 测试状态
+
+
+MILY_PASS = ""
+
+
 if __name__ == "__main__":
     # 2026-11-04 事故闸门：e2e 的 reset_user 会清空 mido 全部学习数据，但 mido 已转
     # 孩子正式账号（report.py 黑名单已移出）——线上库有 mido 数据时一律拒绝运行。
@@ -827,6 +940,7 @@ if __name__ == "__main__":
     content_gate_tests()
     gate_question_tests()
     report_tests()
+    stroke_mode_tests()
     reset_user()   # teardown：清 mido 测试状态，防污染线上库
     print(f"\n{PASS_N} pass / {FAIL_N} fail")
     sys.exit(1 if FAIL_N else 0)

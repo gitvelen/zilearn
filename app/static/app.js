@@ -26,6 +26,7 @@ const root = createApp({
   data() {
     return {
       phase: "boot", loginForm: { u: "", p: "" }, loginErr: "", userName: "", isTest: false,
+      mode: "normal",                                /* stroke_only（mily 纯写字）：只做新字写步 */
       progress: {}, obGrade: "", obTarget: 300, obDays: 30, planEst: null, gradesReady: [], obKick: false,
       /* obDays 默认必须在 chips [7,14,30,60,90] 内：曾是 50（不在选项里），
          无 chip 高亮、不点选直接提交就落一个 50 天计划（mido 11-10 续订实锤） */
@@ -74,6 +75,12 @@ const root = createApp({
     },
     estLocal() {
       const d = this.obDays || 1, t = this.obTarget || 1;
+      if (this.mode === "stroke_only") {              /* 纯写字：每天都是写字日（不扣周测），≈2 分钟/字 */
+        const daily = Math.max(1, Math.ceil(t / d));
+        const est = Math.round(daily * 2 * 10) / 10;
+        return { daily_new: daily, study_days: d, est_minutes: est, over_30min: est > 30,
+                 review_peak: 0, over_cap: false, over_slow: false };
+      }
       const studyDays = d - Math.floor(d / 7);           /* 每周 1 天周测不投新字 */
       const daily = Math.max(1, Math.ceil(t / studyDays));
       const est = Math.round((daily * 2.5 + daily * 6 * 0.2 + 3) * 10) / 10;   /* 6 关（v59 读音关 +1） */
@@ -86,6 +93,7 @@ const root = createApp({
     },
     estToday() {
       const n = (this.today.new || []).length, r = (this.today.review || []).length + (this.today.audit || []).length;
+      if (this.mode === "stroke_only") return n ? Math.round(n * 2 + 1) : 0;   /* 每字≈2分钟+收尾 */
       return Math.round(n * 3.7 + r * 0.3 + 3.5);   /* v59 读音关：每新字 +1 题 ≈ +0.2 分 */
     },
     planDone() {                                   /* 本期达成：learned-基准线>=目标（续订增量记账） */
@@ -119,6 +127,7 @@ const root = createApp({
       try {
         const me = await api("GET", "/api/me");
         this.progress = me.progress; this.userName = me.user.display_name || me.user.username;
+        this.mode = (me.user && me.user.mode) || "normal";
         this.isTest = (me.user.username || "").toLowerCase() === "test";   /* TEST 专属跳日入口 */
         this.gradesReady = me.grades_ready || [];   /* 册内容就绪度（年级选择禁选"制作中"） */
         if (me.stage === "onboard") { this.obKick = !!me.user.grade; this.phase = "ob-grade"; }
@@ -395,6 +404,8 @@ const root = createApp({
       if (this.narrLock) return "先听一听哦 👂";
       if (this.ncStep < 4) return "下一步 →";
       if (!this.traceDone && !this.traceFallback) return "写完才能继续哦 ✍️";
+      if (this.mode === "stroke_only")
+        return this.hasNextNew() ? "这个字写会啦，下一个 →" : "全部写完啦 🎉";
       return this.hasNextNew() ? "这个字学会啦，下一个 →" : "我会写啦，去答题 →";
     },
     hasNextNew() {                                    /* 后面还有新字卡（写步按钮文案据此区分） */
@@ -841,7 +852,7 @@ const root = createApp({
     },
     sessionLabel() {
       const t = this.curItem && this.curItem.type;
-      if (t === "newcard") return "✨ 新字探索";
+      if (t === "newcard") return this.mode === "stroke_only" ? "✍️ 写字时间" : "✨ 新字探索";
       if (t === "readcard") return "📖 今日朗读";
       if (t === "gatequiz" || t === "gatesummary")
         return `🚪 第${this.curItem.gate}关 · ${["听音", "读音", "拼音", "组词", "听句", "字义"][this.curItem.gate - 1]}`;
@@ -892,6 +903,10 @@ const root = createApp({
       if (this.renewing) {                          /* 续订：不重走摸底，直接回今日 */
         this.renewing = false;
         await this.loadToday();
+        return;
+      }
+      if (this.mode === "stroke_only") {            /* 纯写字无摸底（后端已置 onboarded=1）：直接开写 */
+        await this.finishOnboard();
         return;
       }
       const r = await api("GET", "/api/confirm/batches");
@@ -963,7 +978,8 @@ const root = createApp({
       this.phase = "today-intro";
     },
     startToday() {
-      this.warmMic();                                 /* 手势上下文预热麦克风+AudioContext（跟读校验依赖） */
+      if (this.mode !== "stroke_only") this.warmMic();   /* 手势上下文预热麦克风+AudioContext（跟读校验依赖；
+                                                       stroke_only 无跟读：不触发麦克风权限弹窗） */
       this._ensurePlayCtx();                          /* 手势上下文预热播放 ctx（iPad autoplay：解锁一次全程可用） */
       if (this.today.mode === "learn") {
         if (!this.today.new.length && !this.today.review.length && !this.today.audit.length
@@ -981,6 +997,17 @@ const root = createApp({
       await this.loadToday();
     },
     buildLearnQueue() {
+      /* stroke_only（mily 纯写字）：队列=只有新字卡（enterItem 直入写步），无复习/分关/朗读 */
+      if (this.mode === "stroke_only") {
+        this.sessQueue = this.today.new.map(h => ({ type: "newcard", ...h }));
+        this.sessIdx = 0; this.doneStats = { new: 0, review: 0 };
+        this.readNews = [];
+        this._promptDone = new Set(); this._quizCache = {};
+        ["ok", "no", "win"].forEach(s => this._preloadFile(`sfx_${s}.wav`));
+        this._prefetchItem(this.sessQueue[0]);        /* 只预取笔画 JSON（见 _prefetchItem 分支） */
+        this.enterItem();                              /* 队列空自然落 finishSession → done 页 */
+        return;
+      }
       /* 分关结构（wordslearn v2.1 模式）：先学完 → 复习沉淀 → 分关测验（延迟回忆）→ 朗读收尾 */
       const q = [];
       const warm = this.today.review.filter(r => this.isWarm(r));
@@ -1120,6 +1147,12 @@ const root = createApp({
       if (it && it.type === "newcard") this.learnDone = false;
       if (!it) return this.finishSession();
       if (it.type === "newcard") {
+        if (this.mode === "stroke_only") {
+          /* 纯写字：直入写步（写步不需要词句内容，不挂音频链） */
+          this.ncStep = 4;
+          this.$nextTick(() => this.mountTracer(it.char));
+          return;
+        }
         const item = it;
         this.mountContent(it.id).then(() => {
           if (this.curItem !== item) return;          /* 已切卡则不播 */
@@ -1169,8 +1202,10 @@ const root = createApp({
       this._stopHw();
       this.traceDone = false; this.traceFallback = false;   /* 写步门槛（v32）：写对才放行，重挂即重置 */
       /* 首见强制看笔顺一遍，复见直写（2026-11-03 拍板）：stroke_seen 服务端持久化，
-         中途退出重进/跨会话都不会再强制重看 */
-      const seen = !!(this.curItem && this.curItem.stroke_seen);
+         中途退出重进/跨会话都不会再强制重看。
+         stroke_only（mily，2026-11-19 拍板）：永不强制看演示——直接走复见路径
+         （循环演示对照+立即可写），「再看一遍笔顺」按钮保留为自愿 */
+      const seen = this.mode === "stroke_only" || !!(this.curItem && this.curItem.stroke_seen);
       this.traceWatched = seen;
       const el = document.getElementById("hw-" + this.curItem.id);
       if (!el || !window.HanziWriter) { this.traceFallback = true; return; }
@@ -1286,6 +1321,10 @@ const root = createApp({
          闪烁+音频迟滞。预取源全部确定性可知（题型固定/音频 URL 在 payload 内） */
       if (!it || !this._quizCache) return;
       if (it.type === "newcard") {
+        if (this.mode === "stroke_only") {            /* 纯写字：只预热笔画 JSON，不拉内容/音频包 */
+          fetch(`/static/strokes/${encodeURIComponent(it.char)}.json`).catch(() => {});
+          return;
+        }
         if (this._contentCache && this._contentCache[it.id]) return;
         api("GET", `/api/hanzi/${it.id}/full`).then(r => {
           (this._contentCache ||= {})[it.id] = r;
@@ -1566,7 +1605,8 @@ const root = createApp({
       if (done && done.type === "newcard" && !this.learnDone) {
         this.learnDone = true;
         api("POST", "/api/submit", { hanzi_id: done.id, phase: "learn",
-          quiz_type: "card", correct: true });
+          /* stroke_only 提交写字流水：learned_today 幂等同 card；日报 QT_LABEL 可读（写字） */
+          quiz_type: this.mode === "stroke_only" ? "stroke" : "card", correct: true });
       }
       /* 当日完成标记已挪 finishSession（2026-11-07）：gateDone(sessionStorage) 杀 app 即丢，
          且"最后一关过完"≠当日完成（还有朗读卡），重进误判两头的根源 */

@@ -52,8 +52,13 @@
   </div>
   <div v-if="obTarget && obDays" class="est" :class="{warn: estLocal.over_30min}">
     <div>✨ 新增汉字：每天 {{estLocal.daily_new}} 个，本期共 {{Math.min(obTarget, progress.total_hanzi)}} 个（{{estLocal.study_days}} 个学习日）</div>
-    <div>🔁 存量汉字：{{progress.learned ? '已学 ' + progress.learned + ' 个字，' : ''}}学过的字按 1、3、7、14 天间隔自动回来复习</div>
-    <div>📚 复习逐步加量，高峰约 {{estLocal.review_peak}} 题/天{{estLocal.over_cap ? '（超过每日 30 题，超出的自动顺延到后面几天）' : ''}}{{estLocal.over_slow ? ' ⚠️ 新字将自动放缓，实际完成会超过所选天数' : ''}}</div>
+    <template v-if="mode==='stroke_only'">
+      <div>✍️ 纯写字模式：每天只学新字写法——看着笔顺，描红写一遍</div>
+    </template>
+    <template v-else>
+      <div>🔁 存量汉字：{{progress.learned ? '已学 ' + progress.learned + ' 个字，' : ''}}学过的字按 1、3、7、14 天间隔自动回来复习</div>
+      <div>📚 复习逐步加量，高峰约 {{estLocal.review_peak}} 题/天{{estLocal.over_cap ? '（超过每日 30 题，超出的自动顺延到后面几天）' : ''}}{{estLocal.over_slow ? ' ⚠️ 新字将自动放缓，实际完成会超过所选天数' : ''}}</div>
+    </template>
     <div>⏱️ 预计每天 {{estLocal.est_minutes}} 分钟{{estLocal.over_30min ? ' ⚠️ 有点多哦' : ''}}</div>
   </div>
   <div class="row">
@@ -91,15 +96,16 @@
     <template v-if="today.mode==='learn'">
       <template v-if="today.new.length || today.review.length || today.audit.length">
         <div class="row-of-stats">
-          <span class="task-chip new">✨ 新字 {{today.new.length}} 个</span>
-          <span class="task-chip review">🎯 复习 {{today.review.length + today.audit.length}} 个</span>
+          <span class="task-chip new">{{mode==='stroke_only' ? '✍️ 要写' : '✨ 新字'}} {{today.new.length}} 个</span>
+          <span class="task-chip review" v-if="mode!=='stroke_only'">🎯 复习 {{today.review.length + today.audit.length}} 个</span>
         </div>
-        <div class="hint">大概 {{estToday}} 分钟{{today.new.length ? ' · 学完还有闯关小测验 🚪 和小朗读 📖' : ''}}</div>
+        <div class="hint" v-if="mode==='stroke_only'">大概 {{estToday}} 分钟 · 每个字看着笔顺，描红写一遍 ✍️</div>
+        <div class="hint" v-else>大概 {{estToday}} 分钟{{today.new.length ? ' · 学完还有闯关小测验 🚪 和小朗读 📖' : ''}}</div>
       </template>
       <template v-else-if="todayPendingMore()">
-        <div class="big-emoji">🚪</div>
-        <div class="row-of-stats"><span>还有闯关小测验没做完哦</span></div>
-        <div class="hint">继续闯完关，就是今天的小冠军！</div>
+        <div class="big-emoji">{{mode==='stroke_only' ? '✍️' : '🚪'}}</div>
+        <div class="row-of-stats"><span>{{mode==='stroke_only' ? '还有字没写完哦' : '还有闯关小测验没做完哦'}}</span></div>
+        <div class="hint">{{mode==='stroke_only' ? '继续写完，就是今天的小冠军！' : '继续闯完关，就是今天的小冠军！'}}</div>
       </template>
       <template v-else>
         <div class="big-emoji">🌞</div>
@@ -136,8 +142,8 @@
     <div v-else class="hint">计划信息丢失了，退出重新登录试试</div>
   </div>
   <button class="btn big pulse" v-if="today.mode && !today.done && (today.mode!=='learn' || today.new.length || today.review.length || today.audit.length || todayPendingMore())"
-          @click="startToday">{{todayPendingMore() && !today.new.length ? '继续闯关 🚀' : '开始学习 🚀'}}</button>
-  <div class="hint mic-hint" v-if="today.mode==='learn' && !today.done && (today.new.length || today.review.length || today.audit.length)"
+          @click="startToday">{{todayPendingMore() && !today.new.length ? (mode==='stroke_only' ? '继续写 ✍️' : '继续闯关 🚀') : '开始学习 🚀'}}</button>
+  <div class="hint mic-hint" v-if="mode!=='stroke_only' && today.mode==='learn' && !today.done && (today.new.length || today.review.length || today.audit.length)"
        >🎤 跟读要用麦克风：第一次使用，弹出的小窗请点"允许"</div>
   <button class="btn ghost" v-if="isTest && today.mode" @click="skipDay">⏭️ 直接学下一天</button>
   <button class="btn ghost" v-if="today.done || (today.mode==='learn' && !today.new.length && !today.review.length && !today.audit.length && !todayPendingMore())"
@@ -158,7 +164,7 @@
   <!-- 新字卡（四步探索：认→词→句→写，步指示器可点跳） -->
   <div v-if="curItem && curItem.type==='newcard'" class="card learn-card">
     <div class="etym-badge" v-if="curContent">{{etymName(curContent.etym_type)}}</div>
-    <div class="nc-steps">
+    <div class="nc-steps" v-if="mode!=='stroke_only'">
       <button v-for="(lbl,i) in ['👀 认','🔗 词','📖 句','✍️ 写']" :key="i" class="nc-dot"
               :class="{on: ncStep===i+1, done: ncStep>i+1, holding: ncHold===i}"
               @pointerdown="ncDown(i)" @pointerup="ncUp(i)" @pointerleave="ncLeave(i)">{{lbl}}</button>
@@ -414,9 +420,10 @@
   <div class="big-emoji">🎉</div>
   <h2>今天完成啦！</h2>
   <div class="done-stats">
-    <div>✨ 新学 {{doneStats.new}} 个字</div>
-    <div>🎯 复习 {{doneStats.review}} 个字</div>
-    <div>⭐ 星星 {{progress.stars}}</div>
+    <div>{{mode==='stroke_only' ? '✍️ 写了' : '✨ 新学'}} {{doneStats.new}} 个字</div>
+    <div v-if="mode!=='stroke_only'">🎯 复习 {{doneStats.review}} 个字</div>
+    <div v-if="mode!=='stroke_only'">⭐ 星星 {{progress.stars}}</div>
+    <div v-if="mode==='stroke_only'">每个字都写了一遍，真棒！👏</div>
   </div>
   <div v-if="planDone" class="plan-done-banner">
     <div class="big-emoji">🏆</div>
@@ -470,12 +477,12 @@
       <span>已学 <b>{{planLearned}}</b> 字</span>
       <span>剩 {{Math.max(0, progress.target_chars - planLearned)}} 字</span>
     </div>
-    <div class="hint">今日：新学 {{todayNewN}} 字 · 复习 {{today.review_done ?? 0}} 字</div>
+    <div class="hint">今日：{{mode==='stroke_only' ? '写了' : '新学'}} {{todayNewN}} 字<template v-if="mode!=='stroke_only'"> · 复习 {{today.review_done ?? 0}} 字</template></div>
   </div>
   <div class="parent-grid">
-    <div class="p-card"><b>累计已学</b><span>{{progress.learned}} 字</span></div>
-    <div class="p-card"><b>累计掌握</b><span>{{progress.mastered}} 字</span></div>
-    <div class="p-card"><b>星星</b><span>⭐ {{progress.stars}}</span></div>
+    <div class="p-card"><b>{{mode==='stroke_only' ? '累计写过' : '累计已学'}}</b><span>{{progress.learned}} 字</span></div>
+    <div class="p-card" v-if="mode!=='stroke_only'"><b>累计掌握</b><span>{{progress.mastered}} 字</span></div>
+    <div class="p-card" v-if="mode!=='stroke_only'"><b>星星</b><span>⭐ {{progress.stars}}</span></div>
     <div class="p-card"><b>近7天正确率</b><span>{{trendAcc}}</span></div>
   </div>
   <div class="p-card wide" v-if="report && report.trend">
@@ -512,6 +519,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=64"></script>
+<script src="/app.js?v=65"></script>
 </body>
 </html>

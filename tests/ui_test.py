@@ -579,6 +579,134 @@ def run_weekly(page):
     reset_test_user()   # teardown：清测试状态，防污染线上库（拨日历时代的教训）
 
 
+MILY_PASS = ""
+
+
+def reset_mily_user():
+    """幂等：清 mily 用户状态 + mode 保险 stroke_only + 密码重置已知值（UI 走查专用，
+    副本库 seed 出的随机密码不可知）。同 reset_test_user 模式，DB 路径相对测试文件解析"""
+    import secrets as _secrets
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
+    import auth as _auth
+    import sqlite3
+    global MILY_PASS
+    conn = sqlite3.connect(str(Path(__file__).parent.parent / "app" / "data" / "zilearn.db"))
+    uid = conn.execute("SELECT id FROM users WHERE username='mily'").fetchone()[0]
+    conn.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL,
+                    plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0,
+                    day_offset=0, grad_pending=0, grad_anchor=NULL, mode='stroke_only' WHERE id=?""", (uid,))
+    for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports",
+              "follow_log", "daily_mail"):
+        conn.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
+    MILY_PASS = _secrets.token_urlsafe(6)
+    conn.execute("UPDATE users SET password_hash=? WHERE id=?", (_auth.hash_password(MILY_PASS), uid))
+    conn.commit()
+    conn.close()
+
+
+def run_stroke(page):
+    """stroke_only（mily 纯写字，2026-11-19）UI 走查：引导建计划直达今日（跳摸底）→
+    直入写步（无步指示器/不强制看演示/自愿重播在）→ 长按跳过放行（真实事件路径）→
+    done 页写字文案无星星 → 重进完成态 → 次日新字续写"""
+    reset_mily_user()
+    page.context.clear_cookies()   # 前段 run/run_weekly 的 test 会话会跳过登录页
+    page.goto(BASE, wait_until="networkidle")
+    check("st-登录页", page.locator(".login-card").count() == 1)
+    page.fill("input[autocomplete=username]", "mily")
+    page.fill("input[type=password]", MILY_PASS)
+    page.click("button.btn.big")
+    page.wait_for_selector(".wizard", timeout=10000)
+
+    # ---- 引导：年级 1A → 计划 14 字/7 天（daily=2）→ 跳摸底直达今日 ----
+    page.click(".grade:first-child")
+    page.click("button.btn.big")
+    page.wait_for_timeout(600)
+    page.fill("input[type=number]", "14")
+    page.locator(".chip", has_text="7 天").click()
+    page.click("button.btn.big")
+    page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=10000)
+    check("st-跳摸底：建计划直达今日页", page.locator(".char-grid").count() == 0)
+    day_txt = page.locator(".day-card").inner_text()
+    check("st-今日卡写字文案", "要写" in day_txt and "复习" not in day_txt, day_txt)
+    check("st-无麦克风提示", page.locator(".mic-hint").count() == 0)
+    shot(page, "st-01-intro")
+
+    # ---- 会话：直入写步 ----
+    page.click("button.btn.big", force=True)   # 开始学习（pulse 动画按钮，v60 同款 force 坑）
+    page.wait_for_function(
+        "window.ziapp.phase==='newlearn' && window.ziapp.curItem && window.ziapp.curItem.type==='newcard'",
+        timeout=10000)
+    page.wait_for_function("window.ziapp.ncStep===4", timeout=5000)
+    check("st-直入写步（ncStep=4）", True)
+    check("st-无步指示器", page.locator(".nc-dot").count() == 0)
+    check("st-会话标签写字时间", "写字" in page.evaluate("() => window.ziapp.sessionLabel()"))
+    page.wait_for_selector(".hanzi-wrap svg", timeout=15000)   # HanziWriter 挂载（strokes JSON 已就绪）
+    check("st-描红组件挂载", page.locator(".hanzi-wrap svg").count() >= 1)
+    check("st-不强制看演示（traceWatched 直接 true）",
+          page.evaluate("() => window.ziapp.traceWatched === true"))
+    check("st-自愿重播按钮在", page.locator(".trace-replay").count() == 1)
+    check("st-下一步锁（写完才能继续）", page.evaluate("() => window.ziapp.ncNextDisabled()") is True)
+    shot(page, "st-02-write")
+
+    # ---- 家长长按跳过放行（真实事件路径；headless 下描红判定的确定性通道）----
+    skip = page.locator(".skip-link")
+    skip.dispatch_event("pointerdown")
+    page.wait_for_timeout(1600)
+    skip.dispatch_event("pointerup")
+    page.wait_for_function("window.ziapp.traceDone===true", timeout=5000)
+    check("st-长按跳过放行", True)
+
+    # ---- 第二个字 → done ----
+    page.locator("button.btn.big").dispatch_event("click")   # 「下一个」（描红 svg 遮挡坐标命中，DOM 事件直达）
+    page.wait_for_function(
+        "window.ziapp.curItem && window.ziapp.curItem.type==='newcard' && window.ziapp.ncStep===4",
+        timeout=10000)
+    skip = page.locator(".skip-link")
+    skip.dispatch_event("pointerdown")
+    page.wait_for_timeout(1600)
+    skip.dispatch_event("pointerup")
+    page.wait_for_function("window.ziapp.traceDone===true", timeout=5000)
+    page.locator("button.btn.big").dispatch_event("click")   # 「全部写完啦 🎉」→ finishSession
+    page.wait_for_function("window.ziapp.phase==='done'", timeout=10000)
+    check("st-done 统计写了 2 字", page.evaluate("() => window.ziapp.doneStats.new") == 2,
+          page.evaluate("() => window.ziapp.doneStats.new"))
+    done_txt = page.locator(".done-stats").inner_text()
+    check("st-done 写字文案", "写了" in done_txt and "星星" not in done_txt, done_txt)
+    shot(page, "st-03-done")
+
+    # ---- DB 流水：quiz_type=stroke ×2 ----
+    import sqlite3
+    conn = sqlite3.connect(str(Path(__file__).parent.parent / "app" / "data" / "zilearn.db"))
+    n = conn.execute("""SELECT COUNT(*) FROM quiz_log q JOIN users u ON u.id=q.user_id
+                        WHERE u.username='mily' AND q.quiz_type='stroke'""").fetchone()[0]
+    conn.close()
+    check("st-DB 流水 quiz_type=stroke ×2", n == 2, n)
+
+    # ---- 重进：当日完成态 ----
+    page.reload(wait_until="networkidle")
+    page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=10000)
+    check("st-重进当日完成态", "任务都完成啦" in page.locator(".day-card").inner_text())
+
+    # ---- 次日（day_offset 走 DB：next-day 是 test 专属）→ 新 2 字续写 ----
+    conn = sqlite3.connect(str(Path(__file__).parent.parent / "app" / "data" / "zilearn.db"))
+    conn.execute("UPDATE users SET day_offset=1 WHERE username='mily'")
+    conn.commit()
+    conn.close()
+    page.reload(wait_until="networkidle")
+    page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=10000)
+    day_txt = page.locator(".day-card").inner_text()
+    check("st-次日新字 2 个", "要写 2 个" in day_txt, day_txt)
+    page.click("button.btn.big", force=True)   # 开始学习（pulse 动画）
+    page.wait_for_function(
+        "window.ziapp.phase==='newlearn' && window.ziapp.curItem && window.ziapp.curItem.type==='newcard'",
+        timeout=10000)
+    q = page.evaluate("() => ({n: window.ziapp.sessQueue.length, types: window.ziapp.sessQueue.map(x=>x.type), step: window.ziapp.ncStep})")
+    check("st-次日队列纯写字（2 张卡无测验/朗读）",
+          q["n"] == 2 and q["step"] == 4 and set(q["types"]) == {"newcard"}, q)
+    reset_mily_user()   # teardown
+
+
 if __name__ == "__main__":
     with sync_playwright() as p:
         browser = p.chromium.launch(
@@ -594,6 +722,7 @@ if __name__ == "__main__":
         try:
             run(page)
             run_weekly(page)
+            run_stroke(page)
         finally:
             browser.close()
     print(f"\n{PASS_N} pass / {FAIL_N} fail  （截图: tests/shots/）")
