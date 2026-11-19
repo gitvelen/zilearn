@@ -127,7 +127,7 @@ def me(request: Request):
     if user["grade"] and scheduler.book_of(user) not in ready:
         stage = "onboard"   # 所选册内容未生产（2026-11-01 1B 事故）：打回年级重选
     return {"user": {"username": user["username"], "display_name": user["display_name"],
-                     "grade": user["grade"]},
+                     "grade": user["grade"], "mode": user["mode"] or "normal"},
             "progress": progress, "stage": stage,
             "grades_ready": sorted(b.upper() for b in ready)}
 
@@ -154,7 +154,17 @@ def set_grade(body: GradeIn, request: Request):
 @app.post("/api/plan/create")
 def create_plan(body: PlanIn, request: Request):
     user = auth.current_user(request)
-    return scheduler.create_plan(user["id"], body.target_chars, body.days)
+    r = scheduler.create_plan(user["id"], body.target_chars, body.days)
+    if (user["mode"] or "") == "stroke_only":
+        # 纯写字无摸底（2026-11-19 拍板）：建计划即引导完成 → /api/me stage=study，
+        # 摸底相关端点对 stroke_only 天然不可达（onboarded 语义单真源不变）
+        db = database.get_db()
+        try:
+            db.execute("UPDATE users SET onboarded=1 WHERE id=?", (user["id"],))
+            db.commit()
+        finally:
+            db.close()
+    return r
 
 
 @app.get("/api/confirm/batches")

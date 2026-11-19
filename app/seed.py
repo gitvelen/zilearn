@@ -108,7 +108,8 @@ def upsert_content(db, content):
 
 
 def seed_users():
-    """mido（随机密码，仅首次打印）+ test（固定密码 test123）。幂等。"""
+    """mido（随机密码，仅首次打印）+ test（固定密码 test123）+ mily（固定密码 mily123，
+    mode='stroke_only' 纯写字模式：只做新字写步，无测验/复习/周测/摸底，2026-11-19 拍板）。幂等。"""
     db = database.get_db()
     try:
         row = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()
@@ -128,6 +129,15 @@ def seed_users():
                        ("test", hash_password("test123")))
             db.commit()
             print("test 创建成功，密码: test123")
+        row = db.execute("SELECT id FROM users WHERE username='mily'").fetchone()
+        if row:
+            print("mily 已存在")
+        else:
+            db.execute("INSERT INTO users(username, password_hash, display_name, mode) "
+                       "VALUES(?,?, 'Mily', 'stroke_only')",
+                       ("mily", hash_password("mily123")))
+            db.commit()
+            print("mily 创建成功，密码: mily123")
     finally:
         db.close()
 

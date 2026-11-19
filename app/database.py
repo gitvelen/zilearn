@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
   day_offset    INTEGER DEFAULT 0,                -- TEST 跳日：虚拟日历偏移天（"今天"=真实今天+偏移）
   grad_pending  INTEGER DEFAULT 0,                -- 本期毕业测挂起（v60）：目标达成跨越时置位，下一个周测槽位消费
   grad_anchor   TEXT,                             -- 毕业测锚点=挂旗时 plan_start 快照（scope=first_date>=anchor；COALESCE 保留最早未消费锚点）
+  mode          TEXT,                             -- 用户模式：normal(默认/NULL) | stroke_only（mily 纯写字：只做新字写步，无测验/复习/周测/摸底）
   created_at    TEXT DEFAULT (datetime('now'))
 );
 
@@ -213,6 +214,12 @@ def init_db():
             db.execute(f"ALTER TABLE follow_log ADD COLUMN {col} {decl}")
         except sqlite3.OperationalError:
             pass
+    # 迁移：用户模式列（mily 纯写字 stroke_only，新库 SCHEMA 已含；旧行 NULL=normal，
+    # 所有调度判断用 == 'stroke_only' 精确匹配，NULL/normal 不命中）
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN mode TEXT")
+    except sqlite3.OperationalError:
+        pass
     db.commit()
     db.close()
 

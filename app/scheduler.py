@@ -274,6 +274,11 @@ def build_today(user_id):
             return {"mode": "no-plan"}
         t = today_for(user)                       # 虚拟日（TEST 跳日）——当日口径唯一真源
 
+        # stroke_only（mily 纯写字，2026-11-19 拍板）：恒学习日——只有新字写步。
+        # 早退于周测/毕业测/跨日续做判定之前，这些环节对 stroke_only 永不触发
+        if (user["mode"] or "") == "stroke_only":
+            return _stroke_today(db, user, di, t)
+
         if is_weekly_day(user, db):
             week_no = (di + 1) // 7
         elif (wp := weekly_pending(db, user, di)):   # 跨日续做：上周周测开头未结算 → 仍是周测日
@@ -420,6 +425,48 @@ def build_today(user_id):
         db.close()
 
 
+def _stroke_today(db, user, di, t):
+    """stroke_only 当日任务包：恒 learn——只有新字（写步），无复习/抽检/分关。
+    daily_new 不扣周测日（每天都是学习日）；不跑积压节流（复习池被绕过，due_n 无意义）。
+    learn 提交仍注册 next_date=D+1（submit 共用，learned 计数/续订记账真源），但本函数
+    恒不消费复习池——遗留 next_date 无害（唯一消费者 review/audit/weekly 查询均在被
+    绕过路径；将来转 normal 复习链自动接管）。查询复制自 build_today 学习日分支
+    （不抽公共函数：normal 路径零改动）。"""
+    user_id = user["id"]
+    daily_new = max(1, math.ceil(user["target_chars"] / max(user["plan_days"], 1)))
+    # 新字：按 seq 补齐（幂等：当日已 learn 的计入 daily_new）
+    learned_today = [r["hanzi_id"] for r in db.execute(
+        f"""SELECT DISTINCT q.hanzi_id FROM quiz_log q JOIN hanzi h ON h.id=q.hanzi_id
+            WHERE q.user_id=? AND q.phase='learn' AND q.ts>=? AND {CONTENT_READY}""",
+        (user_id, t))]
+    new_ids = list(learned_today)
+    if len(new_ids) < daily_new:
+        for r in db.execute(f"""SELECT id, char FROM hanzi h
+            WHERE h.book>=? AND {CONTENT_READY} AND NOT EXISTS (SELECT 1 FROM user_hanzi uh WHERE uh.user_id=? AND uh.hanzi_id=h.id
+                                  AND uh.status IN ('skipped','learning','mastered'))
+            AND NOT EXISTS (SELECT 1 FROM quiz_log q WHERE q.user_id=? AND q.hanzi_id=h.id AND q.phase='learn')
+            ORDER BY h.book, h.seq LIMIT ?""", (book_of(user), user_id, user_id, daily_new - len(new_ids))):
+            new_ids.append(r["id"])
+    # stroke_seen 随新字下发（stroke_only 前端不强制看演示，此字段仅转 normal 后有效）
+    new_chars = [dict(r) for r in db.execute(
+        f"""SELECT h.id, h.char, h.pinyin, h.tone3, COALESCE(uh.stroke_seen, 0) stroke_seen
+            FROM hanzi h LEFT JOIN user_hanzi uh ON uh.hanzi_id=h.id AND uh.user_id=?
+            WHERE h.id IN ({','.join('?'*len(new_ids))}) ORDER BY h.book, h.seq""",
+        (user_id, *new_ids))] if new_ids else []
+    # new 只含未学字（重进恢复走 learned_today，已完成当日 new 为空——同 build_today）
+    done_ids = set(learned_today)
+    new_chars = [r for r in new_chars if r["id"] not in done_ids]
+    # 当日已学字（重进恢复/完成页统计真源）
+    learned_today_chars = [dict(r) for r in db.execute(
+        f"""SELECT DISTINCT h.id, h.char, h.pinyin, h.tone3 FROM quiz_log q
+           JOIN hanzi h ON h.id=q.hanzi_id
+           WHERE q.user_id=? AND q.phase='learn' AND q.ts=? AND {CONTENT_READY} ORDER BY h.book, h.seq""",
+        (user_id, t))]
+    return {"mode": "learn", "stroke": True, "day_index": di, "new": new_chars,
+            "review": [], "audit": [], "learned_today": learned_today_chars,
+            "review_done": 0, "gate_done": {}, "gate_correct": {}, "date": t}
+
+
 # ---------- 答题状态机 ----------
 
 def submit(user_id, hanzi_id, phase, quiz_type, correct, grad_slot=None):
@@ -434,7 +481,7 @@ def submit(user_id, hanzi_id, phase, quiz_type, correct, grad_slot=None):
     """
     db = get_db()
     try:
-        u = db.execute("SELECT day_offset FROM users WHERE id=?", (user_id,)).fetchone()
+        u = db.execute("SELECT day_offset, mode FROM users WHERE id=?", (user_id,)).fetchone()
         t = today_for(u)                          # 流水与 next_date 同用虚拟日（TEST 跳日）
         replayed = phase in ("review", "weekly", "audit") and bool(_row(db,
             """SELECT 1 FROM quiz_log WHERE user_id=? AND hanzi_id=? AND phase=? AND ts>=? LIMIT 1""",
@@ -454,11 +501,13 @@ def submit(user_id, hanzi_id, phase, quiz_type, correct, grad_slot=None):
             # → 无限毕业测循环）。grad_anchor=COALESCE 保留最早未消费锚点：A 期挂旗→当日续订
             # B→B 期达成再跨越时 anchor 仍=A → 毕业测合并考 A+B 两期新字；结算才清零。
             # gate 题同 phase 提交但不增行（COUNT 不变），值不变时幂等 no-op。
-            db.execute("""UPDATE users SET grad_pending=1, grad_anchor=COALESCE(grad_anchor, plan_start)
-                          WHERE id=? AND target_chars>0 AND plan_start IS NOT NULL
-                            AND plan_base_learned + target_chars =
-                                (SELECT COUNT(*) FROM user_hanzi WHERE user_id=users.id
-                                 AND status IN ('learning','mastered'))""", (user_id,))
+            # stroke_only 无毕业测：不挂旗（供给早退永无消费方，防语义残留/转模式突冒）
+            if (u["mode"] or "") != "stroke_only":
+                db.execute("""UPDATE users SET grad_pending=1, grad_anchor=COALESCE(grad_anchor, plan_start)
+                              WHERE id=? AND target_chars>0 AND plan_start IS NOT NULL
+                                AND plan_base_learned + target_chars =
+                                    (SELECT COUNT(*) FROM user_hanzi WHERE user_id=users.id
+                                     AND status IN ('learning','mastered'))""", (user_id,))
         elif phase == "review" and not replayed:
             row = db.execute("SELECT stage, wrong_count FROM user_hanzi WHERE user_id=? AND hanzi_id=?",
                              (user_id, hanzi_id)).fetchone()
