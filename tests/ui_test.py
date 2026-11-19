@@ -585,7 +585,6 @@ MILY_PASS = ""
 def reset_mily_user():
     """幂等：清 mily 用户状态 + mode 保险 stroke_only + 密码重置已知值（UI 走查专用，
     副本库 seed 出的随机密码不可知）。同 reset_test_user 模式，DB 路径相对测试文件解析"""
-    import secrets as _secrets
     import sys as _sys
     _sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
     import auth as _auth
@@ -599,7 +598,7 @@ def reset_mily_user():
     for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports",
               "follow_log", "daily_mail"):
         conn.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
-    MILY_PASS = _secrets.token_urlsafe(6)
+    MILY_PASS = "mily123"   # 固定密码（2026-11-19 拍板）：走查重置不改口令
     conn.execute("UPDATE users SET password_hash=? WHERE id=?", (_auth.hash_password(MILY_PASS), uid))
     conn.commit()
     conn.close()
