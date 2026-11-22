@@ -1209,6 +1209,10 @@ const root = createApp({
       this.traceWatched = seen;
       const el = document.getElementById("hw-" + this.curItem.id);
       if (!el || !window.HanziWriter) { this.traceFallback = true; return; }
+      /* el 被 Vue 复用（stroke_only 写步→写步直切 / 点当前步指示器重挂）时旧 SVG 残留：
+         create 只 append 不清目标元素（init=appendChild），双字叠加+新字溢出容器+quiz 交互错位 */
+      el.innerHTML = "";
+      el.classList.remove("tracing", "done");   /* startTrace 手挂的状态 class 不归 Vue 管，重挂一并重置 */
       try {
         const w = HanziWriter.create(el, char, {
           width: 210, height: 210, padding: 5, showOutline: true,
