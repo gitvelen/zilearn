@@ -352,10 +352,12 @@ def build_today(user_id):
             (user_id, t)).fetchone()["n"]
         if due_n > NEW_THROTTLE_AT:
             daily_new = max(1, daily_new // 2)
-        # 新字：按 seq 补齐（幂等：当日已 learn 的计入 daily_new）
+        # 新字：按 seq 补齐（幂等：当日已学的新字卡计入 daily_new）
+        # learned_today 只认 card（v68，2026-11-23 mido 实锤）：关题流水同 phase='learn'，若计入则
+        # 「隔夜陈旧包重考前一天的关」或「会话跨午夜、关题落到次日」都会用前一天的字占满当日额度 → 全天 0 新字
         learned_today = [r["hanzi_id"] for r in db.execute(
             f"""SELECT DISTINCT q.hanzi_id FROM quiz_log q JOIN hanzi h ON h.id=q.hanzi_id
-                WHERE q.user_id=? AND q.phase='learn' AND q.ts>=? AND {CONTENT_READY}""",
+                WHERE q.user_id=? AND q.phase='learn' AND q.quiz_type='card' AND q.ts>=? AND {CONTENT_READY}""",
             (user_id, t))]
         new_ids = list(learned_today)
         if len(new_ids) < daily_new:
@@ -389,11 +391,13 @@ def build_today(user_id):
                WHERE uh.user_id=? AND uh.status='mastered' AND
                      (uh.audit_date IS NULL OR uh.audit_date<?) AND {CONTENT_READY}
                ORDER BY RANDOM() LIMIT ?""", (user_id, t, AUDIT_N))]
-        # 当日已学字（分关测验中途退出重进时，前端据此重建关队列）
+        # 当日已学字（分关测验中途退出重进时，前端据此重建关队列）。只认 card（同 learned_today，v68）：
+        # 关题流水入池=前一天的字被重考；gate_done 仍按关题流水统计（断点续做口径不变）
         learned_today_chars = [dict(r) for r in db.execute(
             f"""SELECT DISTINCT h.id, h.char, h.pinyin, h.tone3 FROM quiz_log q
                JOIN hanzi h ON h.id=q.hanzi_id
-               WHERE q.user_id=? AND q.phase='learn' AND q.ts=? AND {CONTENT_READY} ORDER BY h.book, h.seq""",
+               WHERE q.user_id=? AND q.phase='learn' AND q.quiz_type='card' AND q.ts=? AND {CONTENT_READY}
+               ORDER BY h.book, h.seq""",
             (user_id, t))]
         # 当日已答复习/抽检数（完成页统计真源：重进后 review 列表只剩未答项，直接取 length 会少计）
         review_done = db.execute(

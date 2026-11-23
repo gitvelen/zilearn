@@ -972,15 +972,36 @@ const root = createApp({
     todayPendingMore() {                    /* 三空但关/朗读卡未完：重进恢复入口 */
       return !this.dailyDoneToday() && (this.today.learned_today || []).length > 0;
     },
+    _localYmd() {                                    /* 本机日历日 YYYY-MM-DD（跨日陈旧包守卫用） */
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    },
     async loadToday() {
       this.today = await api("GET", "/api/today");
+      this._todayYmd = this._localYmd();             /* 取包时的本机日：startToday/_staleTodayTick 据此识别隔夜陈旧包 */
       const me = await api("GET", "/api/me"); this.progress = me.progress;
       this.phase = "today-intro";
+    },
+    _staleTodayTick() {
+      /* 隔夜入口页（v68，2026-11-23 mido 实锤）：标签页停在前一天的包上会显示「今日已完成」、连开始
+         按钮都没有（startToday 的守卫没机会触发）。入口页每分钟自查本机日，跨日即重拉；
+         会话中不动队列（跨午夜接着做完） */
+      if (this.phase === "today-intro" && this._todayYmd && this._todayYmd !== this._localYmd())
+        this.loadToday().catch(e => console.warn("跨日重拉 today 失败", e));
     },
     startToday() {
       if (this.mode !== "stroke_only") this.warmMic();   /* 手势上下文预热麦克风+AudioContext（跟读校验依赖；
                                                        stroke_only 无跟读：不触发麦克风权限弹窗） */
       this._ensurePlayCtx();                          /* 手势上下文预热播放 ctx（iPad autoplay：解锁一次全程可用） */
+      /* 跨日陈旧包守卫（v68，2026-11-23 mido 实锤）：标签页隔夜不刷新时 this.today 仍是前一天的包
+         （new=[]/learned_today=前一天的字/gate_done 旧进度），直接建队列会重考前一天六关、当天不出新字。
+         按本机日比较（取包时的本机日 ≠ 现在）而不是 today.date：TEST 虚拟日/时区差不会循环重拉。
+         同日路径无 await、行为不变；loadToday 成功即刷新 _todayYmd，重入不再触发。守卫放在
+         手势内预热之后：ctx/麦克风先在本次 click 解锁，重拉回来再建队列不依赖新手势 */
+      if (this._todayYmd && this._todayYmd !== this._localYmd()) {
+        this.loadToday().then(() => this.startToday()).catch(e => console.warn("跨日重拉 today 失败", e));
+        return;
+      }
       if (this.today.mode === "learn") {
         if (!this.today.new.length && !this.today.review.length && !this.today.audit.length
             && (this.dailyDoneToday() || !(this.today.learned_today || []).length)) {
@@ -1671,6 +1692,9 @@ const root = createApp({
        无害；passive 且只做状态检查+幂等 resume，开销可忽略 */
     for (const ev of ["pointerdown", "click", "touchend", "keydown"])
       window.addEventListener(ev, () => this._ensurePlayCtx(), { passive: true });
+    /* 隔夜标签页（v68，2026-11-23 mido 实锤）：入口页停在前一天的包上——轻则重考前一天六关、当天
+       不出新字（startToday 守卫兜），重则显示「今日已完成」连开始按钮都没有。每分钟自查本机日 */
+    setInterval(() => this._staleTodayTick(), 60000);
   },
 });
 app = root.mount("#app");

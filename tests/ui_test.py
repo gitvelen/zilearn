@@ -247,7 +247,34 @@ def run(page):
     txt = page.locator(".day-card").inner_text()
     check("今日页新字 2 个", "新字 2 个" in txt, txt)
     shot(page, "03-today")
+
+    # ---- v68 跨日陈旧包守卫（2026-11-23 mido 实锤：标签页隔夜不刷新，旧包重考前一天六关、当天 0 新字）----
+    today_reqs = []
+    on_req = lambda r: today_reqs.append(r.url) if r.url.endswith("/api/today") else None  # noqa: E731
+    page.on("request", on_req)
+    ymd = page.evaluate("() => window.ziapp._localYmd()")
+    check("取包时记录本机日", page.evaluate("() => window.ziapp._todayYmd") == ymd,
+          page.evaluate("() => window.ziapp._todayYmd"))
+    page.evaluate("() => { window.ziapp._todayYmd = '2000-01-01'; }")        # 模拟入口页隔夜
+    page.evaluate("() => window.ziapp._staleTodayTick()")
+    page.wait_for_function("window.ziapp._todayYmd !== '2000-01-01'", timeout=8000)
+    check("隔夜入口页自查重拉 today（防「今日已完成」假象）",
+          len(today_reqs) == 1 and page.evaluate("() => window.ziapp.phase") == "today-intro", today_reqs)
+    page.evaluate("() => { window.ziapp._todayYmd = '2000-01-01'; }")        # 再隔夜后点开始
     page.click("button.btn.pulse", force=True)
+    page.wait_for_function("window.ziapp.phase === 'newlearn'", timeout=10000)
+    check("陈旧包点开始先重拉（不直接用旧包建队列）", len(today_reqs) == 2, today_reqs)
+    check("队列来自重拉后的包", page.evaluate("""() => {
+      const a = window.ziapp, cards = a.sessQueue.filter(x => x.type === 'newcard').map(x => x.id);
+      return JSON.stringify(cards) === JSON.stringify(a.today.new.map(x => x.id));
+    }"""))
+    page.evaluate("() => { window.ziapp._todayYmd = '2000-01-01'; window.ziapp._staleTodayTick(); }")
+    page.wait_for_timeout(300)                                               # 会话中跨日不重拉（跨午夜接着做完）
+    check("会话中跨日不重拉 today", len(today_reqs) == 2
+          and page.evaluate("() => window.ziapp._todayYmd") == "2000-01-01"
+          and page.evaluate("() => window.ziapp.phase") == "newlearn", today_reqs)
+    page.evaluate("() => { window.ziapp._todayYmd = window.ziapp._localYmd(); }")   # 还原
+    page.remove_listener("request", on_req)
 
     # ---- 新字 1：四步卡 ----
     page.wait_for_selector(".learn-card", timeout=10000)
