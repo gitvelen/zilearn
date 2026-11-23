@@ -1585,17 +1585,20 @@ const root = createApp({
         return this.advance();
       }
       if (it.type === "reviewquiz" || it.type === "weeklyquiz" || it.type === "auditquiz") {
-        /* 复习/周测错题：同题型立即重测到对（不重复提交，回炉轨迹完整；周测有
-           结算语义 + D+1 回炉兜底，与关题的推关尾策略不同源） */
-        this.quizRevealed = false; this.quizPick = null;
-        this.findFound = []; this.findMisses = 0; this.findMiss = "";
-        /* 弱网兜底：重拉失败直接过题（防卡在已重置的旧题上） */
-        this.curQuiz = await api("GET", `/api/quiz?hanzi_id=${it.id}&quiz_type=${this.curQuiz.quiz_type}`)
-          .catch(() => null);
-        if (!this.curQuiz) return this.advance();
-        if (this.curQuiz.quiz_type === "listen") setTimeout(() => this.playChar(this.curQuiz.hanzi), 400);
-        if (this.curQuiz.quiz_type === "wf") this.wfq = { found: [], misses: 0, shake: "" };  /* 新干扰重选（v60） */
-        return;
+        /* v67 错题隔段重现（对齐 v40 关题方案 A）：立即重测=短时记忆作弊、提取强度低。
+           克隆推本环节末尾（下一个非同环节队列项之前；weekly 全程同题型→队列末），
+           间隔=环节剩余题数。克隆继承 _answered=true → 重测不提交不计分（首答口径）；
+           重测又错不再推、直接放行——防无限循环，靠 D+1 回炉兜底。
+           克隆重测走完整 startQuiz：defi/rev/lsent 自动播题干音频
+           （顺带修掉旧"快捷重拉不播释义"断头路，同 2026-11-02 关题先例） */
+        if (!it._retest) {
+          let pos = this.sessQueue.length;
+          for (let k = this.sessIdx + 1; k < this.sessQueue.length; k++) {
+            if (this.sessQueue[k].type !== it.type) { pos = k; break; }
+          }
+          this.sessQueue.splice(pos, 0, { ...it, _retest: true, quiz_type: this.curQuiz.quiz_type });
+        }
+        return this.advance();
       }
       this.advance();
     },

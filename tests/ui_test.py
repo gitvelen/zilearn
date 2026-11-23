@@ -2,7 +2,7 @@
 """zilearn UI 全流程走查（playwright headless，截图 + DOM 断言）
 
 覆盖：登录/引导(年级·计划·摸底·验证)/学习日(四步卡·跳步·三类题·find·今日朗读卡)
-     /完成页/家长页/周测(含错题半卡回看再重测)
+     /完成页/家长页/周测(含错题半卡回看隔段重测)
 用法: python3 tests/ui_test.py [base_url]   # 需本地服务已起
 """
 import sys
@@ -131,6 +131,30 @@ def answer_quiz(page):
         if note.count():
             note.first.click()
             page.wait_for_timeout(800)
+    return q
+
+
+def answer_quiz_wrong(page):
+    """故意答错当前题（find 连点 2 个非目标字 / 四选一点非答案），返回题对象。
+    供错题半卡/隔段重测（v67）走查用。"""
+    q = page.evaluate("() => window.ziapp.curQuiz")
+    if q["quiz_type"] == "find":
+        tiles = page.locator(".find-tile")          # 连点 2 个非目标字 → 判错
+        misses = 0
+        for i in range(tiles.count()):
+            if tiles.nth(i).inner_text().strip() != q["hanzi"]:
+                tiles.nth(i).click()
+                page.wait_for_timeout(300)
+                misses += 1
+                if misses == 2:
+                    break
+    else:
+        wrong = next(o for o in q["options"] if o != q["answer"])
+        btns = page.locator(".opts .opt")
+        for i in range(btns.count()):
+            if btns.nth(i).inner_text().strip() == wrong:
+                btns.nth(i).click()
+                break
     return q
 
 
@@ -441,34 +465,19 @@ def run_weekly(page):
     page.click("button.btn.pulse", force=True)
     page.wait_for_selector(".quiz-card", timeout=10000)
 
-    # 第 1 题故意答错 → 验证错题半卡（M4）→ 重测到对
+    # 第 1 题故意答错 → 验证错题半卡（M4）→ 继续后推进下一字、错题克隆排队尾（v67 隔段重现）
     wait_quiz(page)                                 # quiz-card 先渲染、题后到，防时序取 null
-    q = page.evaluate("() => window.ziapp.curQuiz")
-    if q["quiz_type"] == "find":
-        tiles = page.locator(".find-tile")          # 连点 2 个非目标字 → 判错
-        misses = 0
-        for i in range(tiles.count()):
-            if tiles.nth(i).inner_text().strip() != q["hanzi"]:
-                tiles.nth(i).click()
-                page.wait_for_timeout(300)
-                misses += 1
-                if misses == 2:
-                    break
-    else:
-        wrong = next(o for o in q["options"] if o != q["answer"])
-        btns = page.locator(".opts .opt")
-        for i in range(btns.count()):
-            if btns.nth(i).inner_text().strip() == wrong:
-                btns.nth(i).click()
-                break
+    q = answer_quiz_wrong(page)
     page.wait_for_timeout(1000)
     check("错题半卡出现(词)", page.locator(".wrong-card .word-chip").count() >= 1)
     check("错题半卡出现(句)", page.locator(".wrong-card .wc-line").count() >= 2)
     shot(page, "14-weekly-wrongcard")
-    page.click(".wrong-note .btn")               # 记住了，继续 → 同题型重测
+    page.click(".wrong-note .btn")               # 记住了，继续 → 推进下一字（非立即重测）
     page.wait_for_timeout(1000)
-    answer_quiz(page)                            # 重测答对
-    page.wait_for_timeout(1400)
+    check("继续后推进非同题（v67 隔段重现）",
+          page.evaluate("() => window.ziapp.curItem && window.ziapp.curItem.id") != q["hanzi_id"])
+    check("错题克隆已在队列（_retest）",
+          page.evaluate("() => window.ziapp.sessQueue.some(x => x._retest === true)"))
 
     # 断点续做：第 1 题首答完成后退出重进 → 显示剩余、不从头再来（home 长按化防误触）
     home = page.locator(".home")
@@ -480,16 +489,21 @@ def run_weekly(page):
     page.click("button.btn.pulse", force=True)
     page.wait_for_selector(".quiz-card", timeout=10000)
 
-    # 剩余周测题全答对
-    while page.evaluate("() => window.ziapp.phase") == "weekly" and \
-            page.evaluate("() => window.ziapp.curItem && window.ziapp.curItem.type === 'weeklyquiz'"):
-        answer_quiz(page)
-        page.wait_for_timeout(1400)
+    # 剩余第 2 题故意答错 → 队列末 _retest 克隆重现（v67 隔段重测）→ 重测答对（不计分）
+    wait_quiz(page)
+    answer_quiz_wrong(page)
+    page.wait_for_timeout(1000)
+    page.click(".wrong-note .btn")
+    wait_quiz(page)
+    check("错题隔段重现（_retest 克隆）",
+          page.evaluate("() => window.ziapp.curItem && window.ziapp.curItem._retest === true"))
+    answer_quiz(page)                            # 重测答对
+    page.wait_for_timeout(1400)
 
     page.wait_for_selector(".weekly-done, .done-stats", timeout=10000)
     shot(page, "15-weekly-done")
     check("周测结算页", page.locator(".score-xl").count() == 1)
-    check("周测断点分数累计保留", page.locator(".score-xl").inner_text().strip() == "1 / 2",
+    check("周测结算分（首答口径，重测不计分）", page.locator(".score-xl").inner_text().strip() == "0 / 2",
           page.locator(".score-xl").inner_text())
     check_no_overlap(page, "零叠音(周测全程)")     # goto 重进前取（重进后事件重新计）
 
