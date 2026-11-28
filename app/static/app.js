@@ -134,12 +134,8 @@ const root = createApp({
         else if (me.stage === "plan") { this.obTarget = Math.min(300, me.progress.total_hanzi - (me.progress.skipped || 0)); this.phase = "ob-plan"; }
         else if (me.stage === "confirm") {
           /* 摸底中途刷新：回摸底页续选（2026-11-03 补洞——原直接进学习日，速选作废）。
-             confirm_batches 按水位重出批次：补摸轮的已见字会重列（重选幂等），可接受 */
-          const r = await api("GET", "/api/confirm/batches").catch(() => null);
-          if (r && r.batches && r.batches.length) {
-            this.confirmBatches = r.batches; this.confirmPage = 0; this.confirmPicked = [];
-            this.moreRound = false; this.phase = "ob-confirm";
-          } else { await this.loadToday(); }
+             confirm_batches 按游标重出批次：补摸轮的已见字会重列（重选幂等），可接受 */
+          if (!(await this.enterConfirm().catch(() => null))) await this.loadToday();
         }
         else { await this.loadToday(); }
       } catch (e) { if (this.phase !== "login") this.phase = "login"; }
@@ -897,22 +893,27 @@ const root = createApp({
       }
       this.phase = "ob-plan";
     },
+    async enterConfirm() {
+      /* 进摸底页（v69）：stage=confirm 的唯一入口——boot 续选 / 建计划后 / 进今日页时的校验共用。
+         批次为空（无字可摸）→ 返回 false 由调用方走今日；请求异常不在此吞，由调用方决定 */
+      const r = await api("GET", "/api/confirm/batches");
+      if (!(r && r.batches && r.batches.length)) return false;
+      this.confirmBatches = r.batches; this.confirmPage = 0; this.confirmPicked = [];
+      this.moreRound = false;                       /* 首批摸底（补摸轮由 showMoreConfirm 置位） */
+      this.phase = "ob-confirm";
+      return true;
+    },
     async createPlan() {
       this.planEst = await api("POST", "/api/plan/create",
         { target_chars: this.obTarget, days: this.obDays });
-      if (this.renewing) {                          /* 续订：不重走摸底，直接回今日 */
-        this.renewing = false;
-        await this.loadToday();
-        return;
-      }
+      /* 续订与首建同路（v69，2026-11-28 拍板，推翻 v29「续订跳摸底」）：每次建计划都重走摸底——
+         摸底是每个计划的组成部分，续订后池头已前移到没摸过的字。批次拉取失败不吞：异常留在表单可重提 */
+      this.renewing = false;
       if (this.mode === "stroke_only") {            /* 纯写字无摸底（后端已置 onboarded=1）：直接开写 */
         await this.finishOnboard();
         return;
       }
-      const r = await api("GET", "/api/confirm/batches");
-      this.confirmBatches = r.batches; this.confirmPage = 0; this.confirmPicked = [];
-      this.moreRound = false;                       /* 首批摸底（补摸轮由 showMoreConfirm 置位） */
-      this.phase = "ob-confirm";
+      if (!(await this.enterConfirm())) await this.loadToday();
     },
     startRenew(from) {                              /* 本期达成 → 家长续订（完成页入口） */
       this.renewing = true; this._renewFrom = from;
@@ -977,9 +978,13 @@ const root = createApp({
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     },
     async loadToday() {
+      const me = await api("GET", "/api/me"); this.progress = me.progress;
+      /* 摸底没做完不进今日页（v69）：boot 不重跑的路径——隔夜入口页自查重拉、换设备续订后退出
+         会话——先回摸底页（后端同样不发新字，这里是界面上的入口）。enterConfirm 不回调本函数、
+         批次空返回 false，无循环 */
+      if (me.stage === "confirm" && await this.enterConfirm().catch(() => null)) return;
       this.today = await api("GET", "/api/today");
       this._todayYmd = this._localYmd();             /* 取包时的本机日：startToday/_staleTodayTick 据此识别隔夜陈旧包 */
-      const me = await api("GET", "/api/me"); this.progress = me.progress;
       this.phase = "today-intro";
     },
     _staleTodayTick() {
@@ -999,7 +1004,9 @@ const root = createApp({
          同日路径无 await、行为不变；loadToday 成功即刷新 _todayYmd，重入不再触发。守卫放在
          手势内预热之后：ctx/麦克风先在本次 click 解锁，重拉回来再建队列不依赖新手势 */
       if (this._todayYmd && this._todayYmd !== this._localYmd()) {
-        this.loadToday().then(() => this.startToday()).catch(e => console.warn("跨日重拉 today 失败", e));
+        /* loadToday 可能转进摸底页（v69：摸底没做完不进今日页）——那时不能拿旧包接着建队列 */
+        this.loadToday().then(() => { if (this.phase === "today-intro") this.startToday(); })
+          .catch(e => console.warn("跨日重拉 today 失败", e));
         return;
       }
       if (this.today.mode === "learn") {

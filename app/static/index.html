@@ -36,7 +36,7 @@
   <button class="btn big" :disabled="!obGrade" @click="setGrade">下一步 →</button>
 </div>
 
-<!-- ============ 引导：目标与天数（首建/续订共用，续订跳摸底） ============ -->
+<!-- ============ 引导：目标与天数（首建/续订共用；v69 起续订同样走摸底） ============ -->
 <div v-else-if="phase==='ob-plan'" class="wizard">
   <h2>{{renewing ? '🏆 下一期学多少字？' : '我们的小目标 🎯'}}</h2>
   <div class="field">
@@ -64,7 +64,7 @@
   <div class="row">
     <button class="btn ghost" v-if="renewing" @click="renewBack">← 返回</button>
     <button class="btn ghost" v-else @click="phase='ob-grade'">← 返回</button>
-    <button class="btn big" :disabled="!obTarget||!obDays" @click="createPlan">{{renewing ? '订好啦，继续学 →' : '下一步 →'}}</button>
+    <button class="btn big" :disabled="!obTarget||!obDays" @click="createPlan">下一步 →</button>
   </div>
 </div>
 
@@ -110,8 +110,19 @@
       <template v-else>
         <div class="big-emoji">🌞</div>
         <div class="row-of-stats"><span>今天的任务都完成啦！</span></div>
-        <div class="hint">好好玩，明天再来学新字吧</div>
+        <div class="hint">{{today.new_paused ? '这期的字都学完啦，等爸爸妈妈订下一期' : '好好玩，明天再来学新字吧'}}</div>
       </template>
+      <!-- v69：新字只从已摸底范围出——范围内的生词学完后新字暂停（后端 new_paused），等家长续订
+           重新摸底。暂停期间到不了完成页，续订入口须在入口页常驻（原只在周测结算早退页/完成页）。
+           当日还有关/朗读没做完时不显示（todayPendingMore）：先做完今天的再订 -->
+      <div v-if="today.new_paused && !today.new.length && !todayPendingMore() && mode!=='stroke_only'"
+           class="plan-done-banner" style="margin-top:10px">
+        <h3 v-if="planDone">本期目标达成！</h3>
+        <h3 v-else>这期的字学完啦！</h3>
+        <div class="hint">这期学了 {{progress.learned - progress.plan_base_learned}} 个字（目标 {{progress.target_chars}}）· 订了下一期，就有新字啦</div>
+        <button class="btn big pulse" :class="{hold: renewHold}" @pointerdown="renewDown"
+                @pointerup="renewUp('today-intro')" @pointerleave="renewHold = false">🔒 家长长按订下一期 →</button>
+      </div>
     </template>
     <template v-else-if="today.mode==='weekly'">
       <div class="big-emoji">{{today.grad ? '🎓' : '🏆'}}</div>
@@ -519,6 +530,6 @@
 </div>
 <script src="/vue.global.prod.js"></script>
 <script src="/hanzi-writer.min.js"></script>
-<script src="/app.js?v=68"></script>
+<script src="/app.js?v=69"></script>
 </body>
 </html>

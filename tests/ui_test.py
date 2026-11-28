@@ -165,8 +165,8 @@ def reset_test_user():
     conn = sqlite3.connect(str(Path(__file__).parent.parent / "app" / "data" / "zilearn.db"))
     uid = conn.execute("SELECT id FROM users WHERE username='test'").fetchone()[0]
     conn.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL,
-                    plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0,
-                    day_offset=0, grad_pending=0, grad_anchor=NULL WHERE id=?""", (uid,))
+                    plan_start=NULL, plan_base_learned=0, confirm_upto=0, confirm_book=NULL, confirm_seq=NULL,
+                    onboarded=0, day_offset=0, grad_pending=0, grad_anchor=NULL WHERE id=?""", (uid,))
     for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports",
               "follow_log", "daily_mail"):
         conn.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
@@ -565,6 +565,9 @@ def run_weekly(page):
       const i = await learnNext(0, 1);              // 学第 1 个生字
       await post('/api/plan/create', {target_chars: 10, days: 7});  // base=当前 learned（下限 10，2026-11-14）
       await learnNext(i, 10);                       // 再学 10 个 → learned-base>=10 达成
+      // v69 续订重摸底：建计划后要把这轮摸底做完，否则刷新会落在摸底页
+      await fetch('/api/confirm/batches');
+      for (;;) { const r = await post('/api/confirm/submit', {known_ids: []}); if (!r.more_batch) break; }
     }""")
     page.goto(BASE + "/", wait_until="networkidle")   # 刷新 progress
     page.wait_for_selector(".day-card", timeout=10000)
@@ -601,9 +604,37 @@ def run_weekly(page):
     page.wait_for_timeout(1600)
     rbtn.dispatch_event("pointerup")
     page.wait_for_timeout(300)
-    page.evaluate("() => document.querySelector('.wizard button.btn.big').click()")   # 订好啦，继续学
-    page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=8000)
-    check("续订提交后回今日(不进摸底)", True)
+    page.evaluate("() => document.querySelector('.wizard button.btn.big').click()")   # 下一步（订好下一期）
+    # v69 续订重摸底（推翻 v29「续订提交后回今日(不进摸底)」）：提交后进摸底页，做完才回今日
+    page.wait_for_function("window.ziapp.phase==='ob-confirm'", timeout=8000)
+    page.wait_for_selector(".char-grid", timeout=8000)
+    check("续订提交后进摸底（表格非空）", page.locator(".char-chip").count() > 0,
+          page.locator(".char-chip").count())
+    pick = page.evaluate("() => ziapp.confirmBatches.flat()[0].id")
+    page.locator(".char-chip").first.click()          # 点亮一个已认识的字
+    page.wait_for_function(f"window.ziapp.confirmPicked.includes({pick})", timeout=5000)
+    for _ in range(6):                                # 翻到末页提交；生词不足会再出一批（补摸轮）
+        while page.locator("button:has-text('下一页')").count():
+            page.locator("button:has-text('下一页')").first.click()
+            page.wait_for_timeout(250)
+        head_id = page.evaluate("() => ziapp.confirmBatches[0][0].id")
+        page.click("button.btn.big")
+        page.wait_for_function(
+            f"window.ziapp.phase==='today-intro' || ziapp.confirmBatches[0][0].id !== {head_id}", timeout=8000)
+        page.wait_for_timeout(300)
+        if page.evaluate("() => ziapp.phase") == "today-intro":
+            break
+    check("摸底做完回今日", page.evaluate("() => ziapp.phase") == "today-intro",
+          page.evaluate("() => ziapp.phase"))
+    import sqlite3 as _s2
+    conn = _s2.connect(str(Path(__file__).parent.parent / "app" / "data" / "zilearn.db"))
+    uid2 = conn.execute("SELECT id FROM users WHERE username='test'").fetchone()[0]
+    st = conn.execute("SELECT status FROM user_hanzi WHERE user_id=? AND hanzi_id=?", (uid2, pick)).fetchone()
+    onb = conn.execute("SELECT onboarded FROM users WHERE id=?", (uid2,)).fetchone()[0]
+    conn.close()
+    today_new = page.evaluate("() => (window.ziapp.today.new || []).map(h => h.id)")
+    check("点亮的字落 skipped、不在今日新字、轮次已关",
+          bool(st) and st[0] == "skipped" and pick not in today_new and onb == 1, (st, onb))
 
     # ---- TEST 跳日（虚拟日历）：今天直接进入下一天课程 ----
     check("TEST 跳日按钮可见", page.locator("button.btn.ghost", has_text="直接学下一天").count() == 1)
@@ -616,6 +647,42 @@ def run_weekly(page):
     check("跳日后进入新学习日(第 2 周)", page.evaluate("() => window.ziapp.today.mode") == "learn"
           and len(page.evaluate("() => window.ziapp.today.new || []")) >= 1,
           page.evaluate("() => ({m: window.ziapp.today.mode, n: (window.ziapp.today.new||[]).length})"))
+    check("范围内还有生词：不算暂停、入口页无续订条幅",
+          page.evaluate("() => !!window.ziapp.today.new_paused") is False
+          and page.locator(".day-card .plan-done-banner").count() == 0)
+
+    # ---- v69 新字只从已摸底范围出：范围内的生词学完 → 新字暂停 + 入口页续订条幅 ----
+    # （推翻 v29「达成后不停新字」；暂停期间到不了完成页，续订入口须在入口页常驻）
+    conn = _s2.connect(str(Path(__file__).parent.parent / "app" / "data" / "zilearn.db"))
+    left = [r[0] for r in conn.execute("""SELECT h.id FROM hanzi h, users u WHERE u.id=?
+        AND h.book>=lower(u.grade) AND EXISTS (SELECT 1 FROM zi_content c WHERE c.hanzi_id=h.id)
+        AND NOT EXISTS (SELECT 1 FROM user_hanzi uh WHERE uh.user_id=u.id AND uh.hanzi_id=h.id
+                        AND uh.status IN ('skipped','learning','mastered'))
+        AND (h.book < u.confirm_book OR (h.book = u.confirm_book AND h.seq <= u.confirm_seq))
+        ORDER BY h.book, h.seq""", (uid2,))]
+    pool_left = conn.execute("""SELECT COUNT(*) FROM hanzi h, users u WHERE u.id=?
+        AND h.book>=lower(u.grade) AND EXISTS (SELECT 1 FROM zi_content c WHERE c.hanzi_id=h.id)
+        AND NOT EXISTS (SELECT 1 FROM user_hanzi uh WHERE uh.user_id=u.id AND uh.hanzi_id=h.id
+                        AND uh.status IN ('skipped','learning','mastered'))""", (uid2,)).fetchone()[0]
+    conn.close()
+    page.evaluate("""async (ids) => { for (const id of ids)
+        await fetch('/api/submit', {method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({hanzi_id: id, phase: 'learn', quiz_type: 'card', correct: true})}); }""", left)
+    # 先跳到一个新的学习日再看供给：当天已学的字会占满当日额度，当天看不出「暂停」
+    for _ in range(3):
+        page.evaluate("async () => { await window.ziapp.skipDay(); }")
+        page.wait_for_function("window.ziapp.phase==='today-intro'", timeout=8000)
+        if page.evaluate("() => window.ziapp.today.mode") == "learn":
+            break
+    check("摸底范围内的生词学完 → 新字暂停（池里还有字也不发）",
+          page.evaluate("() => window.ziapp.today.mode") == "learn"
+          and page.evaluate("() => (window.ziapp.today.new || []).length") == 0
+          and page.evaluate("() => window.ziapp.today.new_paused") is True and pool_left > len(left),
+          page.evaluate("() => ({m: window.ziapp.today.mode, n: (window.ziapp.today.new||[]).length, p: window.ziapp.today.new_paused})"))
+    banner_txt = page.locator(".day-card").inner_text()
+    check("入口页续订条幅（暂停期间的续订入口）",
+          page.locator(".day-card .plan-done-banner").count() == 1
+          and "订下一期" in banner_txt and "明天再来学新字" not in banner_txt, banner_txt[:200])
 
     reset_test_user()   # teardown：清测试状态，防污染线上库（拨日历时代的教训）
 
@@ -634,8 +701,8 @@ def reset_mily_user():
     conn = sqlite3.connect(str(Path(__file__).parent.parent / "app" / "data" / "zilearn.db"))
     uid = conn.execute("SELECT id FROM users WHERE username='mily'").fetchone()[0]
     conn.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL,
-                    plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0,
-                    day_offset=0, grad_pending=0, grad_anchor=NULL, mode='stroke_only' WHERE id=?""", (uid,))
+                    plan_start=NULL, plan_base_learned=0, confirm_upto=0, confirm_book=NULL, confirm_seq=NULL,
+                    onboarded=0, day_offset=0, grad_pending=0, grad_anchor=NULL, mode='stroke_only' WHERE id=?""", (uid,))
     for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports",
               "follow_log", "daily_mail"):
         conn.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))

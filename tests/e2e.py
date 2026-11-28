@@ -53,7 +53,7 @@ def reset_user():
     import database
     db = database.get_db()
     uid = db.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
-    db.execute("UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0, day_offset=0, grad_pending=0, grad_anchor=NULL WHERE id=?", (uid,))
+    db.execute("UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL, plan_base_learned=0, confirm_upto=0, confirm_book=NULL, confirm_seq=NULL, onboarded=0, day_offset=0, grad_pending=0, grad_anchor=NULL WHERE id=?", (uid,))
     for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports", "follow_log", "daily_mail"):
         db.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
     db.commit()
@@ -478,7 +478,8 @@ def review_done_tests():
 
 
 def plan_renew_tests():
-    """续订增量记账：建计划记基准线 base；达成=learned-base>=target；续订后 base 前移"""
+    """续订增量记账：建计划记基准线 base；达成=learned-base>=target；续订后 base 前移。
+    v69 续订重摸底（HTTP 级）：续订重开一轮摸底，做完才回 study；摸底没做完不发新字"""
     reset_user()
     call("POST", "/api/login", {"username": "mido", "password": MIDO_PASS})
     call("POST", "/api/profile/grade", {"grade": "1A"})
@@ -488,6 +489,7 @@ def plan_renew_tests():
     check("基准线 base=0（首建）", me["plan_base_learned"] == 0, me["plan_base_learned"])
     # 学满 10 字（learn 提交与日期无关，直接按教材序补齐）
     pool_ids = [c["id"] for b in call("GET", "/api/confirm/batches")["batches"] for c in b]
+    call("POST", "/api/confirm/submit", {"known_ids": []})   # 首轮摸底做完（v69：不做完关不了轮次）
     for hid in pool_ids[:10]:
         call("POST", "/api/submit", {"hanzi_id": hid, "phase": "learn",
                                      "quiz_type": "card", "correct": True})
@@ -500,6 +502,31 @@ def plan_renew_tests():
     check("续订: 达成条件重置（未再达成）", me["learned"] - me["plan_base_learned"] < me["target_chars"],
           (me["learned"], me["plan_base_learned"], me["target_chars"]))
     check("续订: 剩余池正确", me["pool"] == me["total_hanzi"] - me["learned"] - me["skipped"], me["pool"])
+    # v69 续订重摸底：stage 回 confirm → 摸底没做完不发新字 → 做完回 study、新字只从摸底范围出。
+    # 「明天」用直调 build_today + 拨日期看（当天额度已被上面学的 10 字占满，/api/today 看不出差别）
+    stage = call("GET", "/api/me").get("stage")
+    check("续订后 stage=confirm（摸底重开）", stage == "confirm", stage)
+    import database as _dbp, scheduler as _sch
+    d = _dbp.get_db()
+    uid = d.execute("SELECT id FROM users WHERE username='mido'").fetchone()["id"]
+    d.close()
+    real_today = _sch.today_str
+    _sch.today_str = lambda: (date.today() + timedelta(days=1)).isoformat()
+    try:
+        t = _sch.build_today(uid)
+        check("摸底没做完不发新字", t["mode"] == "learn" and t["new"] == [], t["new"])
+        head = [c["id"] for b in call("GET", "/api/confirm/batches")["batches"] for c in b]
+        check("续订摸底首批 = 池头 19 字（ceil(14×1.3)），不含已学 10 字",
+              len(head) == 19 and not set(head) & set(pool_ids[:10]), (len(head), head[:3]))
+        call("POST", "/api/confirm/submit", {"known_ids": [head[0]]})
+        stage = call("GET", "/api/me").get("stage")
+        check("摸底做完 stage=study", stage == "study", stage)
+        t = _sch.build_today(uid)
+        new_ids = [h["id"] for h in t["new"]]
+        check("续订后新字只从摸底范围出（3 个，不含已点亮）",
+              len(new_ids) == 3 and set(new_ids) <= set(head) - {head[0]}, new_ids)
+    finally:
+        _sch.today_str = real_today  # noqa
     reset_user()   # 本组自带清理
 
 
@@ -568,9 +595,12 @@ def confirm_more_tests():
     seen = {c["char"] for c in pool}
     fresh = [c["char"] for c in r["more_batch"] if c["char"] not in seen]
     check("补摸批不与已摸重复", len(fresh) == 50, len(fresh))
+    mseq = [c["seq"] for c in r["more_batch"]]
+    check("补摸批紧接首批（seq 66–115，不跳字）", mseq == list(range(66, 116)), (mseq[:2], mseq[-2:]))
     # 补摸批一个不选（全算生词）→ 生词 75≥50 → 无更多批次，直接开始学
     r = call("POST", "/api/confirm/submit", {"known_ids": []})
     check("生词够数 → 无更多批次", not r.get("more_batch"), r.get("more_batch"))
+    check("摸底做完 stage=study", call("GET", "/api/me").get("stage") == "study")
     t = call("GET", "/api/today")
     known2 = seen | set(fresh)
     in_pool = all(h["char"] in known2 for h in t["new"])
@@ -826,7 +856,8 @@ def stroke_mode_tests():
         d = _db.get_db()
         uid = d.execute("SELECT id FROM users WHERE username='mily'").fetchone()["id"]
         d.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL,
-                     plan_base_learned=0, confirm_upto=0, onboarded=0, day_offset=0,
+                     plan_base_learned=0, confirm_upto=0, confirm_book=NULL, confirm_seq=NULL,
+                     onboarded=0, day_offset=0,
                      grad_pending=0, grad_anchor=NULL, mode='stroke_only' WHERE id=?""", (uid,))
         for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports", "follow_log", "daily_mail"):
             d.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
@@ -906,6 +937,7 @@ def stroke_mode_tests():
     base = d.execute("SELECT plan_base_learned FROM users WHERE id=?", (uid,)).fetchone()["plan_base_learned"]
     d.close()
     check("续订 base 前移到 14", base == 14, base)
+    check("纯写字续订不进摸底：stage=study", call("GET", "/api/me").get("stage") == "study")
     # 日报：副本库无 smtp.json → 环境性不发信（真发信必红灯，v55 事故红线）
     r = call("POST", "/api/report/daily")
     check("日报环境性不发信或幂等", r.get("reason") in ("测试账号不发信", "今日已发送", "SMTP 未配置"), r)

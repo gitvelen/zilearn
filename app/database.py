@@ -19,9 +19,10 @@ CREATE TABLE IF NOT EXISTS users (
   plan_days     INTEGER,                          -- 计划：完成天数
   plan_start    TEXT,                             -- 计划：起始日（日历日）
   plan_base_learned INTEGER DEFAULT 0,            -- 建计划时的已学数（达成=learned-base>=target，续订增量记账）
-  confirm_upto    INTEGER DEFAULT 0,              -- 摸底供应水位：已展示过的字数（按 seq，轮次补摸）
-  confirm_book    TEXT,                           -- 摸底跨册水位：当前供应册（NULL=本册；本册摸尽顺延下一内容就绪册）
-  onboarded     INTEGER DEFAULT 0,                -- 1=引导流完成（年级+计划+摸底）
+  confirm_upto    INTEGER DEFAULT 0,              -- 【v69 起弃用，列保留不再读写】旧摸底水位：按个数计，点亮后候选前移致 OFFSET 漂移
+  confirm_book    TEXT,                           -- 摸底游标·册（v69，与 confirm_seq 组成「已展示到哪个字」）
+  confirm_seq     INTEGER,                        -- 摸底游标·seq（v69）：末个已展示字的 seq；两列皆 NULL=无游标（v69 前的旧计划，新字不限范围）
+  onboarded     INTEGER DEFAULT 0,                -- 1=当前计划的摸底已完成（每次建计划重置为 0，v69 续订重摸底）
   day_offset    INTEGER DEFAULT 0,                -- TEST 跳日：虚拟日历偏移天（"今天"=真实今天+偏移）
   grad_pending  INTEGER DEFAULT 0,                -- 本期毕业测挂起（v60）：目标达成跨越时置位，下一个周测槽位消费
   grad_anchor   TEXT,                             -- 毕业测锚点=挂旗时 plan_start 快照（scope=first_date>=anchor；COALESCE 保留最早未消费锚点）
@@ -97,7 +98,7 @@ CREATE TABLE IF NOT EXISTS weekly_reports (
   UNIQUE(user_id, week_no)
 );
 
-CREATE TABLE IF NOT EXISTS confirm_pick (   -- 摸底：速选认识的字（待验证）
+CREATE TABLE IF NOT EXISTS confirm_pick (   -- 摸底：速选认识的字（v48 砍验证轮后只落 pass；v69 起仅存档，水位改用 users.confirm_book+confirm_seq 游标）
   user_id   INTEGER NOT NULL,
   hanzi_id  INTEGER NOT NULL,
   result    TEXT,                        -- NULL=待验证 | pass | fail
@@ -166,6 +167,12 @@ def init_db():
     # 迁移：摸底跨册供应册列（跨册补齐，新库 SCHEMA 已含）
     try:
         db.execute("ALTER TABLE users ADD COLUMN confirm_book TEXT")
+    except sqlite3.OperationalError:
+        pass
+    # 迁移：摸底游标 seq 列（v69 续订重摸底 + 补摸不跳字，新库 SCHEMA 已含）。只加一个空列，
+    # 旧容器代码不读它——线上库在 rebuild 或宿主测试 import init_db 时补上
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN confirm_seq INTEGER")
     except sqlite3.OperationalError:
         pass
     # 迁移：旧库补计划基准列（v29 续订增量记账，新库 SCHEMA 已含）

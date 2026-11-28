@@ -142,9 +142,10 @@ def set_grade(body: GradeIn, request: Request):
     db = database.get_db()
     try:
         db.execute("UPDATE users SET grade=? WHERE id=?", (body.grade, user["id"]))
-        if (user["grade"] or "") != body.grade:   # 换册：旧册摸底未决项与水位作废（含跨册水位）
+        if (user["grade"] or "") != body.grade:   # 换册：旧册摸底未决项与游标作废（含跨册游标）
             db.execute("DELETE FROM confirm_pick WHERE user_id=? AND result IS NULL", (user["id"],))
-            db.execute("UPDATE users SET confirm_upto=0, confirm_book=NULL WHERE id=?", (user["id"],))
+            db.execute("UPDATE users SET confirm_upto=0, confirm_book=NULL, confirm_seq=NULL WHERE id=?",
+                       (user["id"],))
         db.commit()
     finally:
         db.close()
@@ -155,9 +156,9 @@ def set_grade(body: GradeIn, request: Request):
 def create_plan(body: PlanIn, request: Request):
     user = auth.current_user(request)
     r = scheduler.create_plan(user["id"], body.target_chars, body.days)
+    # create_plan 已置 onboarded=0（续订重摸底，v69）；纯写字无摸底（2026-11-19 拍板）：这里置回 1
+    # → /api/me stage=study，摸底相关端点对 stroke_only 天然不可达
     if (user["mode"] or "") == "stroke_only":
-        # 纯写字无摸底（2026-11-19 拍板）：建计划即引导完成 → /api/me stage=study，
-        # 摸底相关端点对 stroke_only 天然不可达（onboarded 语义单真源不变）
         db = database.get_db()
         try:
             db.execute("UPDATE users SET onboarded=1 WHERE id=?", (user["id"],))
@@ -177,18 +178,12 @@ def confirm_list(request: Request):
 def confirm_submit(body: ConfirmSubmitIn, request: Request):
     """速选提交（验证轮已砍，2026-11-03 拍板）：已选直接 skipped；
     池内确认生词不足目标 → more_batch 供应下一批（前端回摸底表格页）。
-    无补摸批次 = 摸底完成 → 置 onboarded（摸底中途刷新可回摸底页续选，2026-11-03 补洞）"""
+    摸底完成（生词够数/候选摸尽）→ confirm_more 内部置 onboarded=1（v69：关轮次只认「有有效
+    游标」的提交——没有有效游标的滞后提交既不供应也不关轮次，新前端经 /api/me 的 stage=confirm
+    回摸底页重出首批；摸底中途刷新可回摸底页续选，2026-11-03 补洞不变）"""
     user = auth.current_user(request)
     r = scheduler.confirm_submit(user["id"], body.known_ids)
-    more = scheduler.confirm_more(user)
-    if not more:
-        db = database.get_db()
-        try:
-            db.execute("UPDATE users SET onboarded=1 WHERE id=?", (user["id"],))
-            db.commit()
-        finally:
-            db.close()
-    r["more_batch"] = more
+    r["more_batch"] = scheduler.confirm_more(user)
     return r
 
 

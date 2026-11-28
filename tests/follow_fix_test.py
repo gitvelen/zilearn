@@ -57,7 +57,8 @@ def reset_test_user():
     conn = sqlite3.connect(DB)
     uid = conn.execute("SELECT id FROM users WHERE username='test'").fetchone()[0]
     conn.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL,
-                    plan_start=NULL, plan_base_learned=0, confirm_upto=0, onboarded=0,
+                    plan_start=NULL, plan_base_learned=0, confirm_upto=0, confirm_book=NULL, confirm_seq=NULL,
+                    onboarded=0,
                     day_offset=0 WHERE id=?""", (uid,))
     for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports",
               "follow_log", "daily_mail"):

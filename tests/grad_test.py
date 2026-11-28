@@ -54,7 +54,8 @@ def clean_test_data(uid):
     """清 test 账号学习状态（mido 零接触），保证测试幂等；v60 加 grad 两列复位"""
     db = database.get_db()
     db.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL,
-                  plan_base_learned=0, confirm_upto=0, onboarded=0, day_offset=0,
+                  plan_base_learned=0, confirm_upto=0, confirm_book=NULL, confirm_seq=NULL,
+                  onboarded=0, day_offset=0,
                   grad_pending=0, grad_anchor=NULL WHERE id=?""", (uid,))
     for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports", "follow_log", "daily_mail"):
         db.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))

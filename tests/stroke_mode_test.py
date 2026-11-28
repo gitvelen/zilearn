@@ -52,7 +52,8 @@ def clean_test_data(uid):
     """清 test 账号学习状态（mido/mily 零接触）；mode 由调用方管理（本测试翻/复原）"""
     db = database.get_db()
     db.execute("""UPDATE users SET grade=NULL, target_chars=NULL, plan_days=NULL, plan_start=NULL,
-                  plan_base_learned=0, confirm_upto=0, onboarded=0, day_offset=0,
+                  plan_base_learned=0, confirm_upto=0, confirm_book=NULL, confirm_seq=NULL,
+                  onboarded=0, day_offset=0,
                   grad_pending=0, grad_anchor=NULL WHERE id=?""", (uid,))
     for t in ("user_hanzi", "confirm_pick", "quiz_log", "stars", "weekly_reports", "follow_log", "daily_mail"):
         db.execute(f"DELETE FROM {t} WHERE user_id=?", (uid,))
@@ -166,6 +167,10 @@ def normal_isolation_tests(uid):
     try:
         scheduler.today_str = lambda: D(0)
         scheduler.create_plan(uid, 14, 7)
+        db = database.get_db()                      # v69：直调 create_plan 不经 /api/confirm/submit 收尾，
+        db.execute("UPDATE users SET onboarded=1 WHERE id=?", (uid,))   # 而 normal 摸底没做完不发新字——补「摸底做完」态
+        db.commit()
+        db.close()
         t = scheduler.build_today(uid)
         check("normal 无 stroke 键（响应与改动前一致）", "stroke" not in t)
         check("normal daily_new 恢复扣周测口径（3 而非 2）", len(t["new"]) == 3, str(len(t["new"])))
